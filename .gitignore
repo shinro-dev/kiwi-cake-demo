@@ -1,0 +1,8 @@
+release/
+state/
+dist/
+*.tar.gz
+*.tar.gz.asc
+.playwright/
+.playwright-mcp/
+*.swp

@@ -1,0 +1,50 @@
+kiwi-cake-demo
+
+Copyright 2026 Shinro SAS. All rights reserved.
+
+This project is licensed under the Business Source License 1.1 (see LICENSE).
+The binaries distributed from this project's releases are provided for
+evaluation only. They are distributed without source code and without warranty
+of any kind, express or implied, to the extent permitted by applicable law, as
+stated in LICENSE.
+
+Third-party software statically linked into the binaries
+---------------------------------------------------------
+
+The binaries cake-resident, admin-probe, demo-plan and demo-preflight are
+built from Shinro SAS's private sources together with the following
+third-party Rust crates, whose license texts are reproduced under
+THIRD_PARTY_LICENSES/:
+
+  block-buffer      0.10.4   MIT OR Apache-2.0
+  cfg-if            1.0.4    MIT OR Apache-2.0
+  cpufeatures       0.2.17   MIT OR Apache-2.0
+  crypto-common     0.1.7    MIT OR Apache-2.0
+  curve25519-dalek  4.1.3    BSD-3-Clause
+  digest            0.10.7   MIT OR Apache-2.0
+  ed25519           2.2.3    Apache-2.0 OR MIT
+  ed25519-dalek     2.2.0    BSD-3-Clause
+  generic-array     0.14.7   MIT
+  libc              0.2.189  MIT OR Apache-2.0
+  sha2              0.10.9   MIT OR Apache-2.0
+  signature         2.2.0    Apache-2.0 OR MIT
+  subtle            2.6.1    BSD-3-Clause
+  typenum           1.20.1   MIT OR Apache-2.0
+  zeroize           1.9.0    Apache-2.0 OR MIT
+
+and the Rust standard library, copyright The Rust Project Contributors,
+licensed under MIT OR Apache-2.0 (THIRD_PARTY_LICENSES/rust-std/). The
+standard library itself bundles further permissively licensed components,
+whose notices the Rust project publishes with each toolchain release.
+
+Where a crate is offered under a choice of licenses, Shinro SAS uses it under
+the MIT license.
+
+Trademarks and unrelated projects
+---------------------------------
+
+LeRobot and LeKiwi are projects of Hugging Face and their contributors. This
+project does not include, modify or redistribute any part of LeRobot; the
+demo supervises a LeRobot host program that the user installs separately.
+Raspberry Pi is a trademark of Raspberry Pi Ltd. "Business Source License" is
+a trademark of MariaDB plc. Cake and Shinro are names of Shinro SAS.
