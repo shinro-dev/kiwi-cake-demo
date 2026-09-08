@@ -1,0 +1,1 @@
+demo-preflight: REFUSED: check glibc: glibc 2.36, below the tested board's 2.41 or below the target profile's libc_min 2.34

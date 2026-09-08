@@ -1,0 +1,1 @@
+demo-preflight: REFUSED: check observer: --observer-module was not given, so the module this board builds for itself would first be exercised by the resident; that is the divergence this check exists to close

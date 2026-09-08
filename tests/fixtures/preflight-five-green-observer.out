@@ -1,0 +1,11 @@
+demo-preflight: tested board record Raspberry Pi 5 Model B Rev 1.0 page_size 16384 glibc 2.41
+demo-preflight: active profile page_size 16384 libc_min 2.34 allowed_dependencies libc.so.6
+demo-preflight: page size 16384
+demo-preflight: glibc 2.41
+demo-preflight: vm.memfd_noexec_scope absent on this kernel
+demo-preflight: check admission the staged capsule is admitted against the active profile
+demo-preflight: module pt load alignment 0x10000
+demo-preflight: module pt load alignment 0x10000
+demo-preflight: module pt load alignment 0x10000
+demo-preflight: module pt load alignment 0x10000
+demo-preflight: check load-probe mapped through the sealed loader path with 4 seals and resolved the entry symbol

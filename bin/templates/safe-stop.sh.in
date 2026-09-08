@@ -1,0 +1,14 @@
+#!/bin/sh
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# safe-stop.sh: the post-exit safe-stop command the Cake supervisor runs once
+# for every child exit it observes. The supervisor passes the arguments you
+# configured; the demo runner passes one, the path of a log file, as $1.
+#
+# This template only appends a line to that log. It touches no device. If
+# you make it stop the robot, keep it short (the supervisor ends it after a
+# bounded deadline), test it on a stand first, and read SAFETY.md again.
+# There is nothing to fill in here unless you want it to do more.
+log="${1:-/tmp/kiwi-cake-safe-stop.log}"
+printf 'safe-stop ran at %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$log" 2>/dev/null
+exit 0

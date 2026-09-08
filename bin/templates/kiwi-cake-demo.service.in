@@ -1,0 +1,23 @@
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# kiwi-cake-demo.service: a USER unit (systemctl --user) for the Cake resident
+# in segment 2. Installed by bin/demo-segment2.sh from this template with the
+# two absolute paths filled in; no sudo, nothing system-wide.
+#
+# Restart=on-abnormal is the relaunch mechanism the crash-recovery beat
+# rests on: a SIGKILL is an abnormal exit, so systemd starts the resident
+# again from the same command and the same configuration file. It resumes
+# nothing: the relaunched process is a fresh activation of the Plan its
+# configuration names. Run `loginctl enable-linger $USER` once if the unit
+# must outlive your ssh session.
+[Unit]
+Description=kiwi-cake-demo: Cake resident supervising the LeKiwi host (user unit)
+
+[Service]
+Type=simple
+ExecStart=@@CAKE_RESIDENT@@ --config @@RESIDENT_CONF@@
+Restart=on-abnormal
+RestartSec=2
+
+[Install]
+WantedBy=default.target
