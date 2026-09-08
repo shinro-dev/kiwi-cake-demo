@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Test double for demo-plan (see README.md). Not Cake.
+set -uo pipefail
+sub="${1:-}"; shift || true
+case "$sub" in
+  build)
+    OUT=""; KEY=""; TAG=""; CHILD=""; SAFE=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --out-dir) OUT="$2"; shift 2 ;;
+        --signing-key-file) KEY="$2"; shift 2 ;;
+        --run-tag) TAG="$2"; shift 2 ;;
+        --child-command) CHILD="$2"; shift 2 ;;
+        --child-stop-signal) shift 2 ;;
+        --safe-stop-command) SAFE+=("$2"); shift 2 ;;
+        --gate-fixture-key) echo "mock: --gate-fixture-key must never be used by the runner" >&2; exit 9 ;;
+        *) echo "demo-plan: unknown argument $1" >&2; exit 1 ;;
+      esac
+    done
+    [ -n "$OUT" ] || { echo "demo-plan: --out-dir is required" >&2; exit 1; }
+    [ -n "$KEY" ] || { echo "demo-plan: one of --signing-key-file PATH or --gate-fixture-key is required" >&2; exit 1; }
+    PUB="$(sed -nE 's/^ed25519-public ([0-9a-f]{64})$/\1/p' "$KEY")"
+    mkdir -p "$OUT/store/objects" "$OUT/artifacts" "$OUT/child"
+    head -c 4096 /dev/urandom >"$OUT/artifacts/supervisor.cakecap"
+    DIGEST="$(sha256sum "$OUT/artifacts/supervisor.cakecap" | cut -d' ' -f1)"
+    cp "$OUT/artifacts/supervisor.cakecap" "$OUT/store/objects/$DIGEST"
+    { cat "$OUT/artifacts/supervisor.cakecap"; printf 'UNSIGNED'; } >"$OUT/artifacts/supervisor-unsigned.cakecap"
+    printf '%s\n' "$PUB" >"$OUT/artifacts/supervisor.cakecap.pub"
+    if [ -z "$CHILD" ]; then
+      CHILD="$OUT/child/stub-child.sh"
+      cat >"$CHILD" <<'STUB'
+#!/bin/sh
+# mock stub child: prints lines, then holds while its parent lives (a stand-in
+# for the parent-death signal the real supervisor installs), then exits.
+lines="${1:-0}"; status="${2:-0}"; hold="${3:-0}"
+i=0; while [ "$i" -lt "$lines" ]; do i=$((i + 1)); echo "supervisor stub line $i"; done
+parent="$PPID"
+h=0; while [ "$h" -lt "$hold" ]; do h=$((h + 1)); kill -0 "$parent" 2>/dev/null || exit 0; sleep 0.1; done
+exit "$status"
+STUB
+      chmod 755 "$CHILD"
+    fi
+    PLAN_DIGEST="$(printf '%s' "$DIGEST-plan" | sha256sum | cut -d' ' -f1)"
+    printf 'CAKEPLN mock\ncapsule %s\nplan_digest %s\n' "$DIGEST" "$PLAN_DIGEST" >"$OUT/plan.cakepln"
+    {
+      echo "run_tag $TAG"; echo "child_command $CHILD"
+      for s in "${SAFE[@]:-}"; do [ -n "$s" ] && echo "safe_stop $s"; done
+    } >"$OUT/mock-config"
+    printf 'capsule_digest %s\n' "$DIGEST"
+    printf 'capsule_path %s\n' "$OUT/artifacts/supervisor.cakecap"
+    printf 'child_command %s\n' "$CHILD"
+    printf 'plan_artifact %s\n' "$OUT/plan.cakepln"
+    printf 'public_key %s\n' "$PUB"
+    printf 'run_tag %s\n' "$TAG"
+    printf 'slot_name supervisor.lekiwi\n'
+    printf 'store_root %s\n' "$OUT/store"
+    printf 'unsigned_capsule_path %s\n' "$OUT/artifacts/supervisor-unsigned.cakecap"
+    ;;
+  verify)
+    CAP=""; TRUSTED=""
+    while [ $# -gt 0 ]; do
+      case "$1" in --capsule) CAP="$2"; shift 2 ;; --trusted) TRUSTED="$2"; shift 2 ;; --policy | --scratch) shift 2 ;; *) shift ;; esac
+    done
+    [ -n "$CAP" ] || { echo "demo-plan: --capsule is required" >&2; exit 1; }
+    echo "policy require"; echo "trusted_keys 1"
+    if tail -c 8 "$CAP" | grep -q UNSIGNED; then echo "verdict refused"; echo "reason signature_missing"; exit 0; fi
+    PUB="$(cat "${CAP}.pub" 2>/dev/null)"
+    if [ "$PUB" = "$TRUSTED" ]; then echo "verdict admitted"; else echo "verdict refused"; echo "reason signature_key_id_not_trusted"; fi
+    ;;
+  "") printf 'usage: demo-plan build --out-dir DIR (--gate-fixture-key | --signing-key-file PATH)\n' >&2; exit 1 ;;
+  *) echo "demo-plan: '$sub' is not one of build, verify" >&2; exit 1 ;;
+esac

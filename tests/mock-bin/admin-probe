@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Test double for admin-probe (see README.md). Not Cake.
+set -uo pipefail
+[ "${1:-}" = "request" ] || { printf 'usage: admin-probe request SOCKET_PATH OPERATION\n' >&2; exit 1; }
+SOCK="$2"; OP="$3"; STATE="$SOCK.state"
+[ -S "$SOCK" ] && [ -d "$STATE" ] || { echo "admin-probe: connect failed: No such file or directory (os error 2)" >&2; exit 1; }
+seq_next() { local n; n="$(grep -c '^record ' "$STATE/flight" 2>/dev/null || echo 0)"; echo "$n"; }
+mint_admin() { printf 'record arg0=1000 arg1=1000 correlation=0 epoch=0 event=0x0b000001 flags=0 sequence=%s severity=0 subject=%s\n' "$(seq_next)" "$$" >>"$STATE/flight"; }
+header() { echo "status ok"; echo "replay 0"; echo "snapshot_present 1"; cat "$STATE/status"; }
+case "$OP" in
+  get-status) header; mint_admin ;;
+  list-slots) header; echo "slot capsule=$(sed -n 's/^capsule //p' "$STATE/plan") config=b2b7 generation=1 instance=1 name=supervisor.lekiwi state=ACTIVE uuid=50505430405080500000737570657276"; mint_admin ;;
+  read-flight) echo "status ok"; echo "replay 0"; echo "snapshot_present 0"; echo "flight_records $(seq_next)"; cat "$STATE/flight"; mint_admin ;;
+  get-health) echo "status unavailable" ;;
+  *) echo "admin-probe: unknown operation $OP" >&2; exit 1 ;;
+esac

@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Test double for cake-resident (see README.md). Not Cake. It imitates the
+# stdout and stderr lines the runner parses, holds a real Unix socket, spawns
+# the configured child with the four positional fields and the run tag,
+# restarts it when it exits, records supervisor events, runs the safe-stop
+# command once per exit, and stops cleanly on SIGTERM.
+set -uo pipefail
+CONF=""
+[ "${1:-}" = "--config" ] && CONF="${2:-}"
+[ -n "$CONF" ] || CONF="/etc/cake/resident.conf"
+[ -r "$CONF" ] || { echo "cake-resident: refused: cannot read configuration $CONF: No such file or directory (os error 2)" >&2; exit 1; }
+val() { sed -nE "s/^$1 = (.*)\$/\\1/p" "$CONF" | head -n 1; }
+STORE="$(val store_root)"; SOCK="$(val admin_socket_path)"; PLAN="$(val plan_artifact)"; TRUSTED="$(val trusted_keys)"
+KEYID="$(printf '%s' "$TRUSTED" | sha256sum | cut -d' ' -f1)"
+echo "cake-resident: signature policy require, trusted keys loaded 1, trusted key ids $KEYID"
+echo "cake-resident: journal at start format version 1, records read 0, torn tail none, journal created, next sequence 1"
+echo "cake-resident: durable start fresh install, no committed record to recover"
+CAP="$(sed -n 's/^capsule //p' "$PLAN")"; PLAN_DIGEST="$(sed -n 's/^plan_digest //p' "$PLAN")"
+OBJ="$STORE/objects/$CAP"
+ACTUAL="$(sha256sum "$OBJ" 2>/dev/null | cut -d' ' -f1)"
+if [ "$ACTUAL" != "$CAP" ]; then
+  mkdir -p "$STORE/quarantine"; cp "$OBJ" "$STORE/quarantine/$CAP" 2>/dev/null
+  echo "cake-resident: refused: plan store-object-mismatch: the Plan's content-addressed store is unavailable: the object under content identity $CAP does not match its own bytes; refused" >&2
+  exit 1
+fi
+BUNDLE="$(dirname "$STORE")"
+RUN_TAG="$(sed -n 's/^run_tag //p' "$BUNDLE/mock-config")"
+CHILD="$(sed -n 's/^child_command //p' "$BUNDLE/mock-config")"
+mapfile -t SAFE < <(sed -n 's/^safe_stop //p' "$BUNDLE/mock-config")
+STATE="$SOCK.state"; rm -rf "$STATE"; mkdir -p "$STATE"
+SESSION="$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+{
+  echo "build_identity 1111111111111111111111111111111111111111111111111111111111111111"
+  echo "session_uuid $SESSION"
+  echo "target_profile_digest 2222222222222222222222222222222222222222222222222222222222222222"
+  echo "plan_digest $PLAN_DIGEST"
+  echo "epoch 2"; echo "slots 1"; echo "bindings 0"; echo "resources 1"
+  echo "config_identity $(sha256sum "$CONF" | cut -d' ' -f1)"
+  echo "transaction_state none"; echo "flight_sequence_oldest 0"
+} >"$STATE/status"
+cp "$PLAN" "$STATE/plan"
+: >"$STATE/flight"
+SEQ=0
+rec() { printf 'record arg0=%s arg1=%s correlation=0 epoch=2 event=%s flags=0 sequence=%s severity=0 subject=1\n' "$1" "$2" "$3" "$SEQ" >>"$STATE/flight"; SEQ=$((SEQ + 1)); }
+rec 0 0 0x01000001; rec 0 0 0x05000002; rec 0 0 0x05000006; rec 1 0 0x03000001
+rm -f "$SOCK"
+python3 - "$SOCK" <<'PY' &
+import os, socket, sys, time
+p = sys.argv[1]
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.bind(p); s.listen(1)
+parent = os.getppid()
+while os.getppid() == parent:
+    time.sleep(0.1)
+try: os.unlink(p)
+except OSError: pass
+PY
+SOCK_HELPER=$!
+for _ in $(seq 1 100); do [ -S "$SOCK" ] && break; sleep 0.05; done
+echo "cake-resident: plan active bindings=0 digest=$PLAN_DIGEST epoch=2 resources=1 slots=1"
+echo "cake-resident: ready pid=$$"
+ORDINAL=0; SPAWNS=0; CHILD_PID=""
+spawn() { "$CHILD" 3 0 900 "$RUN_TAG" >/dev/null 2>&1 & CHILD_PID=$!; SPAWNS=$((SPAWNS + 1)); rec "$ORDINAL" "$SPAWNS" 0x05fffffc; }
+STOPPING=0
+on_term() {
+  STOPPING=1
+  [ -n "$CHILD_PID" ] && kill -INT "$CHILD_PID" 2>/dev/null
+  wait "$CHILD_PID" 2>/dev/null
+  kill "$SOCK_HELPER" 2>/dev/null; wait "$SOCK_HELPER" 2>/dev/null
+  rm -f "$SOCK"
+  echo "cake-resident: stopped"
+  exit 0
+}
+trap on_term TERM INT
+spawn
+while :; do
+  wait "$CHILD_PID"; rc=$?
+  [ "$STOPPING" -eq 1 ] && exit 0
+  if [ "$rc" -gt 128 ]; then word=$((rc - 128)); else word=$((rc << 8)); fi
+  rec "$word" "$ORDINAL" 0x05fffffb
+  if [ "${#SAFE[@]}" -ge 1 ]; then "${SAFE[@]}" >/dev/null 2>&1; rec $? "$ORDINAL" 0x05fffff6; fi
+  ORDINAL=$((ORDINAL + 1))
+  sleep 0.2
+  spawn
+done
