@@ -71,7 +71,12 @@ kc_say "running the strings gate over ${#BINS[@]} binaries"
 "$ROOT/tools/strings-gate.sh" "${BINS[@]}" || kc_fail "the strings gate refused a binary; nothing was assembled" 1
 
 # 3 and 4. assemble
+# Resolved to an absolute path now: the tarball write below runs inside a
+# subshell that has already cd'd to a scratch directory, so a relative --out
+# would otherwise be interpreted against that scratch directory instead of
+# the caller's cwd.
 mkdir -p "$OUT" || kc_fail "cannot create $OUT"
+OUT="$(cd "$OUT" && pwd)" || kc_fail "cannot resolve $OUT to an absolute path"
 # Every file in the tarball carries one mtime: SOURCE_DATE_EPOCH when set,
 # else the commit time of this checkout's HEAD; the MANIFEST records the same
 # instant as build_date, so two assemblies from one commit are byte-identical.
