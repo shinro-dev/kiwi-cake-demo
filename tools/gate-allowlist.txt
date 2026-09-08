@@ -1,0 +1,5 @@
+# tools/gate-allowlist.txt: text the release gate tolerates in a public
+# binary, one entry per line (at least 16 characters), a tab, then the reason.
+# A hit is tolerated when an entry is contained in it. Empty under the current
+# ruling: every hit is a failure. A line here is a disclosed residual and must
+# also appear in LIMITATIONS.md.
