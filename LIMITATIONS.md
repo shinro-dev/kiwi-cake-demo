@@ -140,11 +140,12 @@ still shows the following, all of it disclosed here rather than asserted away:
   inputs to digests and key derivations (the fixture key's seed is derived
   from one of them), so they are part of what the binaries compute, not
   decoration. Measured on the build this release derives from:
-  `cake gate1 t011 rotation key a`, `cake gate3 T050 lekiwi supervisor`,
-  `cake gate3 T050 supervisor toolchain provenance` and
-  `cake gate3 T051 demo plan policy`. The released binaries' own gate
-  evidence is the authority for the final set, and this list is kept in
-  step with it.
+  `cake gate1 t011 rotation key a`, `cake gate3 T050 lekiwi supervisr`
+  (quoted exactly as it appears in the binary; a pre-existing internal
+  label typo, functionally inert), `cake gate3 T050 supervisor toolchain
+  provenance` and `cake gate3 T051 demo plan policy`. The released
+  binaries' own gate evidence is the authority for the final set, and
+  this list is kept in step with it.
 - The text of the embedded tested-board record, including its comment
   header, which names the board and the tools the facts were read with.
 - The public half of the fixture key described above.
