@@ -304,8 +304,19 @@ step_ok resident-kill
 # --- 12. clean stop --------------------------------------------------------------------------------
 kill -TERM "$RES_PID" || step_fail clean-stop "cannot send SIGTERM to the resident"
 wait "$RES_PID" 2>/dev/null
+STOP_STATUS=$?
 RES_PID=""
-grep -q '^cake-resident: stopped$' "$KC_RUN/second.out" || step_fail clean-stop "the resident did not print its stopped line"
+echo "the resident ended with status $STOP_STATUS after SIGTERM"
+[ "$STOP_STATUS" -eq 0 ] || step_fail clean-stop "the resident ended with status $STOP_STATUS after SIGTERM, want 0"
+# wait only guarantees the process has exited, not that a redirected fd's
+# buffered writes have already landed where a separate `grep` will look for
+# them: poll briefly rather than checking once immediately after wait.
+FOUND_STOPPED=0
+for _ in $(seq 1 20); do
+  grep -q '^cake-resident: stopped$' "$KC_RUN/second.out" 2>/dev/null && { FOUND_STOPPED=1; break; }
+  sleep 0.1
+done
+[ "$FOUND_STOPPED" -eq 1 ] || step_fail clean-stop "the resident did not print its stopped line within 2s of exiting"
 [ ! -S "$SOCK" ] || step_fail clean-stop "the admin socket is still present after the stop"
 kc_settle_absent "$RUN_TAG" 400 || step_fail clean-stop "a child survived the clean stop"
 echo "cake-resident: stopped; socket removed; no child"
