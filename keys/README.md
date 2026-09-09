@@ -8,14 +8,13 @@ directory identify it:
 | Item | Value |
 | --- | --- |
 | Public key file | `shinro-release-signing.pub.asc` (ASCII-armored) |
-| Fingerprint | `PLACEHOLDER_FINGERPRINT_REPLACE_ME` |
+| Fingerprint | `5AB8730BB8420601F11965F46E6F9B724BB8EED2` |
 
-Both are placeholders until the maintainer replaces them. `bin/verify.sh` and
-`bin/fetch-release.sh` import the key file into a temporary keyring, check
-that the signature was made by the fingerprint above, and refuse to verify
-anything while either placeholder is still present.
+`bin/verify.sh` and `bin/fetch-release.sh` import the key file into a
+temporary keyring and check that the signature was made by the fingerprint
+above, refusing to verify anything while either is still a placeholder.
 
-To replace them as the maintainer:
+To replace them as the maintainer (for a future key rotation):
 
 ```
 gpg --armor --export <KEYID> > keys/shinro-release-signing.pub.asc

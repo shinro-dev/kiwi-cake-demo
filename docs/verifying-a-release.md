@@ -11,10 +11,10 @@ Every release carries, beside its tarballs:
 | `<tarball>.asc` | a detached, ASCII-armored GPG signature over that tarball |
 
 The signing key is `keys/shinro-release-signing.pub.asc` in this repository,
-with the fingerprint `PLACEHOLDER_FINGERPRINT_REPLACE_ME` (also stated in
-`keys/README.md`). The same `SHA256SUMS` is
-also committed under `releases/<version>/` so a download can be checked
-against the repository as well as against the release.
+with the fingerprint `5AB8730BB8420601F11965F46E6F9B724BB8EED2` (also stated
+in `keys/README.md`). The same `SHA256SUMS` is also committed under
+`releases/<version>/` so a download can be checked against the repository as
+well as against the release.
 
 ## With the tooling
 
