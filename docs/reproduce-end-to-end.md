@@ -257,14 +257,31 @@ demo's stop beat; that is when an unparked arm falls. Expected line:
 `teleop: client closed; the follower holds its pose under the host's torque
 until the host exits`.
 
-## The beats, back on the Pi
+## The beats, in two terminals
 
-Beat 2: type `CONFIRMED`. Beat 3 sends SIGTERM to the host only: the
-client on the laptop loses its connection, so start it again once the
-runner reports the fresh host listening; the signalled host leaves torque as
-it was and the new host enables it again on connect. Beat 4 kills the
-resident: the same note, and re-confirm the preconditions when asked. What
-each beat prints and checks is in `docs/segment-2-live.md`.
+Terminal A is an ssh session to the Pi running `bin/demo-segment2.sh`;
+terminal B is the laptop running `bin/laptop/teleop.py`. This is the
+alternation the operator performed; what each beat prints and checks in
+detail is in `docs/segment-2-live.md`.
+
+| Order | Terminal A (the Pi) | Terminal B (the laptop) | On the robot |
+| --- | --- | --- | --- |
+| 1 | `bin/demo-segment2.sh`, the acknowledgment, Enter at Beat 1: `host pid <n> listening on 5555 5556` | waits | the arm stiffens: torque on |
+| 2 | waits at the Beat 2 prompt | `bin/laptop/teleop.py ...`: `teleop: connected; the follower mirrors the leader` | the follower mirrors the leader |
+| 3 | types `CONFIRMED` | keeps running | unchanged |
+| 4 | Enter at Beat 3 (SIGTERM to the host only) | the client loses its connection while the host restarts; leave it or Ctrl-C it | the arm holds; the signalled host left torque as it was |
+| 5 | `host exited with signal 15 (sequence <n>), safe-stop ran (sequence <n>), fresh host pid <n> with restart ordinal 1; resident pid <n> and session unchanged` | waits | the arm re-stiffens as the fresh host enables torque |
+| 6 | waits at the Beat 4 acknowledgment | re-runs the client: mirroring again | the follower mirrors the leader |
+| 7 | re-types the acknowledgment, Enter at Beat 4 (SIGKILL to the resident) | the client loses its connection again | the arm holds |
+| 8 | `host <n> died with the resident (no orphan)`, then the BEFORE/AFTER block: `session_uuid <a> -> <b> (fresh)`, the four identities `IDENTICAL`, `TORQUE ENABLED BY THE HOST` | waits | the arm re-stiffens as the relaunched resident's host enables torque |
+| 9 | waits at the STOP prompt | re-runs the client: mirroring again | the follower mirrors the leader |
+| 10 | waits | parks the follower low by moving the leader, then Ctrl-C: `teleop: client closed; ...` (section 5g) | the follower holds the parked pose |
+| 11 | Enter at STOP: `stopped: no resident, no host, no socket, no listener` | done | the host's clean exit releases torque; the arm goes limp on its support |
+| 12 | the checks in `docs/stopping-and-cleanup.md` | done | unpowered |
+
+Torque is on from Beat 1 to the stop, and every restart re-enables it
+(`docs/claims.md` row 10); the client's connection is lost at every host
+restart because the host's sockets are the ones that close.
 
 ## The stop
 
