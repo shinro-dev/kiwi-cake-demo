@@ -83,7 +83,8 @@ bin/demo-segment2.sh
 4. Beat 1, on Enter: `systemctl --user start`. Expected: `plan active`, and
    your host listening on ports 5555 and 5556. Torque is now on.
 5. Beat 2: you type CONFIRMED once teleoperation works through the
-   supervised host from the laptop, or SKIP. This beat is your observation;
+   supervised host from the laptop with `bin/laptop/teleop.py`
+   (`docs/reproduce-end-to-end.md`, the laptop side), or SKIP. This beat is your observation;
    the runner records what you typed and measures nothing.
 6. Beat 3, on Enter: SIGTERM to the host only. Expected: the safe-stop event,
    then a fresh host with a new pid listening again, with the resident's pid

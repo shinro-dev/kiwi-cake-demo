@@ -206,7 +206,7 @@ beat_ok start
 
 # --- beat 2 ---------------------------------------------------------------------------------------------
 echo
-echo "BEAT 2: from the laptop, run your usual teleoperation client against this host."
+echo "BEAT 2: from the laptop, run bin/laptop/teleop.py against this host (docs/reproduce-end-to-end.md, the laptop side)."
 echo "This beat is your observation; the runner measures nothing here."
 echo "Type CONFIRMED when the follower mirrors the leader, or SKIP to go on without teleoperating."
 printf '> '

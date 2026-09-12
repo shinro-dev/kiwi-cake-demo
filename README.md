@@ -150,7 +150,9 @@ already have installed and working; this demo ships no part of LeRobot. It
 runs only on the tested Pi 5 configuration, only after the preflight accepts
 the board, only from an interactive terminal, and only after you have typed
 the acknowledgment of the physical preconditions that `SAFETY.md` lists.
-`docs/segment-2-live.md` is the runbook.
+`docs/segment-2-live.md` is the Pi-side runbook, and
+`docs/reproduce-end-to-end.md` is the one runbook that covers both
+machines, in order, from an empty Pi to the last beat.
 
 ## Supported targets
 
