@@ -2,6 +2,21 @@
 
 # Release notes
 
+## v0.1.2
+
+The binaries are the same bytes as in v0.1.1 and v0.1.0 (private source
+revision 79b52d9dda83c65bf2fc1172314e4570ab72782c, recorded in each
+tarball's `MANIFEST.txt`). What changed: the README is organized by
+machine, with a two-terminal walkthrough of segment 2 and a laptop
+checklist stating what was tested; `docs/stopping-and-cleanup.md` is the
+one ordered exit procedure, and the other documents point at it;
+`docs/demo-walkthrough.md` narrates each capability for a presenter, tied
+to `docs/claims.md`; `bin/demo-segment1.sh --pause` waits for Enter between
+steps so segment 1 can be narrated. One runner fix: Ctrl-C during segment 1
+now stops the run and exits 130; before, the trap ran the cleanup and let
+the script continue into the next step. v0.1.1 stays valid; v0.1.2
+supersedes it. Checksums: `releases/v0.1.2/SHA256SUMS`.
+
 ## v0.1.1
 
 Replaces v0.1.0, which is withdrawn. The four binaries are the same bytes as
