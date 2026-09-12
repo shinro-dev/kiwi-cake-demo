@@ -158,4 +158,6 @@ same by hand.
 
 Business Source License 1.1, Licensor Shinro SAS (France). See `LICENSE`,
 `LICENSE-NOTE.md` and `NOTICE`. The binaries are provided for evaluation
-only, without source and without warranty.
+only, without source and without warranty. One file is the exception:
+`bin/laptop/teleop.py` is derived from a LeRobot example and is under the
+Apache License, Version 2.0 (`NOTICE`).

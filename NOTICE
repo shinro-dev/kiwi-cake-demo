@@ -44,7 +44,14 @@ Trademarks and unrelated projects
 ---------------------------------
 
 LeRobot and LeKiwi are projects of Hugging Face and their contributors. This
-project does not include, modify or redistribute any part of LeRobot; the
-demo supervises a LeRobot host program that the user installs separately.
+project does not include or redistribute LeRobot itself; the demo supervises
+a LeRobot host program that the user installs separately. Three small files
+are shipped beside it: bin/laptop/teleop.py is derived from LeRobot's example
+examples/lekiwi/teleoperate.py (Copyright 2025 The HuggingFace Inc. team) and
+is licensed under the Apache License, Version 2.0, reproduced under
+THIRD_PARTY_LICENSES/lerobot/, not under the Business Source License;
+bin/pi/lekiwi_host_noninteractive.py imports the stock host and replaces one
+method at run time without copying its code; bin/pi/apply-lerobot-clamp-fix.sh
+applies one line of LeRobot's own later commit to a LeRobot checkout.
 Raspberry Pi is a trademark of Raspberry Pi Ltd. "Business Source License" is
 a trademark of MariaDB plc. Cake and Shinro are names of Shinro SAS.

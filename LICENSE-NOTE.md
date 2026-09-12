@@ -54,3 +54,7 @@ changed for v0.1.1.
 Binaries in this project are provided for evaluation only, without source and
 without warranty of any kind, in the license's own terms. `NOTICE` carries
 the third-party attributions the binaries require.
+
+One shipped file is not under the Business Source License:
+`bin/laptop/teleop.py` is derived from a LeRobot example and is licensed
+under the Apache License, Version 2.0 (`NOTICE`, `THIRD_PARTY_LICENSES/lerobot/`).

@@ -10,5 +10,9 @@ is in `NOTICE` at the repository root.
 `rust-std/` holds the MIT and Apache-2.0 license texts of the Rust standard
 library, which is linked into every binary.
 
+`lerobot/` holds the Apache License, Version 2.0 text of LeRobot, under which
+`bin/laptop/teleop.py` (derived from a LeRobot example) is licensed; LeRobot
+is not linked into any binary.
+
 Components that are used only at build time (procedural macro and
 build-script crates) are not linked into any binary and are not listed here.
