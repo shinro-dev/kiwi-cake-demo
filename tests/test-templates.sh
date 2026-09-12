@@ -20,6 +20,17 @@ grep -q '@@' "$T/run-child.sh" && echo "     (comment lines still mention @@PLAC
 kc_template_has_placeholder "$T/run-child.sh" && { echo "FAIL filled run-child.sh still refused"; FAILS=$((FAILS + 1)); } || echo "ok   filled run-child.sh is accepted"
 grep -q '^exec /usr/bin/python3 /opt/lerobot/host.py' "$T/run-child.sh" && echo "ok   the wrapper execs the host directly" || { echo "FAIL exec line"; FAILS=$((FAILS + 1)); }
 grep -vE '^[[:space:]]*#' "$T/run-child.sh" | grep -q '"\$@"' && { echo "FAIL the wrapper forwards the supervisor positionals"; FAILS=$((FAILS + 1)); } || echo "ok   the wrapper ignores the supervisor positionals"
+# The filled example: no placeholder, parses, keeps the safety flags, valid cameras JSON.
+EX="$ROOT/bin/templates/run-child.sh.example"
+kc_template_has_placeholder "$EX" && { echo "FAIL the example still carries a placeholder"; FAILS=$((FAILS + 1)); } || echo "ok   the example carries no placeholder"
+bash -n "$EX" && echo "ok   the example parses" || { echo "FAIL the example does not parse"; FAILS=$((FAILS + 1)); }
+grep -vE '^[[:space:]]*#' "$EX" | grep -q '"\$@"' && { echo "FAIL the example forwards the supervisor positionals"; FAILS=$((FAILS + 1)); } || echo "ok   the example ignores the supervisor positionals"
+for want in '^exec /' 'lekiwi_host_noninteractive.py' '--robot.max_relative_target=15.0' '--robot.disable_torque_on_disconnect=true' '--host.connection_time_s=86400' '/dev/serial/by-id/'; do
+  grep -q -- "$want" "$EX" && echo "ok   example has $want" || { echo "FAIL example lacks $want"; FAILS=$((FAILS + 1)); }
+done
+CAMS="$(grep -o "robot.cameras='[^']*'" "$EX" | sed "s/^robot.cameras='//; s/'\$//")"
+printf '%s' "$CAMS" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d and all(v.get("type")=="opencv" and v["index_or_path"].startswith("/dev/v4l/by-id/") and {"width","height","fps","rotation"} <= set(v) for v in d.values())' \
+  && echo "ok   example cameras JSON parses and every entry carries type opencv" || { echo "FAIL example cameras JSON"; FAILS=$((FAILS + 1)); }
 # The target slug: one tarball for every aarch64 Pi, none elsewhere.
 slug_for() { KC_ARCH="$1" KC_MODEL="$2" KC_PAGE_SIZE="$3" KC_GLIBC="$4" kc_target_slug; }
 [ "$(slug_for aarch64 'Raspberry Pi 4 Model B Rev 1.5' 4096 2.41)" = "pi5-aarch64" ] && echo "ok   a Pi 4 maps to the pi5-aarch64 tarball" || { echo "FAIL Pi 4 slug"; FAILS=$((FAILS + 1)); }

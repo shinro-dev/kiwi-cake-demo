@@ -47,6 +47,11 @@ appends a line to that log and has nothing to fill in. If you make it touch
 the robot, test it on a stand first, keep it short, and remember that the
 supervisor ends it after a bounded deadline.
 
+`bin/templates/run-child.sh.example` is the same template with every
+placeholder filled with example values; copy its shape, not its values. Two
+of them must match your own calibration: the robot id and the serial by-id
+path.
+
 The runner refuses to start while either file still carries a placeholder
 outside its comment lines.
 

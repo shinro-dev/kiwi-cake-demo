@@ -1,0 +1,39 @@
+#!/bin/bash
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# run-child.sh.example: bin/templates/run-child.sh.in with every placeholder
+# filled with EXAMPLE values, so the shape is visible before you fill your
+# own. No value below names a real device or account anywhere; replace each
+# one with yours. What each line is:
+#
+#   interpreter    the absolute path of the Python where LeRobot is installed
+#                  (the supervisor gives the child PATH=/usr/bin:/bin and
+#                  nothing else, so nothing here may rely on $HOME or on an
+#                  activated environment)
+#   host entry     the absolute path of bin/pi/lekiwi_host_noninteractive.py
+#                  in your checkout (scripts/pi/ inside a release tarball)
+#   --robot.id     the id you calibrated the LeKiwi with on this Pi
+#                  (lerobot-calibrate --robot.type=lekiwi --robot.id=...);
+#                  my_awesome_kiwi is LeRobot's documentation default. It is
+#                  not the leader arm's id, which lives on the laptop
+#   --robot.port   the servo bus adapter as a /dev/serial/by-id/ path, so it
+#                  survives re-enumeration (ls -l /dev/serial/by-id/); the
+#                  serial number part is yours
+#   --robot.max_relative_target=15.0         keep: bounds each commanded step
+#                  (needs the clamp fix on lerobot b4e2d0b, see the runbook)
+#   --robot.disable_torque_on_disconnect=true keep: torque off when the host
+#                  exits cleanly; a signalled host leaves torque as it was
+#   --robot.cameras  one JSON object; every entry needs "type": "opencv"
+#                  (the parser refuses an entry without it), an
+#                  index_or_path as a /dev/v4l/by-id/ path
+#                  (ls -l /dev/v4l/by-id/), width, height, fps and rotation
+#   --host.connection_time_s=86400  the stock default is 30 seconds, after
+#                  which the host exits on its own; the supervisor would then
+#                  restart it, and five such exits trip the restart bound
+exec /opt/lerobot/.venv/bin/python3 /opt/kiwi-cake-demo/bin/pi/lekiwi_host_noninteractive.py \
+  --robot.id=my_awesome_kiwi \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_XXXXXXXXXX-if00 \
+  --robot.max_relative_target=15.0 \
+  --robot.disable_torque_on_disconnect=true \
+  --robot.cameras='{"front":{"type":"opencv","index_or_path":"/dev/v4l/by-id/usb-Example_Camera_Example_Camera_0000000001-video-index0","fps":30,"width":640,"height":480,"rotation":0},"wrist":{"type":"opencv","index_or_path":"/dev/v4l/by-id/usb-Example_Camera_Example_Camera_0000000002-video-index0","fps":30,"width":480,"height":640,"rotation":90}}' \
+  --host.connection_time_s=86400
