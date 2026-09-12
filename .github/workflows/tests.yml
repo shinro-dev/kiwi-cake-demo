@@ -1,0 +1,17 @@
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# Runs the tests of the tooling itself on every push and pull request. It
+# proves the scripts, not Cake: the board smoke test needs a Raspberry Pi 5.
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  run-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: tool versions
+        run: shellcheck --version; gpg --version | head -n 1; python3 --version; strings --version | head -n 1
+      - name: tests/run-all.sh
+        run: tests/run-all.sh

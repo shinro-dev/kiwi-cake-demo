@@ -13,7 +13,7 @@ for f in "${FILES[@]}"; do
   if grep -q $'\xe2\x80\x94' "$f"; then echo "FAIL em-dash in $f"; FAILS=$((FAILS + 1)); fi
   if grep -qP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' "$f" 2>/dev/null; then echo "FAIL emoji in $f"; FAILS=$((FAILS + 1)); fi
   case "$f" in
-    *.md | *.sh | *.in | tools/* | bin/* | tests/*)
+    *.md | *.sh | *.in | tools/* | bin/* | tests/* | .github/*)
       case "$f" in tests/mock-bin/*|tests/fixtures/*|tools/gate-allowlist.txt) ;; *)
         head -n 3 "$f" | grep -q 'Copyright 2026 Shinro SAS' || { echo "FAIL missing copyright header in $f"; FAILS=$((FAILS + 1)); } ;;
       esac ;;
