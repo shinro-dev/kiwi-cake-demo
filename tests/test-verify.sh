@@ -39,7 +39,18 @@ rc="$(run)"; [ "$rc" = 0 ] && echo "ok   subkey signature accepted" || { echo "F
 # a lowercase, spaced fingerprint is normalised
 rc="$(KC_KEYS_DIR="$T/keys" KC_EXPECTED_FINGERPRINT="$(printf '%s' "$FPR" | tr 'A-F' 'a-f' | sed 's/..../& /g')" "$ROOT/bin/verify.sh" --version v9.9.9 "$T/rel/$TB" >/dev/null 2>&1; echo $?)"
 [ "$rc" = 0 ] && echo "ok   fingerprint normalised" || { echo "FAIL normalisation rc=$rc"; FAILS=$((FAILS + 1)); }
-# placeholder key
-rc="$(KC_KEYS_DIR="$ROOT/keys" "$ROOT/bin/verify.sh" --version v9.9.9 "$T/rel/$TB" >/dev/null 2>&1; echo $?)"
+# placeholder key: an isolated fixture, not the repo's live keys/ (which
+# holds the real release key once wired in) -- this must fail on the
+# placeholder marker regardless of the repo's own key state.
+mkdir -p "$T/placeholder-keys"
+cat >"$T/placeholder-keys/shinro-release-signing.pub.asc" <<'EOF'
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+PLACEHOLDER_RELEASE_SIGNING_KEY_REPLACE_ME
+This file is a placeholder. Replace it with the ASCII-armored public key
+that signs kiwi-cake-demo releases. verify.sh and fetch-release.sh refuse
+to verify anything while this placeholder is present.
+-----END PGP PUBLIC KEY BLOCK-----
+EOF
+rc="$(KC_KEYS_DIR="$T/placeholder-keys" "$ROOT/bin/verify.sh" --version v9.9.9 "$T/rel/$TB" >/dev/null 2>&1; echo $?)"
 [ "$rc" = 4 ] && echo "ok   placeholder key -> refused (4)" || { echo "FAIL placeholder rc=$rc"; FAILS=$((FAILS + 1)); }
 [ "$FAILS" -eq 0 ] && echo "test-verify: PASS" || { echo "test-verify: $FAILS failure(s)"; exit 1; }
