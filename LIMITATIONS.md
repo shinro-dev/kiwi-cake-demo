@@ -157,6 +157,22 @@ gate rejects host paths, private names and source-tree paths; it does not
 reject the internal identifiers listed above, which are disclosed here
 instead of being scanned for.
 
+## The stock host prompts for calibration on connect
+
+The stock LeKiwi host calls `LeKiwi.connect()`, which runs
+`LeKiwi.calibrate()` whenever the live servo registers disagree with the
+loaded calibration file, and `calibrate()` asks on standard input whether to
+use that file. Under the Cake supervisor there is no terminal: the question
+ends in `EOFError`, the host exits, the supervisor restarts it, and after
+five identical exits the supervisor reaches its restart bound and gives up,
+which the flight ring shows as `EVT_SUPERVISOR_RESTART_BOUND_REACHED`.
+Calibrating beforehand does not prevent it: the disagreement recurs. This is
+a property of the stock host, not of Cake, and Cake has no way to answer a
+prompt for a child. The demo ships `bin/pi/lekiwi_host_noninteractive.py`,
+which replaces that one method with the non-interactive rule (use the loaded
+file, or exit without writing to any motor) and otherwise runs the stock
+host unchanged; `docs/reproduce-end-to-end.md` uses it.
+
 ## Provided for evaluation
 
 The binaries are provided for evaluation only, without source and without

@@ -6,3 +6,5 @@ dist/
 .playwright/
 .playwright-mcp/
 *.swp
+__pycache__/
+*.pyc

@@ -19,8 +19,11 @@
 # Replace every @@PLACEHOLDER@@ with your own values. The demo runner refuses
 # to start while any placeholder remains.
 #
-#   @@PYTHON@@             the interpreter of the environment where LeRobot is installed
-#   @@HOST_ENTRY@@         your LeKiwi host entry point (a script that starts the host without prompting)
+#   @@PYTHON@@             the interpreter of the environment where LeRobot is installed (absolute path)
+#   @@HOST_ENTRY@@         the absolute path of bin/pi/lekiwi_host_noninteractive.py in this checkout
+#                          (scripts/pi/ inside a release tarball): the stock LeKiwi host minus
+#                          its calibration prompt, which crash-loops under the supervisor.
+#                          bin/templates/run-child.sh.example is this template filled in.
 #   @@ROBOT_ID@@           the robot id you calibrated with
 #   @@ROBOT_PORT@@         the serial port, preferably a /dev/serial/by-id/ path
 #   @@CAMERAS_JSON@@       the camera configuration your host expects, as one JSON object

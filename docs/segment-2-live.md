@@ -11,9 +11,11 @@ type the acknowledgment it states.
   reporting the preflight shape `five checks green, observer refused`. The
   runner refuses any other board and has no override.
 - A working LeKiwi host from your own LeRobot install. This demo ships no
-  part of LeRobot. The host must start without prompting on a terminal (it
-  runs as a supervised child with no controlling terminal), so calibrate
-  beforehand.
+  part of LeRobot except a small wrapper, `bin/pi/lekiwi_host_noninteractive.py`,
+  which starts the stock host without its calibration prompt; the stock host
+  cannot run as a supervised child because that prompt has no terminal to
+  read from (`LIMITATIONS.md`). Calibrate the robot once by hand first; the
+  wrapper then uses the calibration file without asking.
 - `systemd --user` available, and `loginctl enable-linger $USER` run once if
   you want the resident to outlive your ssh session.
 - Segment 1 passing on this board. Do not skip it.
