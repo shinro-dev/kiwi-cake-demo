@@ -65,7 +65,10 @@ tools/strings-gate.sh "$STAGING"/pi5-aarch64/{cake-resident,admin-probe,demo-pla
 
 step "3. assemble and sign"
 tools/build-release.sh --staging "$STAGING" --source-revision "$SRCREV" --version "$VERSION" --sign "$KEYID" || exit 1
-bin/verify.sh --version "$VERSION" dist || exit 1
+# Verify this version's tarball by path, not the whole dist/ directory: an
+# older version's tarballs left there would otherwise fail the directory
+# form, which checks every tarball it finds against one SHA256SUMS.
+bin/verify.sh --version "$VERSION" dist/kiwi-cake-demo-"$VERSION"-pi5-aarch64.tar.gz || exit 1
 git add "releases/$VERSION/SHA256SUMS"
 git diff --cached --quiet || git commit -q -m "Record the $VERSION release checksums" -m "Co-Authored-By: Claude <noreply@anthropic.com>"
 git log --oneline -1
