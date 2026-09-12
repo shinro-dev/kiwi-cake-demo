@@ -204,6 +204,7 @@ aligned to the SVG's wording, which is the wording the record supports.
 | `releases/` | the committed checksum list of each release, for cross-checking a download |
 | `.github/` | the workflow that runs the tooling tests on every push and pull request |
 | `CONTRIBUTING.md` | issues welcome; pull requests not accepted, and why |
+| `SECURITY.md` | how to report a vulnerability, privately, and what to include |
 | `VERSION` | the release version, one line, read by every script and shipped in every tarball |
 
 ## Verifying a release
@@ -212,6 +213,11 @@ Every release carries `SHA256SUMS`, a detached signature over it, and a
 detached signature over each tarball. `bin/verify.sh` checks all of them
 against the key in `keys/`; `docs/verifying-a-release.md` shows how to do the
 same by hand.
+
+## Reporting a vulnerability
+
+Privately, through GitHub's advisory form for this repository; `SECURITY.md`
+has the link and what to include. Never as a public issue.
 
 ## Contributing
 
