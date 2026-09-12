@@ -28,7 +28,7 @@ done
 # Nothing committed may name a home directory, a source tree layout, or (from the
 # untracked private-tokens file, when present) the private tree, its owner or its
 # machine. The private tokens live outside git on purpose: this test must not carry them.
-LEAK='/home/[a-z]|crates/[a-z]|fixtures/gate|vendor/[a-z]'
+LEAK='/home/[a-z]|crates/[a-z]|fixtures/gate|vendor/[a-z]|192\.168\.[0-9]+\.[0-9]+'
 PRIVATE="${KC_GATE_PRIVATE_TOKENS:-$ROOT/state/gate-private-tokens.txt}"
 if [ -f "$PRIVATE" ]; then
   LEAK="$LEAK|$(grep -v '^[[:space:]]*#' "$PRIVATE" | grep -v '^[[:space:]]*$' | paste -sd '|')"
