@@ -4,7 +4,7 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAILS=0
-for t in test-docs test-version test-python test-preflight-classify test-gate test-templates test-verify test-segment1-mock; do
+for t in test-docs test-version test-python test-preflight-classify test-gate test-templates test-verify test-walkthrough test-segment1-mock; do
   echo "=== $t ==="
   if "$ROOT/tests/$t.sh"; then :; else rc=$?; [ "$rc" -eq 75 ] && echo "(skipped: precondition missing)" || FAILS=$((FAILS + 1)); fi
 done
