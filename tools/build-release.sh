@@ -7,8 +7,8 @@
 #   tools/build-release.sh --staging DIR --source-revision HEX40 [--version vX.Y.Z]
 #                          [--sign KEYID] [--allow-license-placeholders] [--out DIR]
 #
-# DIR holds one subdirectory per target slug (pi5-aarch64, pi4-aarch64), each
-# with the four binaries. For every target the script:
+# DIR holds a pi5-aarch64/ subdirectory with the four binaries; one tarball is
+# published, and a pi4-aarch64/ directory is ignored with a note. The script:
 #   1. refuses while LICENSE still carries a [PLACEHOLDER (unless allowed);
 #   2. runs tools/strings-gate.sh over the four binaries and refuses on a hit;
 #   3. assembles kiwi-cake-demo-<version>-<slug>/ with bin/, scripts/ (this
@@ -55,9 +55,13 @@ SLUGS=()
 for d in "$STAGING"/*/; do
   [ -d "$d" ] || continue
   s="$(basename "$d")"
-  case "$s" in pi5-aarch64 | pi4-aarch64) SLUGS+=("$s") ;; *) kc_warn "ignoring unknown staging directory $s" ;; esac
+  case "$s" in
+    pi5-aarch64) SLUGS+=("$s") ;;
+    pi4-aarch64) kc_say "ignoring $s: one tarball is published and a Raspberry Pi 4 uses pi5-aarch64 (docs/targets.md)" ;;
+    *) kc_warn "ignoring unknown staging directory $s" ;;
+  esac
 done
-[ "${#SLUGS[@]}" -ge 1 ] || kc_fail "no target directory (pi5-aarch64, pi4-aarch64) under $STAGING" 5
+[ "${#SLUGS[@]}" -eq 1 ] || kc_fail "no pi5-aarch64 directory under $STAGING" 5
 
 # 2. the gate, over every binary of every target, before anything is assembled
 BINS=()

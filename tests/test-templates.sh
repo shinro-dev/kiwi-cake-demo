@@ -20,6 +20,11 @@ grep -q '@@' "$T/run-child.sh" && echo "     (comment lines still mention @@PLAC
 kc_template_has_placeholder "$T/run-child.sh" && { echo "FAIL filled run-child.sh still refused"; FAILS=$((FAILS + 1)); } || echo "ok   filled run-child.sh is accepted"
 grep -q '^exec /usr/bin/python3 /opt/lerobot/host.py' "$T/run-child.sh" && echo "ok   the wrapper execs the host directly" || { echo "FAIL exec line"; FAILS=$((FAILS + 1)); }
 grep -vE '^[[:space:]]*#' "$T/run-child.sh" | grep -q '"\$@"' && { echo "FAIL the wrapper forwards the supervisor positionals"; FAILS=$((FAILS + 1)); } || echo "ok   the wrapper ignores the supervisor positionals"
+# The target slug: one tarball for every aarch64 Pi, none elsewhere.
+slug_for() { KC_ARCH="$1" KC_MODEL="$2" KC_PAGE_SIZE="$3" KC_GLIBC="$4" kc_target_slug; }
+[ "$(slug_for aarch64 'Raspberry Pi 4 Model B Rev 1.5' 4096 2.41)" = "pi5-aarch64" ] && echo "ok   a Pi 4 maps to the pi5-aarch64 tarball" || { echo "FAIL Pi 4 slug"; FAILS=$((FAILS + 1)); }
+[ "$(slug_for aarch64 'Raspberry Pi 5 Model B Rev 1.0' 16384 2.41)" = "pi5-aarch64" ] && echo "ok   a Pi 5 maps to the pi5-aarch64 tarball" || { echo "FAIL Pi 5 slug"; FAILS=$((FAILS + 1)); }
+[ -z "$(slug_for x86_64 unknown 4096 2.39)" ] && echo "ok   an x86-64 machine has no tarball" || { echo "FAIL x86-64 slug"; FAILS=$((FAILS + 1)); }
 # Process helpers.
 sleep 30 &
 CHILD=$!

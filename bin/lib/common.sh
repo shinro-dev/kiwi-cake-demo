@@ -84,9 +84,10 @@ kc_classify() {
 
 kc_target_slug() {
   # The release tarball slug for this board, or empty when none is published.
+  # One tarball is published; a Raspberry Pi 4 uses the Pi 5 bytes under
+  # --unsupported-target (docs/targets.md).
   case "$(kc_classify)" in
-    pi5-tested | pi5-untested-os) echo pi5-aarch64 ;;
-    pi4) echo pi4-aarch64 ;;
+    pi5-tested | pi5-untested-os | pi4) echo pi5-aarch64 ;;
     *) echo "" ;;
   esac
 }

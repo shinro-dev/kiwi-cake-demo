@@ -8,8 +8,8 @@
 #   bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION [VERSION]
 #
 #   KEYID            the GPG key that signs the release (keys/README.md)
-#   STAGING_DIR      a directory with pi5-aarch64/ and pi4-aarch64/, each
-#                    holding the four gate-clean binaries
+#   STAGING_DIR      a directory with pi5-aarch64/, holding the four
+#                    gate-clean binaries (one tarball is published)
 #   SOURCE_REVISION  the 40-character private source commit the binaries
 #                    were built from (recorded in MANIFEST.txt only)
 #   VERSION          default: the VERSION file at the repository root
@@ -59,8 +59,7 @@ step "1. tests"
 tests/run-all.sh || exit 1
 
 step "2. the strings gate over the staged binaries"
-tools/strings-gate.sh "$STAGING"/pi5-aarch64/{cake-resident,admin-probe,demo-plan,demo-preflight} \
-  "$STAGING"/pi4-aarch64/{cake-resident,admin-probe,demo-plan,demo-preflight} || exit 1
+tools/strings-gate.sh "$STAGING"/pi5-aarch64/{cake-resident,admin-probe,demo-plan,demo-preflight} || exit 1
 
 step "3. assemble and sign"
 tools/build-release.sh --staging "$STAGING" --source-revision "$SRCREV" --version "$VERSION" --sign "$KEYID" || exit 1

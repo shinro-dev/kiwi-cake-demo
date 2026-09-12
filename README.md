@@ -108,7 +108,7 @@ the acknowledgment of the physical preconditions that `SAFETY.md` lists.
 | --- | --- | --- |
 | Raspberry Pi 5, Raspberry Pi OS trixie (64-bit), default 16 KiB page kernel, glibc 2.41 | tested and primary | `kiwi-cake-demo-<version>-pi5-aarch64.tar.gz` |
 | Raspberry Pi 5 on bookworm, or booted with the 4 KiB kernel | provided as-is; the preflight refuses by construction; segment 1 only, behind `--unsupported-target` | same tarball |
-| Raspberry Pi 4 (aarch64) | provided as-is, untested; the preflight refuses by construction; segment 1 only, behind `--unsupported-target` | `kiwi-cake-demo-<version>-pi4-aarch64.tar.gz` (identical binaries to the Pi 5 tarball) |
+| Raspberry Pi 4 (aarch64) | provided as-is, untested; the preflight refuses by construction; segment 1 only, behind `--unsupported-target` | the `pi5-aarch64` tarball (same file) |
 | x86-64 desktop (the SO-101 desktop case) | not in this release | none |
 
 Every binary requires glibc 2.34 or newer and depends on `libc.so.6` alone.

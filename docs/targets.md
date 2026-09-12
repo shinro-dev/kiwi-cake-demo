@@ -11,7 +11,7 @@ dependency appears that the target profile refuses.
 | --- | --- | --- | --- | --- | --- |
 | Pi 5, tested | Raspberry Pi 5, Raspberry Pi OS based on Debian 13 (trixie), 64-bit, default kernel (16 KiB pages), glibc 2.41 | `pi5-aarch64` | five checks green, then the documented observer refusal | yes | yes |
 | Pi 5, other OS | Raspberry Pi 5 on bookworm (glibc 2.36), or any Pi 5 booted with `kernel=kernel8.img` (4 KiB pages) | `pi5-aarch64` | refuses at glibc or at page size, by construction | `--unsupported-target` only | no |
-| Pi 4 | Raspberry Pi 4, any 64-bit OS | `pi4-aarch64` (byte-identical to `pi5-aarch64`) | refuses at page size, by construction | `--unsupported-target` only, untested | no |
+| Pi 4 | Raspberry Pi 4, any 64-bit OS | `pi5-aarch64` (the only tarball; v0.1.0 also published the same bytes as `pi4-aarch64`) | refuses at page size, by construction | `--unsupported-target` only, untested | no |
 | x86-64 | Ubuntu or Debian desktop, the SO-101 desktop case | none in this release | refuses at page size; the resident refuses its own package | no | no |
 
 ## Why the preflight refuses what it refuses
@@ -69,5 +69,5 @@ not a demo. No x86-64 tarball is published in this release.
 
 The tested-board facts and both demo segments were captured on the Pi 5 row.
 The Pi 4 row and the other-OS Pi 5 row were not exercised by anyone; they are
-provided as-is because the binaries are the same bytes and the ELF facts say
-they should load, which is not the same as having run them.
+provided as-is because the tarball is the same file and the ELF facts say its
+binaries should load, which is not the same as having run them.

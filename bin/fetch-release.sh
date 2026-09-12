@@ -7,7 +7,7 @@
 # Nothing is extracted before verification passes.
 #
 # Options:
-#   --target SLUG    pi5-aarch64 or pi4-aarch64 (default: detected)
+#   --target SLUG    pi5-aarch64, the only published tarball (default: detected)
 #   --version vX.Y.Z (default: this checkout's release)
 #   --from DIR       use assets already downloaded into DIR (offline)
 set -uo pipefail
@@ -22,7 +22,7 @@ while [ $# -gt 0 ]; do
     --target) SLUG="${2:?--target needs a slug}"; shift 2 ;;
     --version) VERSION="${2:?--version needs a value}"; shift 2 ;;
     --from) FROM="${2:?--from needs a directory}"; shift 2 ;;
-    -h | --help) echo "usage: bin/fetch-release.sh [--target pi5-aarch64|pi4-aarch64] [--version vX.Y.Z] [--from DIR]"; exit 0 ;;
+    -h | --help) echo "usage: bin/fetch-release.sh [--target pi5-aarch64] [--version vX.Y.Z] [--from DIR]"; exit 0 ;;
     *) kc_fail "unrecognised argument '$1'" 5 ;;
   esac
 done
@@ -40,7 +40,8 @@ if [ -z "$SLUG" ]; then
   kc_say "detected $KC_MODEL ($KC_ARCH), page size $KC_PAGE_SIZE, glibc $KC_GLIBC: target $SLUG"
 fi
 case "$SLUG" in
-  pi5-aarch64 | pi4-aarch64) : ;;
+  pi5-aarch64) : ;;
+  pi4-aarch64) kc_fail "one tarball is published, pi5-aarch64; a Raspberry Pi 4 uses it (docs/targets.md)" 5 ;;
   *) kc_fail "unknown target slug '$SLUG'" 5 ;;
 esac
 
