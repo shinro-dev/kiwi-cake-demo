@@ -14,6 +14,8 @@
 #                         Pi 5 and run the doctor's own checks instead
 #                         (docs/targets.md); rejected on the tested board
 #   --keep                keep the built bundle and store under the run directory
+#   --pause               wait for Enter on standard input between steps, to narrate
+#                         the run; Ctrl-C at a pause stops everything and exits 130
 #
 # Exit codes: 0 PASS; 1 a step did not hold; 3 the board is refused; 5 usage.
 set -uo pipefail
@@ -22,10 +24,12 @@ set -uo pipefail
 
 UNSUPPORTED=0
 KEEP=0
+PAUSE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --unsupported-target) UNSUPPORTED=1; shift ;;
     --keep) KEEP=1; shift ;;
+    --pause) PAUSE=1; shift ;;
     -h | --help) sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) kc_fail "unrecognised argument '$1'" 5 ;;
   esac
@@ -41,7 +45,13 @@ kc_say "segment 1, run $RUN_ID, binaries $BIN"
 kc_say "torque-free: the child is a line-printing stub; nothing in this segment can move anything"
 
 STEP=0
-step_ok() { STEP=$((STEP + 1)); echo "KIWI-CAKE step $STEP/13 $1: ok"; }
+step_ok() {
+  STEP=$((STEP + 1)); echo "KIWI-CAKE step $STEP/13 $1: ok"
+  if [ "$PAUSE" -eq 1 ] && [ "$STEP" -lt 13 ]; then
+    echo "PAUSE: press Enter for step $((STEP + 1))/13"
+    IFS= read -r _ || step_fail pause "--pause needs a readable standard input (it was closed)" 5
+  fi
+}
 step_fail() { echo "KIWI-CAKE step $((STEP + 1))/13 $1: FAILED" >&2; kc_fail "$2" "${3:-1}"; }
 
 RES_PID=""
@@ -59,7 +69,11 @@ cleanup() {
   rm -f -- "$SOCK"
   if [ "$KEEP" -eq 0 ]; then rm -rf -- "$KC_RUN/bundle" "$KC_RUN/preflight" "$KC_RUN/verify-"*; fi
 }
-trap cleanup EXIT INT TERM HUP
+on_interrupt() { trap - EXIT INT TERM HUP; echo; echo "interrupted: stopping the resident and the child"; cleanup; exit 130; }
+on_term() { trap - EXIT INT TERM HUP; cleanup; exit 143; }
+trap cleanup EXIT
+trap on_interrupt INT
+trap on_term TERM HUP
 
 # --- 1. doctor ---------------------------------------------------------------------
 kc_facts

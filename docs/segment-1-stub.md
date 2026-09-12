@@ -12,7 +12,9 @@ bin/demo-segment1.sh
 
 Options: `--unsupported-target` (only honoured on a board that is not the
 tested Pi 5; see `docs/targets.md`), `--keep` (leave the run directory's
-bundle and store in place rather than removing them at the end).
+bundle and store in place rather than removing them at the end), `--pause`
+(wait for Enter between steps, to narrate the run; Ctrl-C at a pause stops
+the resident and the stub and exits 130).
 
 Each step prints one line of the form `KIWI-CAKE step N/13 <name>: ok` and
 the transcript is kept under `state/runs/<id>/transcript.txt`. The run ends
