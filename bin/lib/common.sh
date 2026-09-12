@@ -4,7 +4,6 @@
 # Shared functions for the kiwi-cake-demo scripts. Sourced by every script in
 # bin/ (repository layout) or scripts/ (release tarball layout); never run.
 
-export KC_VERSION="v0.1.0"
 export KC_REPO="shinro-dev/kiwi-cake-demo"
 export KC_RELEASE_KEY_FINGERPRINT="5AB8730BB8420601F11965F46E6F9B724BB8EED2"
 export KC_SEGMENT2_ACK="ROBOT ON STAND, WHEELS OFF GROUND, ARM PARKED, HAND NEAR POWER"
@@ -12,6 +11,18 @@ export KC_SEGMENT2_ACK="ROBOT ON STAND, WHEELS OFF GROUND, ARM PARKED, HAND NEAR
 KC_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KC_SCRIPTS_DIR="$(dirname "$KC_LIB_DIR")"
 KC_ROOT="$(dirname "$KC_SCRIPTS_DIR")"
+# The release version lives in one place: the VERSION file at the root of
+# the checkout or of the tarball. Every script reads it from there.
+if [ -r "$KC_ROOT/VERSION" ]; then
+  KC_VERSION="$(tr -d '[:space:]' <"$KC_ROOT/VERSION")"
+else
+  KC_VERSION=""
+fi
+case "$KC_VERSION" in
+  v[0-9]*.[0-9]*.[0-9]*) : ;;
+  *) printf 'kiwi-cake: FAIL: %s/VERSION is missing or is not vX.Y.Z\n' "$KC_ROOT" >&2; exit 1 ;;
+esac
+export KC_VERSION
 KC_STATE="${KC_STATE_DIR:-$KC_ROOT/state}"
 KC_KEYS_DIR="${KC_KEYS_DIR:-$KC_ROOT/keys}"
 KC_RUNTIME="${XDG_RUNTIME_DIR:-/tmp/kiwi-cake-demo-$(id -u)}/kiwi-cake-demo"

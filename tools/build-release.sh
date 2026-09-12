@@ -90,7 +90,7 @@ for s in "${SLUGS[@]}"; do
   mkdir -p "$T"
   # Only tracked files reach the tarball: an untracked or ignored file under
   # bin/ (a stray binary, an editor swap file) must never ship.
-  ( cd "$ROOT" && git ls-files -z bin docs README.md LIMITATIONS.md SAFETY.md LICENSE NOTICE | tar --null -T - -cf - ) | ( cd "$T" && tar -xf - ) ||
+  ( cd "$ROOT" && git ls-files -z bin docs README.md LIMITATIONS.md SAFETY.md SECURITY.md LICENSE NOTICE VERSION | tar --null -T - -cf - ) | ( cd "$T" && tar -xf - ) ||
     kc_fail "could not copy the tracked scripts and documents"
   mv -- "$T/bin" "$T/scripts" && mkdir -p "$T/bin" || kc_fail "could not lay out $T"
   for b in cake-resident admin-probe demo-plan demo-preflight; do

@@ -145,6 +145,7 @@ ports. The laptop side is unchanged either way.
 | `tools/` | maintainer side: the strings gate and the release assembler |
 | `keys/` | the release signing key |
 | `releases/` | the committed checksum list of each release, for cross-checking a download |
+| `VERSION` | the release version, one line, read by every script and shipped in every tarball |
 
 ## Verifying a release
 

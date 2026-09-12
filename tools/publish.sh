@@ -12,14 +12,14 @@
 #                    holding the four gate-clean binaries
 #   SOURCE_REVISION  the 40-character private source commit the binaries
 #                    were built from (recorded in MANIFEST.txt only)
-#   VERSION          default v0.1.0
+#   VERSION          default: the VERSION file at the repository root
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 KEYID="${1:?usage: bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION [VERSION]}"
 STAGING="${2:?STAGING_DIR is required}"
 SRCREV="${3:?SOURCE_REVISION is required}"
-VERSION="${4:-v0.1.0}"
+VERSION="${4:-$(tr -d '[:space:]' <VERSION)}"
 REPO="shinro-dev/kiwi-cake-demo"
 BRANCH="release/$VERSION"
 
