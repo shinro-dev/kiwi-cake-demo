@@ -2,7 +2,8 @@
 
 # kiwi-cake-demo
 
-Status: v0.1.1, an evaluation release. Binaries are on the Releases page:
+Status: an evaluation release. The version is the `VERSION` file; the
+binaries are on the Releases page:
 https://github.com/shinro-dev/kiwi-cake-demo/releases
 
 A precompiled demonstration of Cake, Shinro's control layer for robots,
@@ -13,6 +14,120 @@ No source code is distributed.
 
 The demo is released as-is, for evaluation. Read `LIMITATIONS.md` before
 you form an opinion, and read `SAFETY.md` before you let it touch a robot.
+
+## Which machine runs what
+
+| On the Raspberry Pi (in the LeKiwi) | On the laptop |
+| --- | --- |
+| `bin/fetch-release.sh`: download and verify the release | `lerobot` at commit b4e2d0b with the `lekiwi` and `viz` extras |
+| `bin/doctor.sh`: classify the board | the SO-101 leader arm on its `/dev/serial/by-id/` port, with its own calibration id |
+| `bin/demo-segment1.sh`, or `tests/smoke-segment1.sh`: segment 1, torque-free | `bin/laptop/teleop.py`: the teleoperation client |
+| `bin/run-child.sh` and `bin/safe-stop.sh`, written from `bin/templates/` | an ssh session to the Pi: terminal A of segment 2 |
+| `bin/demo-segment2.sh`: segment 2, on the live robot | |
+| `bin/demo-stop.sh`: the stop, at any time | |
+
+In order across the two machines:
+
+1. Pi: fetch the release, run the doctor, run segment 1 to its PASS line.
+2. Pi: install LeRobot with the clamp fix, calibrate the LeKiwi, prove the
+   stock host by hand once, write the two files.
+3. Laptop: install LeRobot, calibrate the leader arm.
+4. Pi, terminal A: segment 2 to Beat 1 (torque on).
+5. Laptop, terminal B: the client; then the beats alternate between the two
+   terminals as the table below shows.
+6. Laptop parks the follower and exits; Pi stops the resident.
+
+`docs/reproduce-end-to-end.md` is every step of that order in full.
+
+## What you need
+
+### On the Raspberry Pi
+
+- a Raspberry Pi 5 inside a LeKiwi: its SO-101 arm, three wheels, two
+  cameras, one servo controller;
+- the 64-bit Raspberry Pi OS based on Debian 13 (trixie), default kernel;
+- `git`, `openssl`, `gpg`, `tar`, and either `curl` or the GitHub CLI `gh`;
+- for segment 2 only: a Python environment with `lerobot` at commit
+  b4e2d0b and its `lekiwi` extra, plus the one-line clamp fix
+  (`bin/pi/apply-lerobot-clamp-fix.sh`); tested with Python 3.13, from the
+  system interpreter in a venv and from a conda environment.
+
+### On the laptop
+
+- Ubuntu 24.04 (tested: 24.04.4 LTS);
+- Python 3.13 (tested: 3.13.13 in a conda base environment; LeRobot itself
+  requires 3.12 or newer);
+- `lerobot` at commit `b4e2d0b61017a0db646a12c98a2df3837e37a1b9` with the
+  `lekiwi` and `viz` extras (`pip install -e ".[lekiwi,viz]"`);
+- membership of the `dialout` group, for the leader arm's serial port;
+- TCP 5555 and 5556 on the Pi reachable from the laptop, no firewall
+  between them;
+- the leader arm on its `/dev/serial/by-id/` port, calibrated once under
+  its own id (`<leader-id>`), which is not the robot's id (`<robot-id>`)
+  that lives on the Pi;
+- an ssh session to the Pi, for terminal A of segment 2;
+- a clone of this repository, for `bin/laptop/teleop.py`.
+
+Segment 1 needs only the Pi and none of the LeRobot parts.
+
+## Segment 1, on the Pi
+
+Torque-free: no robot, no LeRobot, nothing that opens a device.
+
+```
+git clone https://github.com/shinro-dev/kiwi-cake-demo.git
+cd kiwi-cake-demo
+bin/fetch-release.sh
+bin/doctor.sh
+tests/smoke-segment1.sh
+bin/demo-stop.sh
+```
+
+`fetch-release.sh` downloads the tarball for the release in `VERSION`,
+verifies its checksum and signature, and extracts it; `doctor.sh` says in
+plain language whether the preflight will accept the board; the smoke test
+runs the thirteen steps with assertions and ends with
+`KIWI-CAKE SEGMENT 1: PASS`; `demo-stop.sh` stops anything left running
+and is safe at any time. `docs/segment-1-stub.md` explains each step;
+`bin/demo-segment1.sh --pause` waits for Enter between steps.
+
+## Segment 2, in two terminals
+
+Segment 2 moves the arm. It runs only on the tested Pi 5, from an
+interactive terminal, after the acknowledgment in `SAFETY.md`, with
+`bin/run-child.sh` and `bin/safe-stop.sh` written from the templates.
+Terminal A is an ssh session to the Pi; terminal B is the laptop.
+
+| Order | Terminal A (the Pi) | Terminal B (the laptop) |
+| --- | --- | --- |
+| 1 | `bin/demo-segment2.sh` to Beat 1: the host listens, torque on | |
+| 2 | | `bin/laptop/teleop.py ...`: the follower mirrors the leader |
+| 3 | type `CONFIRMED` | |
+| 4 | Enter at Beat 3: SIGTERM to the host only | the client loses its connection |
+| 5 | a fresh host listens, resident and session unchanged | run the client again |
+| 6 | the acknowledgment again, Enter at Beat 4: SIGKILL to the resident | the client loses its connection |
+| 7 | the resident relaunched, identities identical, the host re-armed | run the client again |
+| 8 | | park the follower low via the leader, then Ctrl-C |
+| 9 | Enter at STOP: the host exits cleanly, torque off | |
+| 10 | the checks in `docs/stopping-and-cleanup.md` | |
+
+Every line, check and expected output is in `docs/reproduce-end-to-end.md`;
+the Pi-side detail of each beat is in `docs/segment-2-live.md`.
+
+## Stopping and cleanup
+
+Park the follower low, close the client, stop the resident, never signal
+the host directly. `docs/stopping-and-cleanup.md` is the ordered procedure
+with the motor state after each step, the commands that prove nothing is
+left, the removal of the user unit, what to do if a stop hangs, and the
+emergency stop.
+
+## Presenting the demo
+
+`docs/demo-walkthrough.md` narrates each capability in order: what to say
+it proves, tied to its row in `docs/claims.md`, the runner step that shows
+it, the exact line to point at, and the honest caveat. Run segment 1 with
+`bin/demo-segment1.sh --pause` to talk between steps.
 
 ## What Cake is
 
@@ -66,94 +181,6 @@ disarmed after a crash: the LeRobot host re-enables torque on every connect,
 and Cake has no torque concept to override that. `LIMITATIONS.md` states
 both plainly.
 
-## What you need
-
-Hardware:
-
-- a Raspberry Pi 5 inside a LeKiwi (the LeKiwi's own SO-101 arm, three
-  wheels, two cameras, one servo controller);
-- an SO-101 leader arm;
-- an Ubuntu laptop;
-- one LAN with the laptop and the Pi on it, no firewall between them.
-
-Software:
-
-- on the Pi: the 64-bit Raspberry Pi OS based on Debian 13 (trixie) with
-  its default kernel; `git`, `openssl`, `gpg`, `tar`, and either `curl` or
-  the GitHub CLI `gh`; for segment 2, a Python environment with `lerobot`
-  and its `lekiwi` extra;
-- on the laptop: a Python environment with `lerobot` and its `lekiwi` extra
-  (and `viz` for the rerun viewer), and a clone of this repository for
-  `bin/laptop/teleop.py`.
-
-Segment 1 needs only the Pi and none of the LeRobot parts.
-
-## How the demo flows
-
-Two segments, in order.
-
-Segment 1 is torque-free and needs no robot: the supervised child is a
-line-printing stub. Thirteen steps on your own board with your own key show
-the admission of a signed package, the refusal of a tampered one, live
-telemetry, a child kill and restart, a kill of the resident itself and its
-relaunch with identical declared identities, and a clean stop.
-`tests/smoke-segment1.sh` asserts every step.
-
-Segment 2 supervises your own LeKiwi host as the child, on the tested Pi 5
-only, from an interactive terminal, after the acknowledgment in
-`SAFETY.md`: the host starts under Cake and enables torque; you teleoperate
-through it from the laptop; the host is restarted after a SIGTERM; the
-resident is killed and relaunched with the host under it; then the clean
-stop. Every restart is a torque-on event.
-
-Why two segments: nothing that can move a motor runs before the board has
-passed the torque-free run, and everything segment 2 relies on is shown by
-segment 1 first.
-
-## Quick start: segment 1, no robot needed
-
-Requirements: a Raspberry Pi 5 running the 64-bit Raspberry Pi OS based on
-Debian 13 (trixie) with its default kernel; `git`, `openssl`, `gpg`, `tar`,
-and either `curl` or the GitHub CLI `gh`. No LeRobot install is needed and
-nothing in segment 1 can move anything.
-
-```
-git clone https://github.com/shinro-dev/kiwi-cake-demo.git
-cd kiwi-cake-demo
-bin/fetch-release.sh
-bin/doctor.sh
-bin/demo-segment1.sh
-bin/demo-stop.sh
-```
-
-`fetch-release.sh` detects the board, downloads the matching release
-tarball, verifies its checksum and signature, and extracts it under
-`release/`. `doctor.sh` reads the facts of your board and tells you in plain
-language whether the demo's preflight will accept it. `demo-segment1.sh`
-runs the whole torque-free sequence, refusing loudly first if your board
-diverges from the tested one. `demo-stop.sh` stops anything the demo left
-running, the segment 2 unit included, and is safe to run at any time. The
-segment ends with:
-
-```
-KIWI-CAKE SEGMENT 1: PASS
-```
-
-`docs/segment-1-stub.md` walks through what each step prints and what it
-proves. `tests/smoke-segment1.sh` runs the same sequence with assertions,
-which is how you confirm your setup before ever considering segment 2.
-
-## Segment 2: supervising your own LeKiwi host
-
-Segment 2 is opt-in and it moves the arm. It supervises the LeRobot host you
-already have installed and working; this demo ships no part of LeRobot. It
-runs only on the tested Pi 5 configuration, only after the preflight accepts
-the board, only from an interactive terminal, and only after you have typed
-the acknowledgment of the physical preconditions that `SAFETY.md` lists.
-`docs/segment-2-live.md` is the Pi-side runbook, and
-`docs/reproduce-end-to-end.md` is the one runbook that covers both
-machines, in order, from an empty Pi to the last beat.
-
 ## Supported targets
 
 | Target | Status | Release tarball |
@@ -197,7 +224,7 @@ aligned to the SVG's wording, which is the wording the record supports.
 | `bin/pi/` | the LeKiwi host wrapper the supervisor spawns in segment 2, and the lerobot clamp fix for the pinned commit |
 | `bin/laptop/` | the teleoperation client you run on the laptop (Apache License, Version 2.0) |
 | `bin/templates/` | the child wrapper (and a filled example of it), safe-stop command and systemd unit templates for segment 2 |
-| `docs/` | the record, the claims map, the target matrix, the two segment runbooks, release verification, event codes |
+| `docs/` | the record, the claims map, the target matrix, the runbooks, the stopping procedure, the presenter's walkthrough, release verification, event codes |
 | `tests/` | the smoke test and the tests of the tooling itself |
 | `tools/` | maintainer side: the strings gate and the release assembler |
 | `keys/` | the release signing key |
