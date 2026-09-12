@@ -173,6 +173,16 @@ which replaces that one method with the non-interactive rule (use the loaded
 file, or exit without writing to any motor) and otherwise runs the stock
 host unchanged; `docs/reproduce-end-to-end.md` uses it.
 
+A second defect of the stock host at the lerobot commit the demo was run
+with (b4e2d0b): the `--robot.max_relative_target` clamp raises on every
+command, because it indexes the present positions with the goal's key
+names. Run by hand, the host logs `Message fetching failed:
+'arm_shoulder_pan.pos'` and the follower never moves. lerobot fixed it in
+commit f66e512 (issue 4309). `bin/pi/apply-lerobot-clamp-fix.sh` applies
+that one line to a checkout at b4e2d0b, reports a checkout at or after
+f66e512 as already fixed, and refuses anything else; the runbook runs it
+before the first host start.
+
 ## Provided for evaluation
 
 The binaries are provided for evaluation only, without source and without

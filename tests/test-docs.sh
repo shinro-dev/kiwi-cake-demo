@@ -44,7 +44,7 @@ if git ls-files | grep -E '\.(sh|in)$' | xargs grep -nE "[A-Za-z]\"\"[A-Za-z]|[A
 fi
 # Shell.
 if command -v shellcheck >/dev/null 2>&1; then
-  shellcheck -S warning -s bash -x -P bin bin/*.sh bin/lib/common.sh tools/*.sh tests/*.sh || { echo "FAIL shellcheck"; FAILS=$((FAILS + 1)); }
+  shellcheck -S warning -s bash -x -P bin bin/*.sh bin/pi/*.sh bin/lib/common.sh tools/*.sh tests/*.sh || { echo "FAIL shellcheck"; FAILS=$((FAILS + 1)); }
 else
   echo "note: shellcheck not installed, skipped"
 fi

@@ -39,4 +39,18 @@ if [ -f "$T" ]; then
     *) echo "FAIL teleop.py --check-imports rc=$RC: $OUT"; FAILS=$((FAILS + 1)) ;;
   esac
 fi
+C="$ROOT/bin/pi/apply-lerobot-clamp-fix.sh"
+if [ -f "$C" ]; then
+  CT="$(mktemp -d "${TMPDIR:-/tmp}/kc-clamp.XXXXXX")"
+  mkdir -p "$CT/a/src/lerobot/robots/lekiwi" "$CT/b/src/lerobot/robots/lekiwi" "$CT/c/src/lerobot/robots/lekiwi"
+  printf 'def f():\n    goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in arm_goal_pos.items()}\n' >"$CT/a/src/lerobot/robots/lekiwi/lekiwi.py"
+  printf 'x = 1\n' >"$CT/b/src/lerobot/robots/lekiwi/lekiwi.py"
+  printf 'def f():\n    goal_present_pos = {key: (g_pos, present_pos[key.removesuffix(".pos")]) for key, g_pos in arm_goal_pos.items()}\n' >"$CT/c/src/lerobot/robots/lekiwi/lekiwi.py"
+  "$C" --check "$CT/a" >/dev/null 2>&1; RC=$?; [ "$RC" -eq 1 ] && echo "ok   clamp-fix --check reports not applied (1)" || { echo "FAIL clamp-fix --check rc=$RC"; FAILS=$((FAILS + 1)); }
+  "$C" --apply "$CT/a" >/dev/null 2>&1 && grep -q 'present_pos\[key.removesuffix(".pos")\]' "$CT/a/src/lerobot/robots/lekiwi/lekiwi.py" && echo "ok   clamp-fix --apply patches the line" || { echo "FAIL clamp-fix --apply"; FAILS=$((FAILS + 1)); }
+  "$C" --apply "$CT/a" 2>&1 | grep -q 'already applied' && echo "ok   clamp-fix is idempotent" || { echo "FAIL clamp-fix second apply"; FAILS=$((FAILS + 1)); }
+  "$C" --check "$CT/c" >/dev/null 2>&1 && echo "ok   clamp-fix reports a fixed lerobot as already applied (0)" || { echo "FAIL clamp-fix on a fixed file"; FAILS=$((FAILS + 1)); }
+  "$C" --check "$CT/b" >/dev/null 2>&1; RC=$?; [ "$RC" -eq 3 ] && echo "ok   clamp-fix refuses a file without the line (3)" || { echo "FAIL clamp-fix refusal rc=$RC"; FAILS=$((FAILS + 1)); }
+  rm -rf "$CT"
+fi
 [ "$FAILS" -eq 0 ] && echo "test-python: PASS" || { echo "test-python: $FAILS failure(s)"; exit 1; }
