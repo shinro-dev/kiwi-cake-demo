@@ -110,15 +110,7 @@ alone is a child exit to the supervisor, which respawns the host at once,
 torque and all. `bin/demo-stop.sh` stops the resident, whose own shutdown
 quiesces the host.
 
-A note from the board record: the resident's own shutdown completes and
-prints `stopped` before systemd's cgroup teardown finds and kills one
-lingering ZeroMQ background thread of the host. That message in
-`journalctl --user` is cosmetic; the devices were free.
-
-## Removing the unit
-
-```
-systemctl --user disable --now kiwi-cake-demo.service
-rm ~/.config/systemd/user/kiwi-cake-demo.service
-systemctl --user daemon-reload
-```
+`docs/stopping-and-cleanup.md` is the ordered exit procedure: the motor
+state after each step, the commands that prove nothing is left, the removal
+of the user unit, what to do if a stop hangs, and the one cosmetic journal
+message to expect.

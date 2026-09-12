@@ -269,10 +269,10 @@ each beat prints and checks is in `docs/segment-2-live.md`.
 ## The stop
 
 Enter at STOP. Expected: `stopped: no resident, no host, no socket, no
-listener`. The host's clean exit releases torque
-(`--robot.disable_torque_on_disconnect=true`), so the arm must be low before
-this beat. At any other time, `bin/demo-stop.sh` stops the resident the
-same way. Removing the unit afterwards is in `docs/segment-2-live.md`.
+listener`. The host's clean exit releases torque, so the arm must be low
+before this beat. Everything else about stopping, including the checks that
+prove nothing is left and the removal of the unit, is
+`docs/stopping-and-cleanup.md`.
 
 ## When it does not work
 

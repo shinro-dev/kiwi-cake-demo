@@ -63,6 +63,10 @@ short bounded deadline, ends it by force. Whether the motors are unpowered
 after a stop is your host's own disconnect behaviour, not Cake's, and it is
 not guaranteed if the host is slow to exit. Check the robot.
 
+`docs/stopping-and-cleanup.md` is the ordered exit procedure: the motor
+state after each step, the commands that prove nothing is left, the removal
+of the user unit, and what to do if a stop hangs.
+
 ## What segment 2 will do to your robot
 
 In order, each step waiting for you to press Enter:
