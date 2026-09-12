@@ -134,6 +134,9 @@ host that crashes stays dead until someone restarts it by hand; with Cake
 underneath, the host is restarted under policy and is back listening on its
 ports. The laptop side is unchanged either way.
 
+The drawing's source is `docs/architecture.excalidraw`; its labels were
+aligned to the SVG's wording, which is the wording the record supports.
+
 ## Repository layout
 
 | Path | What it is |
