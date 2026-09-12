@@ -33,7 +33,21 @@ step() { printf '\n=== %s ===\n' "$1"; }
 step "0. preconditions"
 for t in git gh gpg tar sha256sum; do command -v "$t" >/dev/null 2>&1 || { echo "$t is not on PATH"; exit 1; }; done
 gh auth status >/dev/null 2>&1 || { echo "gh is not logged in (gh auth login)"; exit 1; }
-[ -z "$(git status --porcelain)" ] || { echo "the working tree is not clean"; git status --short; exit 1; }
+# Exactly one expected untracked entry at this point: the checksum list
+# tools/build-release.sh just wrote under releases/$VERSION/, which step 3
+# below is what commits it. That is the pipeline's own intended handoff, not
+# a dirty tree; anything else here still fails the check as before.
+DIRTY=""
+while IFS= read -r line; do
+  case "$line" in
+    "?? releases/$VERSION/"*) : ;;
+    *) DIRTY="$DIRTY$line
+" ;;
+  esac
+done <<STATUS
+$(git status --porcelain)
+STATUS
+[ -z "$DIRTY" ] || { echo "the working tree is not clean"; printf '%s' "$DIRTY"; exit 1; }
 git rev-parse --verify "$BRANCH" >/dev/null 2>&1 || { echo "branch $BRANCH does not exist"; exit 1; }
 [ "$(git branch --show-current)" = "$BRANCH" ] || git switch "$BRANCH" || exit 1
 grep -q 'PLACEHOLDER' keys/shinro-release-signing.pub.asc && { echo "keys/shinro-release-signing.pub.asc is still the placeholder; export the release key there first (keys/README.md)"; exit 1; }
