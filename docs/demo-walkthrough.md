@@ -29,8 +29,13 @@ Point at: `trusted key (yours): <hex>` and `control key (never trusted): <hex>`
 (step 2); `capsule content identity <hex>` (step 3); `signed capsule under
 require, your key trusted: <verdict>`, whose verdict reads `admitted`
 (step 4).
-Caveat: none. Say that the key never existed before this run and that the
-control key is generated only to be refused in the next steps.
+Caveat: the demo key is generated on this machine on the first run and
+reused after that: the runner prints `generated a new Ed25519 demo key at
+<path> (mode 600)` the first time and `using the existing demo key at
+<path>` on every later run. A presenter who wants the audience to watch the
+key being generated removes it before the show, from the checkout root:
+`rm -rf state/keys`. The control key is generated fresh on every run, only
+to be refused in the next steps.
 
 ### 2. Tamper refusal, then recovery
 
@@ -156,9 +161,12 @@ in terminal A.
 Point at: `teleop: connected; the follower mirrors the leader; Ctrl-C stops
 the client` on the laptop, and in terminal A, after you type it,
 `teleoperation through the supervised host: operator-confirmed`.
-Caveat: say plainly that the mirroring is what everyone can see, that the
-laptop side is the stock LeRobot client, and that the runner records your
-word and measures nothing here.
+Caveat: say plainly that the mirroring is what everyone can see, and that
+the runner records your word and measures nothing here. The laptop runs
+LeRobot's own LeKiwiClient class through `bin/laptop/teleop.py`, a small
+script derived from LeRobot's example, because `lerobot-teleoperate` has no
+LeKiwi client type; it speaks the stock protocol on the stock ports, and
+nothing on the laptop knows Cake exists.
 
 ### 10. Beat 3: the host restarted under the operator's eyes
 
@@ -185,8 +193,9 @@ A (SIGKILL to the resident itself).
 Point at: `host <n> died with the resident (no orphan)`; then the
 BEFORE/AFTER block, `session_uuid   <a> -> <b> (fresh)` and
 `plan_digest, config_identity, build_identity, target_profile_digest: IDENTICAL`;
-then the runner's own verdict line `Cake-level recovery held; actuator-safe
-recovery is not something this demo provides (LIMITATIONS.md).`.
+then the runner's own verdict line, quoted exactly: `Cake-level recovery
+held; actuator-safe recovery is not something this demo provides
+(LIMITATIONS.md).` That line closes the beat.
 Caveat: the next block.
 
 ### 12. The honest edge: the actuators re-arm on reconnect

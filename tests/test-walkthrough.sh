@@ -54,4 +54,14 @@ if grep -q '^## Which machine runs what' "$ROOT/README.md"; then
 else
   echo "     (README has no 'Which machine runs what' section yet; skipped)"
 fi
+# 5. every "bin/<script> --flag" the walkthrough mentions is a flag that script parses
+NFL=0
+while IFS= read -r m; do
+  script="${m%% *}"; flags="${m#* }"
+  for flag in $flags; do
+    NFL=$((NFL + 1))
+    grep -qE -- "(^|[[:space:]|])$flag\)|add_argument\(\"$flag\"" "$ROOT/$script" || { echo "FAIL $script does not accept $flag"; FAILS=$((FAILS + 1)); }
+  done
+done < <(grep -oE 'bin/[A-Za-z0-9_./-]+\.(sh|py)( --[a-z-]+( [0-9]+)?)+' "$W" | sed -E 's/ [0-9]+//g' | sort -u)
+echo "ok   $NFL script flags mentioned are parsed by their scripts"
 [ "$FAILS" -eq 0 ] && echo "test-walkthrough: PASS" || { echo "test-walkthrough: $FAILS failure(s)"; exit 1; }

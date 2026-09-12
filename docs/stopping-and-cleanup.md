@@ -28,15 +28,22 @@ it (`docs/claims.md` row 8).
 
 ## Prove nothing is left
 
-Every line is expected to print nothing, or the state named in its comment:
+From the checkout root, every line is expected to print nothing, or the
+state named in its comment:
 
 ```
-systemctl --user is-active kiwi-cake-demo.service                                   # inactive
-pgrep -af cake-resident                                                              # nothing
-pgrep -af lekiwi_host                                                                # nothing
-ls "${XDG_RUNTIME_DIR:-/tmp/kiwi-cake-demo-$(id -u)}/kiwi-cake-demo/admin.sock"      # No such file or directory
-ss -tln | grep -E ':555[56] '                                                        # nothing
+systemctl --user is-active kiwi-cake-demo.service                # inactive
+pgrep -af cake-resident                                           # nothing
+pgrep -af lekiwi_host                                             # nothing
+bash -c '. bin/lib/common.sh; ls "$KC_RUNTIME/admin.sock"'        # No such file or directory
+ss -tln | grep -E ':555[56] '                                     # nothing
 ```
+
+The socket path is taken from `bin/lib/common.sh` (`KC_RUNTIME`), the same
+source every script uses, rather than restated here: it is
+`$XDG_RUNTIME_DIR/kiwi-cake-demo/admin.sock` for a logged-in user (on the
+tested board, `/run/user/<uid>/kiwi-cake-demo/admin.sock`), with a fallback
+under `/tmp` when `XDG_RUNTIME_DIR` is unset.
 
 `bin/demo-stop.sh` may be run again at this point; it reports
 `kiwi-cake-demo.service is installed and not active` and `done (0 stop
@@ -60,8 +67,10 @@ run, so removing it costs nothing.
 
 The clean stop is bounded on both sides. The resident gives the host its
 stop signal and a bounded deadline before ending it by force (`SAFETY.md`);
-`systemctl --user stop` waits for the unit's own stop timeout (90 seconds
-by default) and then ends what is left. Wait it out with your eyes on the
+`systemctl --user stop` waits for the unit's stop timeout, which is
+systemd's `DefaultTimeoutStopSec` (90 seconds unless your systemd is
+configured otherwise; a systemd figure, not a Cake one), and then ends what
+is left. Wait it out with your eyes on the
 arm and a hand near power, then run the checks above.
 
 A host process that outlives its resident is a finding to report, not
