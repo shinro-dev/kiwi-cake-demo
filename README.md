@@ -2,6 +2,9 @@
 
 # kiwi-cake-demo
 
+Status: v0.1.1, an evaluation release. Binaries are on the Releases page:
+https://github.com/shinro-dev/kiwi-cake-demo/releases
+
 A precompiled demonstration of Cake, Shinro's control layer for robots,
 running underneath the LeRobot host of a LeKiwi. The binaries are published
 in this repository's Releases; this repository holds the documentation, the
@@ -63,6 +66,50 @@ disarmed after a crash: the LeRobot host re-enables torque on every connect,
 and Cake has no torque concept to override that. `LIMITATIONS.md` states
 both plainly.
 
+## What you need
+
+Hardware:
+
+- a Raspberry Pi 5 inside a LeKiwi (the LeKiwi's own SO-101 arm, three
+  wheels, two cameras, one servo controller);
+- an SO-101 leader arm;
+- an Ubuntu laptop;
+- one LAN with the laptop and the Pi on it, no firewall between them.
+
+Software:
+
+- on the Pi: the 64-bit Raspberry Pi OS based on Debian 13 (trixie) with
+  its default kernel; `git`, `openssl`, `gpg`, `tar`, and either `curl` or
+  the GitHub CLI `gh`; for segment 2, a Python environment with `lerobot`
+  and its `lekiwi` extra;
+- on the laptop: a Python environment with `lerobot` and its `lekiwi` extra
+  (and `viz` for the rerun viewer), and a clone of this repository for
+  `bin/laptop/teleop.py`.
+
+Segment 1 needs only the Pi and none of the LeRobot parts.
+
+## How the demo flows
+
+Two segments, in order.
+
+Segment 1 is torque-free and needs no robot: the supervised child is a
+line-printing stub. Thirteen steps on your own board with your own key show
+the admission of a signed package, the refusal of a tampered one, live
+telemetry, a child kill and restart, a kill of the resident itself and its
+relaunch with identical declared identities, and a clean stop.
+`tests/smoke-segment1.sh` asserts every step.
+
+Segment 2 supervises your own LeKiwi host as the child, on the tested Pi 5
+only, from an interactive terminal, after the acknowledgment in
+`SAFETY.md`: the host starts under Cake and enables torque; you teleoperate
+through it from the laptop; the host is restarted after a SIGTERM; the
+resident is killed and relaunched with the host under it; then the clean
+stop. Every restart is a torque-on event.
+
+Why two segments: nothing that can move a motor runs before the board has
+passed the torque-free run, and everything segment 2 relies on is shown by
+segment 1 first.
+
 ## Quick start: segment 1, no robot needed
 
 Requirements: a Raspberry Pi 5 running the 64-bit Raspberry Pi OS based on
@@ -76,6 +123,7 @@ cd kiwi-cake-demo
 bin/fetch-release.sh
 bin/doctor.sh
 bin/demo-segment1.sh
+bin/demo-stop.sh
 ```
 
 `fetch-release.sh` detects the board, downloads the matching release
@@ -83,7 +131,9 @@ tarball, verifies its checksum and signature, and extracts it under
 `release/`. `doctor.sh` reads the facts of your board and tells you in plain
 language whether the demo's preflight will accept it. `demo-segment1.sh`
 runs the whole torque-free sequence, refusing loudly first if your board
-diverges from the tested one, and ends with:
+diverges from the tested one. `demo-stop.sh` stops anything the demo left
+running, the segment 2 unit included, and is safe to run at any time. The
+segment ends with:
 
 ```
 KIWI-CAKE SEGMENT 1: PASS
@@ -142,12 +192,16 @@ aligned to the SVG's wording, which is the wording the record supports.
 | Path | What it is |
 | --- | --- |
 | `bin/` | the scripts a user runs: fetch, verify, doctor, the two segments, stop, telemetry |
-| `bin/templates/` | the child wrapper, safe-stop command and systemd unit templates for segment 2 |
+| `bin/pi/` | the LeKiwi host wrapper the supervisor spawns in segment 2, and the lerobot clamp fix for the pinned commit |
+| `bin/laptop/` | the teleoperation client you run on the laptop (Apache License, Version 2.0) |
+| `bin/templates/` | the child wrapper (and a filled example of it), safe-stop command and systemd unit templates for segment 2 |
 | `docs/` | the record, the claims map, the target matrix, the two segment runbooks, release verification, event codes |
 | `tests/` | the smoke test and the tests of the tooling itself |
 | `tools/` | maintainer side: the strings gate and the release assembler |
 | `keys/` | the release signing key |
 | `releases/` | the committed checksum list of each release, for cross-checking a download |
+| `.github/` | the workflow that runs the tooling tests on every push and pull request |
+| `CONTRIBUTING.md` | issues welcome; pull requests not accepted, and why |
 | `VERSION` | the release version, one line, read by every script and shipped in every tarball |
 
 ## Verifying a release
@@ -156,6 +210,11 @@ Every release carries `SHA256SUMS`, a detached signature over it, and a
 detached signature over each tarball. `bin/verify.sh` checks all of them
 against the key in `keys/`; `docs/verifying-a-release.md` shows how to do the
 same by hand.
+
+## Contributing
+
+Issues are welcome; pull requests are not accepted. `CONTRIBUTING.md` says
+why and what a useful issue carries.
 
 ## License
 
