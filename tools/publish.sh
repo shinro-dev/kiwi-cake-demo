@@ -3,7 +3,9 @@
 #
 # tools/publish.sh: the maintainer's publish runbook for one release, run from
 # the repository root on the maintainer's machine. Every irreversible step
-# (push, release creation, visibility change) asks for a typed yes first.
+# (push, release creation, visibility change) asks for a typed yes first; the
+# from-scratch verification runs before the visibility change so that leaving
+# the repository private never skips it.
 #
 #   bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION [VERSION]
 #
@@ -85,9 +87,20 @@ confirm "6. Create the GitHub Release $VERSION with the tarballs, signatures and
 gh release create "$VERSION" dist/kiwi-cake-demo-"$VERSION"-*.tar.gz dist/kiwi-cake-demo-"$VERSION"-*.tar.gz.asc dist/SHA256SUMS dist/SHA256SUMS.asc \
   --repo "$REPO" --title "kiwi-cake-demo $VERSION" --notes-file RELEASE_NOTES.md || exit 1
 
-confirm "7. Make $REPO PUBLIC. This cannot be quietly undone: anything pushed is public from here on."
-gh repo edit "$REPO" --visibility public --accept-visibility-change-consequences || exit 1
-
-step "8. verify the live release from scratch"
+step "7. verify the live release from scratch"
+# Runs before the visibility change so that declining it never skips this
+# check; gh clones with its own credentials while the repository is private.
 TMP="$(mktemp -d)"
-git clone -q "https://github.com/$REPO.git" "$TMP/clone" && cd "$TMP/clone" && bin/fetch-release.sh --target pi5-aarch64 --version "$VERSION" && echo "live release verified from a fresh clone"
+( gh repo clone "$REPO" "$TMP/clone" -- -q --branch main && cd "$TMP/clone" && bin/fetch-release.sh --target pi5-aarch64 --version "$VERSION" ) ||
+  { echo "the live release did not verify from a fresh clone"; exit 1; }
+echo "live release verified from a fresh clone"
+
+printf '\n8. Make %s PUBLIC. This cannot be quietly undone: anything pushed is public from here on.\nType yes to continue, or anything else to leave the repository private: ' "$REPO"
+IFS= read -r a
+if [ "$a" = "yes" ]; then
+  gh repo edit "$REPO" --visibility public || exit 1
+  echo "the repository is public"
+else
+  echo "visibility unchanged; when ready: gh repo edit $REPO --visibility public"
+fi
+exit 0
