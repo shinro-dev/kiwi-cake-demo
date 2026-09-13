@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
     *) kc_fail "unrecognised argument '$1'" 5 ;;
   esac
 done
-for t in openssl getconf ldd od dd sha256sum; do kc_need_tool "$t" "it is needed by segment 1"; done
+for t in openssl getconf ldd od dd sha256sum timeout; do kc_need_tool "$t" "it is needed by segment 1"; done
 
 BIN="$(kc_binaries_dir)"
 kc_check_binaries "$BIN"
@@ -214,23 +214,27 @@ step_ok tamper
 
 # --- 8. intact start --------------------------------------------------------------------------
 start_resident() {
-  # start_resident LABEL: background the resident, wait for ready, require plan active.
-  local label="$1" _
+  # start_resident LABEL: background the resident, wait up to 40 s for ready,
+  # require plan active, then up to 10 s for the socket to answer. Both waits
+  # are wall-clock deadlines, so a probe that hangs cannot stretch them past
+  # the budget plus one probe timeout.
+  local label="$1" t0
   rm -f -- "$SOCK"
   "$BIN/cake-resident" --config "$CONF" >"$KC_RUN/$label.out" 2>"$KC_RUN/$label.err" &
   RES_PID=$!
-  for _ in $(seq 1 800); do
-    grep -q '^cake-resident: ready pid=' "$KC_RUN/$label.out" && break
+  t0=$SECONDS
+  until grep -q '^cake-resident: ready pid=' "$KC_RUN/$label.out"; do
     kill -0 "$RES_PID" 2>/dev/null || { cat "$KC_RUN/$label.out" "$KC_RUN/$label.err" >&2; return 1; }
+    kc_deadline_passed "$t0" 40 && return 1
     sleep 0.05
   done
-  grep -q '^cake-resident: ready pid=' "$KC_RUN/$label.out" || return 1
   grep -q '^cake-resident: plan active .*resources=1 slots=1' "$KC_RUN/$label.out" || return 1
-  for _ in $(seq 1 200); do
-    [ -S "$SOCK" ] && kc_query "$BIN/admin-probe" "$SOCK" get-status | grep -qx 'status ok' && return 0
+  t0=$SECONDS
+  until [ -S "$SOCK" ] && kc_query "$BIN/admin-probe" "$SOCK" get-status | grep -qx 'status ok'; do
+    kc_deadline_passed "$t0" 10 && { [ -z "$KC_QUERY_ERR" ] || printf '%s\n' "$KC_QUERY_ERR" | sed 's/^/kiwi-cake: admin-probe: /' >&2; return 1; }
     sleep 0.05
   done
-  return 1
+  return 0
 }
 start_resident first || step_fail start "the resident did not reach plan active against the intact store"
 sed 's/^/  /' "$KC_RUN/first.out"

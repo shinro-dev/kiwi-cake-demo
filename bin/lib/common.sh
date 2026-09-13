@@ -32,6 +32,9 @@ kc_warn() { printf 'kiwi-cake: WARNING: %s\n' "$1" >&2; }
 kc_fail() { printf 'kiwi-cake: FAIL: %s\n' "$1" >&2; exit "${2:-1}"; }
 kc_need_tool() { command -v "$1" >/dev/null 2>&1 || kc_fail "$1 is not on PATH; $2"; }
 
+# Every admin-probe request runs under this many seconds of coreutils timeout.
+case "${KC_PROBE_TIMEOUT:-10}" in '' | *[!0-9]*) kc_fail "KC_PROBE_TIMEOUT must be a whole number of seconds" 5 ;; esac
+
 # --- board facts ------------------------------------------------------------
 
 kc_version_ge() {
@@ -172,7 +175,34 @@ kc_keypair_public() { sed -nE 's/^ed25519-public ([0-9a-f]{64})$/\1/p' "$1" | he
 
 kc_manifest_value() { sed -nE "s/^$2 (.*)\$/\\1/p" "$1" | head -n 1; }
 kc_field() { printf '%s\n' "$1" | sed -nE "s/^$2 (.*)\$/\\1/p" | head -n 1; }
-kc_query() { "$1" request "$2" "$3" 2>/dev/null; }
+
+KC_QUERY_ERR=""
+kc_query() {
+  # kc_query PROBE SOCKET OP: one admin-probe request under KC_PROBE_TIMEOUT
+  # seconds (default 10). The shipped probe gives up a single read after 5 s
+  # on its own, so 10 s leaves a slow but answering resident alone and cuts
+  # only a probe stuck on connect or on a read that never returns. Returns
+  # the probe's status, 124 on timeout. The probe's stderr is kept in
+  # KC_QUERY_ERR for the caller and printed, prefixed, only on a timeout:
+  # the readiness loops call this hundreds of times before a resident
+  # answers, and a refused connect there is expected, not news.
+  local err rc t="${KC_PROBE_TIMEOUT:-10}"
+  err="$(mktemp "${TMPDIR:-/tmp}/kc-probe-err.XXXXXX")" || return 1
+  timeout -k 2 "$t" "$1" request "$2" "$3" 2>"$err"
+  rc=$?
+  KC_QUERY_ERR="$(cat "$err")"
+  rm -f -- "$err"
+  if [ "$rc" -eq 124 ]; then
+    [ -z "$KC_QUERY_ERR" ] || printf '%s\n' "$KC_QUERY_ERR" | sed 's/^/kiwi-cake: admin-probe: /' >&2
+    printf 'kiwi-cake: admin-probe: %s timed out after %ss\n' "$3" "$t" >&2
+  fi
+  return "$rc"
+}
+
+kc_deadline_passed() {
+  # kc_deadline_passed START LIMIT: true once LIMIT seconds have passed since START, a $SECONDS reading.
+  [ $((SECONDS - $1)) -ge "$2" ]
+}
 
 kc_write_resident_conf() {
   # kc_write_resident_conf PATH STORE_ROOT SOCKET PUBLIC_KEY PLAN_ARTIFACT
@@ -395,11 +425,12 @@ kc_probe_binary() {
   # kc_probe_binary PATH: true when the binary starts and exits on its own usage path.
   local path="$1" rc
   if [ "$(basename "$path")" = "cake-resident" ]; then
-    "$path" --config /nonexistent/kiwi-cake-preflight.conf >/dev/null 2>&1
+    timeout -k 2 30 "$path" --config /nonexistent/kiwi-cake-preflight.conf >/dev/null 2>&1
   else
-    "$path" >/dev/null 2>&1
+    timeout -k 2 30 "$path" >/dev/null 2>&1
   fi
   rc=$?
-  # A loader failure exits 127 (or is killed by a signal, 128+); a usage path exits 1.
-  [ "$rc" -lt 126 ]
+  # A loader failure exits 127 (or is killed by a signal, 128+); a usage path exits 1;
+  # a binary that never returns is cut at 30 s (124).
+  [ "$rc" -ne 124 ] && [ "$rc" -lt 126 ]
 }

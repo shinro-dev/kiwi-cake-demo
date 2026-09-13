@@ -25,7 +25,7 @@ if [ $# -gt 0 ]; then
     *) kc_fail "segment 2 takes no arguments (there is no override)" 5 ;;
   esac
 fi
-for t in openssl getconf ldd systemctl ss od dd; do kc_need_tool "$t" "it is needed by segment 2"; done
+for t in openssl getconf ldd systemctl ss od dd timeout; do kc_need_tool "$t" "it is needed by segment 2"; done
 [ -t 0 ] && [ -r /dev/tty ] || kc_fail "segment 2 needs an interactive terminal; it will not run unattended" 3
 ME="$(id -un)"
 HOST_PORTS="${KC_HOST_PORTS:-5555 5556}"
@@ -127,13 +127,14 @@ wait_host() {
   return 1
 }
 wait_ready() {
-  local _
-  for _ in $(seq 1 600); do
-    [ -S "$SOCK" ] && kc_query "$BIN/admin-probe" "$SOCK" get-status | grep -qx 'status ok' && return 0
+  # Up to 30 s of wall clock for the unit to answer get-status; a unit that is no longer active ends the wait at once.
+  local t0=$SECONDS
+  while :; do
     systemctl --user is-active --quiet "$UNIT" || return 1
+    [ -S "$SOCK" ] && kc_query "$BIN/admin-probe" "$SOCK" get-status | grep -qx 'status ok' && return 0
+    kc_deadline_passed "$t0" 30 && { [ -z "$KC_QUERY_ERR" ] || printf '%s\n' "$KC_QUERY_ERR" | sed 's/^/kiwi-cake: admin-probe: /' >&2; return 1; }
     sleep 0.05
   done
-  return 1
 }
 wait_ports() {
   local _
@@ -263,10 +264,12 @@ echo "sent SIGKILL to resident pid $RES_PID_4 (host pid $CHILD_4)"
 kc_wait_gone "$CHILD_4" 100 || beat_fail crash-recovery "host $CHILD_4 survived the resident's death (orphan)"
 echo "host $CHILD_4 died with the resident (no orphan)"
 RELAUNCHED=0
-for _ in $(seq 1 800); do
+T0=$SECONDS
+while :; do
   NEW_PID="$(main_pid)"
   if [ -n "$NEW_PID" ] && [ "$NEW_PID" != "0" ] && [ "$NEW_PID" != "$RES_PID_4" ] && [ -S "$SOCK" ] &&
     kc_query "$BIN/admin-probe" "$SOCK" get-status | grep -qx 'status ok'; then RELAUNCHED=1; break; fi
+  kc_deadline_passed "$T0" 80 && break
   sleep 0.1
 done
 [ "$RELAUNCHED" -eq 1 ] || { systemctl --user status --no-pager "$UNIT" >&2; beat_fail crash-recovery "$UNIT did not relaunch the resident"; }

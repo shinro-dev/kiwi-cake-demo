@@ -62,7 +62,10 @@ needs; and the runner expects the host to listen on ports 5555 and 5556
 (set `KC_HOST_PORTS="a b"` for other ports). It refuses to start while
 something already listens there, and it waits up to two minutes for the
 ports to appear after each start, a window during which torque may already
-be on; if they never appear it stops the unit and fails.
+be on; if they never appear it stops the unit and fails. Every admin-socket
+query the runner and `bin/telemetry.sh` make runs under `KC_PROBE_TIMEOUT`
+seconds (default 10); one that does not return in time is reported as
+`timed out` and the beat fails.
 
 ## The run
 

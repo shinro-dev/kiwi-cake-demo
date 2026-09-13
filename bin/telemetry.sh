@@ -10,6 +10,9 @@
 # serve get-health is reported as "health surface not served", never as a
 # failure.
 #
+# Every query runs under KC_PROBE_TIMEOUT seconds (default 10); the ssh form
+# gets ten seconds more.
+#
 # The socket is a Unix socket, which ssh cannot reach directly, so every query
 # goes through `admin-probe request`, either on this host or wrapped in one
 # ssh call per query with --remote USER@HOST (then --probe and --socket name
@@ -62,6 +65,7 @@ case "$ROUNDS" in '' | *[!0-9]*) fail "--rounds must be a non-negative integer" 
 case "$INTERVAL_SECONDS" in '' | *[!0-9]*) fail "--interval-seconds must be a non-negative integer" ;; esac
 case "$FLIGHT_ROWS" in '' | *[!0-9]*) fail "--flight-rows must be a non-negative integer" ;; esac
 [ -f "$REGISTRY" ] || fail "--registry $REGISTRY does not exist"
+kc_need_tool timeout "it bounds each admin-probe request"
 
 TMPFILES=""
 cleanup() { local f; for f in $TMPFILES; do rm -f -- "$f"; done; }
@@ -71,9 +75,9 @@ run_query() {
   local op="$1"
   if [ -n "$REMOTE" ]; then
     # shellcheck disable=SC2086
-    ssh $SSH_OPTS_STR "$REMOTE" "$PROBE" request "$SOCKET" "$op"
+    timeout -k 2 "$((${KC_PROBE_TIMEOUT:-10} + 10))" ssh $SSH_OPTS_STR "$REMOTE" "$PROBE" request "$SOCKET" "$op"
   else
-    "$PROBE" request "$SOCKET" "$op"
+    kc_query "$PROBE" "$SOCKET" "$op"
   fi
 }
 

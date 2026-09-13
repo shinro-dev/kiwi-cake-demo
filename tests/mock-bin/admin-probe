@@ -4,6 +4,7 @@ set -uo pipefail
 [ "${1:-}" = "request" ] || { printf 'usage: admin-probe request SOCKET_PATH OPERATION\n' >&2; exit 1; }
 SOCK="$2"; OP="$3"; STATE="$SOCK.state"
 [ -S "$SOCK" ] && [ -d "$STATE" ] || { echo "admin-probe: connect failed: No such file or directory (os error 2)" >&2; exit 1; }
+if [ "${KC_MOCK_PROBE_HANG:-0}" = "1" ]; then exec sleep 3600; fi
 seq_next() { local n; n="$(grep -c '^record ' "$STATE/flight" 2>/dev/null || echo 0)"; echo "$n"; }
 mint_admin() { printf 'record arg0=1000 arg1=1000 correlation=0 epoch=0 event=0x0b000001 flags=0 sequence=%s severity=0 subject=%s\n' "$(seq_next)" "$$" >>"$STATE/flight"; }
 header() { echo "status ok"; echo "replay 0"; echo "snapshot_present 1"; cat "$STATE/status"; }

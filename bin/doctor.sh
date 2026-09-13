@@ -70,6 +70,7 @@ echo
 
 BIN_DIR="$(kc_binaries_dir 2>/dev/null)" || { echo "No release binaries found; run bin/fetch-release.sh first."; exit 5; }
 kc_check_binaries "$BIN_DIR"
+kc_need_tool timeout "it bounds each binary probe"
 echo "Shipped binaries under $BIN_DIR (one no-op run each, the shell equivalent of the preflight's shipped-binaries check):"
 BAD=0
 for b in cake-resident admin-probe demo-plan demo-preflight; do

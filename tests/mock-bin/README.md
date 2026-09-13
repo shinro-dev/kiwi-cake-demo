@@ -8,3 +8,7 @@ handling, tamper, start, telemetry parsing, child kill, resident kill and
 relaunch, clean stop) can be exercised on a machine where the real aarch64
 binaries cannot run. They imitate the output lines the runner parses and
 nothing else. They are test doubles, not Cake, and prove nothing about Cake.
+
+`admin-probe` reads two knobs from the environment: `KC_MOCK_PROBE_HANG=1`
+makes any `request` hang forever (`exec sleep 3600`) after its socket and
+state checks, to exercise the wall-clock deadline in `kc_query`.
