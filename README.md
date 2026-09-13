@@ -7,10 +7,14 @@ binaries are on the Releases page:
 https://github.com/shinro-dev/kiwi-cake-demo/releases
 
 A precompiled demonstration of Cake, Shinro's control layer for robots,
-running underneath the LeRobot host of a LeKiwi. The binaries are published
-in this repository's Releases; this repository holds the documentation, the
-scripts that run the demo, the tests that check a download, and nothing else.
-No source code is distributed.
+running underneath the LeRobot host of a LeKiwi. The Cake runtime, the
+four binaries `cake-resident`, `admin-probe`, `demo-plan` and
+`demo-preflight`, is precompiled and published in this repository's
+Releases; its source is not published. Everything else here is source:
+the scripts and adapters that run the demo, the documents, the tests of
+that tooling and the maintainer's release tools. That is what is reviewed
+and tested in this repository, and every release tarball carries it
+beside the binaries.
 
 The demo is released as-is, for evaluation. Read `LIMITATIONS.md` before
 you form an opinion, and read `SAFETY.md` before you let it touch a robot.

@@ -10,15 +10,35 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 W="$ROOT/docs/demo-walkthrough.md"
 FAILS=0
 [ -f "$W" ] || { echo "test-walkthrough: $W is missing"; exit 1; }
-# 1. claims rows
+# 1. claims rows: every citation in the walkthrough, the positioning page and the
+#    README names a row that exists; the walkthrough and the positioning page cite
+#    at least one. Citations may wrap across a line break, so each document is read
+#    with its lines joined.
 ROWS="$(grep -oE '^\| [0-9]+ \|' "$ROOT/docs/claims.md" | tr -dc '0-9\n' | sort -n | paste -sd ' ')"
-# Citations may wrap across a line break, so the document is read with its lines joined.
-CITED="$(tr '\n' ' ' <"$W" | grep -oE 'claims\.md`?[^0-9]{0,4}row [0-9]+' | grep -oE '[0-9]+$' | sort -un | paste -sd ' ')"
-for r in $CITED; do
-  case " $ROWS " in *" $r "*) : ;; *) echo "FAIL claims row $r is cited but docs/claims.md has no such row"; FAILS=$((FAILS + 1)) ;; esac
+cited_rows() { tr '\n' ' ' | grep -oE 'claims\.md`?[^0-9]{0,4}row [0-9]+' | grep -oE '[0-9]+$' | sort -un | paste -sd ' '; }
+# The nonzero control: a constructed citation of a row that does not exist must be found by the scan.
+case " $ROWS " in *" 99 "*) echo "FAIL docs/claims.md has a row 99; the control below needs a row that does not exist"; FAILS=$((FAILS + 1)) ;; esac
+[ "$(printf 'see `docs/claims.md`\nrow 99 here\n' | cited_rows)" = "99" ] || { echo "FAIL the citation scan did not find the control citation"; FAILS=$((FAILS + 1)); }
+for doc in docs/demo-walkthrough.md docs/why-cake-under-lerobot.md README.md; do
+  [ -f "$ROOT/$doc" ] || { echo "FAIL $doc is missing"; FAILS=$((FAILS + 1)); continue; }
+  CITED="$(cited_rows <"$ROOT/$doc")"
+  for r in $CITED; do
+    case " $ROWS " in *" $r "*) : ;; *) echo "FAIL $doc cites claims row $r but docs/claims.md has no such row"; FAILS=$((FAILS + 1)) ;; esac
+  done
+  if [ -z "$CITED" ] && [ "$doc" != "README.md" ]; then
+    echo "FAIL $doc cites no claims row at all"; FAILS=$((FAILS + 1))
+  else
+    echo "ok   $doc: every cited claims row exists (rows cited: ${CITED:-none})"
+  fi
 done
-[ -n "$CITED" ] || { echo "FAIL the walkthrough cites no claims row at all"; FAILS=$((FAILS + 1)); }
-echo "ok   every cited claims row exists (rows cited: $CITED)"
+# The positioning page states the two corrected facts and no longer states the retracted ones.
+Y="$ROOT/docs/why-cake-under-lerobot.md"
+for want in 'Message fetching failed' 'Cycle time reached.' 'lerobot-teleoperate' 'nothing here stops the wheels' 'a supervisor admitted only from a signed package'; do
+  grep -qF -- "$want" "$Y" && echo "ok   why-cake states: $want" || { echo "FAIL why-cake does not state: $want"; FAILS=$((FAILS + 1)); }
+done
+for gone in 'no supervision and no recovery' 'needs no modification' 'the wheels stop because the host stops them' 'a host that runs only from a signed package'; do
+  if grep -qF -- "$gone" "$Y"; then echo "FAIL why-cake still says: $gone"; FAILS=$((FAILS + 1)); fi
+done
 # 2. the four labels per capability block
 NB=0
 while IFS= read -r n; do

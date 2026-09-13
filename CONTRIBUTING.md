@@ -19,8 +19,9 @@ quote the lines verbatim rather than summarising them.
 
 ## Pull requests are not accepted
 
-This is a binary-only repository under the Business Source License 1.1.
-Its scripts and documents are maintained from a private tree and exported
+The Cake runtime in this repository is binary-only, under the Business
+Source License 1.1. Its scripts and documents are maintained from a
+private tree and exported
 here, so a pull request against this repository cannot be merged, and any
 pull request is closed with a pointer to this page and a request to open an
 issue instead. Describe the change you want in the issue; if it is taken,
