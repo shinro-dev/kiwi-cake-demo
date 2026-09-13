@@ -2,14 +2,19 @@
 
 # Segment 2: supervising your own LeKiwi host
 
-Opt-in. Moves the arm. Read `SAFETY.md` first; the runner will make you
-type the acknowledgment it states.
+Use this segment to inspect a real host exit and resident relaunch on a
+prepared LeKiwi bench. It enables torque and can move the arm. Read
+[Safety](../SAFETY.md) first; the runner requires its acknowledgment.
+Use the [complete runbook](reproduce-end-to-end.md) for installation and
+calibration on both machines, and [Diagnosing a run](diagnosing-a-run.md)
+to interpret the result.
 
 ## What you need
 
-- The tested Pi 5 configuration (`docs/targets.md`), with `bin/doctor.sh`
-  reporting the preflight shape `five checks green, observer refused`. The
-  runner refuses any other board and has no override.
+- The [tested Pi 5 configuration](targets.md), with `bin/doctor.sh`
+  reporting `pi5-tested` and working binaries. The runner then checks its
+  generated capsule, requiring the preflight shape `five checks green,
+  observer refused`. It has no unsupported-board override.
 - A working LeKiwi host from your own LeRobot install. This demo ships no
   part of LeRobot except a small wrapper, `bin/pi/lekiwi_host_noninteractive.py`,
   which starts the stock host without its calibration prompt; the stock host
@@ -22,7 +27,8 @@ type the acknowledgment it states.
 
 ## The two files you write
 
-Copy the two templates and fill in the placeholders:
+From the repository or extracted release root, copy the two templates
+and fill in the placeholders:
 
 ```
 cp bin/templates/run-child.sh.in   bin/run-child.sh
@@ -65,12 +71,17 @@ and it waits up to two minutes for every port to appear after each start,
 a window during which torque may already be on; if they never appear it
 stops the unit and fails. Once they appear it also reports whether `ss -p`
 attributes the listeners to the host pid; a missing attribution is a note
-and a different pid is a warning, and neither stops the run. Every admin-socket
+and a different pid is a warning, and neither stops the run. Investigate
+an unexpected listener owner before continuing. Every admin-socket
 query the runner and `bin/telemetry.sh` make runs under `KC_PROBE_TIMEOUT`
 seconds (default 10); one that does not return in time is reported as
-`timed out` and the beat fails.
+`timed out` and the beat fails. Keep a positive timeout; zero disables it.
 
 ## The run
+
+Run only one live demo at a time per user. The runner uses a shared user
+service, configuration location and admin socket; it does not lock them
+against another concurrent run.
 
 ```
 bin/demo-segment2.sh
@@ -106,24 +117,30 @@ bin/demo-segment2.sh
    resident. Expected: the host dies with it (no orphan), systemd relaunches
    the resident, a fresh session identity is reported, and the four declared
    identities read back identical. A fresh host connects and torque is on
-   again. This is the honest edge: Cake recovered its declared state; the
-   actuators were re-armed by the host, not disarmed.
+   again. The comparison establishes fresh activation of the same declared
+   configuration. It does not establish restored application state or
+   disarmed actuators.
 8. Stop: the runner stops the unit, which is what `bin/demo-stop.sh` does
    too. Expected: no resident, no host process, no socket, no listener on
    the ports. Whether the motors are unpowered afterwards is your host's
    own disconnect behaviour; the record's operator additionally checked by
    hand that the serial and camera devices were free.
 
-Every beat is logged under `state/runs/<id>/`.
+Every beat is logged under `state/runs/<id>/`. The latest
+[v0.1.3 board record](demo-record.md#the-v013-run-on-the-tested-board-2026-09-13)
+used SKIP and exercised an idle host. A successful exit with SKIP carries
+no evidence that teleoperation worked. Use
+[Diagnosing a run](diagnosing-a-run.md) to locate the host output, resident
+journal and events for your own result.
 
 ## Stopping, and the one thing not to do
 
 Never stop the demo by signalling the host. SIGINT or SIGTERM to the host
-alone is a child exit to the supervisor, which respawns the host at once,
+alone is a child exit to the supervisor, which can respawn the host,
 torque and all. `bin/demo-stop.sh` stops the resident, whose own shutdown
 quiesces the host.
 
-`docs/stopping-and-cleanup.md` is the ordered exit procedure: the motor
+[Stopping and cleanup](stopping-and-cleanup.md) is the ordered exit procedure: the motor
 state after each step, the commands that prove nothing is left, the removal
 of the user unit, what to do if a stop hangs, and the one cosmetic journal
 message to expect.

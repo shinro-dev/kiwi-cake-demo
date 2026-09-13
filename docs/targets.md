@@ -2,8 +2,13 @@
 
 # Supported targets
 
-All binaries are built for a glibc floor of 2.34 and depend on `libc.so.6`
-alone (the x86-64 loader entry aside). The floor is 2.34 because it is the
+The release supplies AArch64 binaries for the Pi. There is no native
+x86-64 desktop package, including for the robot-free segment. Start with
+`bin/doctor.sh`; its classification checks platform facts, not an entire
+OS image, camera operation or robot calibration.
+
+All released binaries are built for a glibc floor of 2.34 and depend on
+`libc.so.6` alone. The floor is 2.34 because it is the
 first glibc that merges `libpthread` into `libc`; below it a second library
 dependency appears that the target profile refuses.
 
@@ -12,7 +17,7 @@ dependency appears that the target profile refuses.
 | Pi 5, tested | Raspberry Pi 5, Raspberry Pi OS based on Debian 13 (trixie), 64-bit, default kernel (16 KiB pages), glibc 2.41 | `pi5-aarch64` | five checks green, then the documented observer refusal | yes | yes |
 | Pi 5, other OS | Raspberry Pi 5 on bookworm (glibc 2.36), or any Pi 5 booted with `kernel=kernel8.img` (4 KiB pages) | `pi5-aarch64` | refuses at glibc or at page size, by construction | `--unsupported-target` only | no |
 | Pi 4 | Raspberry Pi 4, any 64-bit OS | `pi5-aarch64` (the only tarball; v0.1.0 also published the same bytes as `pi4-aarch64`) | refuses at page size, by construction | `--unsupported-target` only, untested | no |
-| x86-64 | Ubuntu or Debian desktop, the SO-101 desktop case | none in this release | refuses at page size; the resident refuses its own package | no | no |
+| x86-64 | Ubuntu or Debian desktop, the SO-101 desktop case | none in this release | not applicable; AArch64 binaries do not run natively here | no | no |
 
 ## Why the preflight refuses what it refuses
 
@@ -28,8 +33,10 @@ record:
   binaries' floor of 2.34. Bookworm ships 2.36.
 
 Both refusals say what they found and what the record expects. They are not
-a judgment about whether the binaries would run; they are a statement that
-the board is not the tested one. The preflight has no override of its own.
+a judgment about whether the binaries would run; they identify a mismatch
+with the embedded platform requirements. Passing those checks does not
+establish that every part of the OS or hardware matches the recorded rig.
+The preflight has no override of its own.
 
 The remaining checks read facts of the board that only the board can answer:
 `memfd-noexec` refuses only when `vm.memfd_noexec_scope` is 2; `admission`
@@ -70,13 +77,10 @@ When more than one applies, the first in this order wins: 5, 4, 6, 7, 3, then 0.
 
 ## The x86-64 row
 
-Every binary, on every target, carries the same compiled-in target profile:
-the aarch64 LeKiwi profile with 16 KiB pages. On an x86-64 machine the
-resident refuses the package it just built because the Plan names a
-target-profile digest that is not the active profile's, before any module is
-mapped, and `demo-preflight` refuses at the page-size check. The x86-64
-build can therefore run only its usage and `--list-checks` output, which is
-not a demo. No x86-64 tarball is published in this release.
+No x86-64 tarball is published. The release's AArch64 binaries cannot be
+used natively on that architecture, and `--unsupported-target` does not
+change a binary's instruction set. Development-host gate evidence in the
+[claims map](claims.md) is not a downloadable desktop version of the demo.
 
 ## What was measured where
 

@@ -2,6 +2,22 @@
 
 # The demo record: what was measured on the board
 
+## How to read this evidence
+
+| Record | Scope | Boundary |
+| --- | --- | --- |
+| 2026-09-07 original demonstration | Stub integrity/lifecycle checks and a real-host run | Teleoperation was operator-confirmed; not all statements came from a board capture |
+| [2026-09-13 v0.1.3 run](#the-v013-run-on-the-tested-board-2026-09-13) | The released segment 2 runner, host/resident failures and stop behavior | Idle host, teleoperation skipped; no instrumented torque measurement |
+
+The v0.1.3 record was appended after the release tag. Historical captures
+and statements below retain their original wording. In particular,
+matching declared identities after relaunch is evidence of fresh Plan
+activation from the same configuration, not proof of restored application
+state. [Claims and evidence](claims.md) maps each assertion to its source;
+[Diagnosing a run](diagnosing-a-run.md) explains how to inspect your own run.
+
+## Source of the records
+
 This page is the public derivative of the evidence record behind this
 release: two demo segments run by the operator on a LeKiwi's Raspberry Pi 5
 on 2026-09-07, captured on the board. The original record reproduces every
@@ -195,9 +211,8 @@ unconditionally on connect)."
 
 The two elisions in the verdict remove references to internal ledger rows.
 
-The honest edge, stated plainly: Cake's own recovery is byte-identical
-declared authority (the four identities above), but actuator-safe recovery
-is not demonstrated, because the actuator is owned by the stock LeRobot
+The four declared identities read back byte-identical, but actuator-safe
+recovery is not demonstrated, because the actuator is owned by the stock LeRobot
 host, whose own connect step unconditionally re-enables torque, recovery
 included. Cake's admin protocol carries no torque or actuator concept for
 this demo to gate.

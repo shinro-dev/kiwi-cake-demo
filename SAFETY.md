@@ -54,7 +54,7 @@ smoothing it over; the demo record this release is based on does the same.
 
 Stop the resident, never the child. Sending SIGINT or SIGTERM to the LeRobot
 host alone does not stop the demo: the supervisor inside Cake treats that as
-a child exit and immediately spawns a fresh host, which re-enables torque on
+a child exit and can spawn a fresh host, which re-enables torque on
 connect. The runbook-correct stop is the resident's own clean shutdown, which
 quiesces the child as part of it. `bin/demo-stop.sh` does exactly that.
 So does `systemctl --user stop kiwi-cake-demo.service`: the unit the runner
@@ -92,9 +92,11 @@ wait, and if the ports never appear the runner stops the unit.
 
 ## What the demo does not protect you from
 
-- It does not disarm motors after a crash. See `LIMITATIONS.md`.
-- It does not stop the wheels itself. If the host stops, the wheels stop
-  because the host stops them, not because Cake does.
+- It does not disarm motors after a crash. See [Limitations](LIMITATIONS.md).
+- It does not stop the wheels itself. A hard host death can skip LeRobot's
+  disconnect path, and the host's watchdog cannot run after its process
+  has died. Neither a child exit nor a safe-stop log line proves a motor
+  stop or torque-off.
 - It does not know what your safe-stop command does. The template shipped
   here only writes a log line; anything that touches the robot is yours to
   write and yours to test on a stand first.

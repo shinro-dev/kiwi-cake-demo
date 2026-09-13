@@ -1,14 +1,18 @@
 <!-- Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. -->
 
-# Presenting the demo: one capability at a time
+# Presenting the demo: explain one host failure
 
-This page is for a presenter narrating the demo to an audience. The
-runners print everything on their own; this page says, for each
-capability in order, what to say it proves, which command or runner step
-shows it, the exact output line to point at, and the honest caveat where
-one exists. Every "proves" sentence is one of the rows of `docs/claims.md`,
-cited by number; where something is the audience's observation rather than
-a measured claim, this page says so.
+Start with the question a LeKiwi developer can answer: when the host
+exits, what can we see about the exit, the restart and the configuration
+that starts again? First show that sequence with a harmless stub, then
+with the real host if the bench is prepared. Give the audience the
+[diagnostic guide](diagnosing-a-run.md) so they can inspect their own run.
+
+Each block below links an assertion to its row in the [claims map](claims.md),
+the runner step, a literal output fragment and the interpretation limit.
+The [systemd comparison](why-cake-under-lerobot.md) explains which parts
+already exist in a conventional service. Do not present process recovery
+as proof of recording continuity or actuator-safe recovery.
 
 How to run it: on the Pi, `bin/demo-segment1.sh --pause` waits for Enter
 after each step, so you can talk between steps (Ctrl-C at a pause stops
@@ -32,10 +36,9 @@ require, your key trusted: <verdict>`, whose verdict reads `admitted`
 Caveat: the demo key is generated on this machine on the first run and
 reused after that: the runner prints `generated a new Ed25519 demo key at
 <path> (mode 600)` the first time and `using the existing demo key at
-<path>` on every later run. A presenter who wants the audience to watch the
-key being generated removes it before the show, from the checkout root:
-`rm -rf state/keys`. The control key is generated fresh on every run, only
-to be refused in the next steps.
+<path>` on every later run. Explain whether this run generated or reused
+the key. The control key is generated fresh on every run, only to be
+refused in the next steps.
 
 ### 2. Tamper refusal, then recovery
 
@@ -48,8 +51,9 @@ the resident against it`; then `refused (exit <n>): <the resident's refusal
 line>`, which names `store-object-mismatch` and the content identity from
 step 3; then `restored the original byte`; then, in step 8, the resident's
 own `cake-resident: plan active <...>` line.
-Caveat: none. Point out that the refusal happens before any Plan is active
-and that the identity in the refusal is the one printed in step 3.
+Caveat: the changed object is the supervisor capsule, not the external
+LeRobot program or Python environment. The refusal happens before any
+Plan is active; its identity is the one printed in step 3.
 
 ### 3. Signature verification
 
@@ -80,6 +84,8 @@ activation, then `EVT_SUPERVISOR_CHILD_STARTED`); from get-health,
 and the summary line `poll queries answered 3 of 3`.
 Caveat: get-health is printed when the resident serves it and reported as
 not served otherwise; it is not one of the three queries the claim counts.
+An ACTIVE supervisor slot and a `3 of 3` summary do not establish host
+readiness, working cameras or motor state. Inspect the actual rows.
 Every poll opens an admin connection and mints one
 `EVT_ADMIN_CONNECTION_ACCEPTED` record, and a tight polling loop pushes
 older records out of the bounded ring (`docs/event-codes.md`), so poll
@@ -118,7 +124,9 @@ Caveat: in segment 1 the relaunch is performed by the runner from the same
 configuration file, exactly as the development-host gate does; in segment
 2 a systemd user unit does it, as on the tested board (`docs/claims.md`,
 "Differences"). The relaunched resident is a new process, not a resumed
-one: module memory does not survive it (`LIMITATIONS.md`).
+one: module memory does not survive it ([Limitations](../LIMITATIONS.md)).
+The matching identities establish fresh activation of the same declared
+configuration, not recovery of a committed transaction or application state.
 
 ### 7. The clean stop
 
@@ -148,14 +156,15 @@ child, which in segment 2 is your own LeRobot host (`docs/claims.md` row 4).
 Shown by: `bin/demo-segment2.sh`, Enter at Beat 1.
 Point at: `resident MainPID <n>: plan active, admin socket answering`; then
 `host pid <n> listening on <ports>` (5555 and 5556).
-Caveat: torque is on from this line. Have the audience watch the arm
-stiffen, and say that it is the stock host enabling torque on connect, not
-Cake.
+Caveat: treat a successful host connect as a torque-on event. Observe the
+supported arm and explain that LeRobot enables torque; the listener line
+itself is not a torque measurement.
 
 ### 9. Beat 2: teleoperation through the supervised host
 
-Proves: nothing by itself. Beat 2 is the audience's observation, recorded
-in `docs/demo-record.md` as operator-confirmed and carrying no claims row.
+Proves: nothing by itself. Beat 2 is an operator observation, carrying no
+claims row. The original board record reports operator-confirmed
+teleoperation; the v0.1.3 record explicitly skipped it.
 Shown by: terminal B running `bin/laptop/teleop.py`, then `CONFIRMED` typed
 in terminal A.
 Point at: `teleop: connected; the follower mirrors the leader; Ctrl-C stops
@@ -183,11 +192,12 @@ Shown by: Enter at Beat 3 in terminal A (SIGTERM to the host only).
 Point at: `host exited with signal 15 (sequence <n>), safe-stop ran
 (sequence <n>), fresh host pid <n> with restart ordinal <n>; resident pid
 <n> and session unchanged`.
-Caveat: the laptop client loses its connection when the host's sockets
-close, and is simply run again once this line appears. The signalled host
-left torque as it was, and the fresh host enables it again on connect.
+Caveat: if a laptop client was running, restart it after the new host is
+ready; continuity is not demonstrated. The host can die without disabling
+torque, and a successful reconnect enables it again. The safe-stop event
+shows hook execution, not a motor action.
 
-### 11. Beat 4: crash recovery on the live robot
+### 11. Beat 4: resident relaunch on the live robot
 
 Proves: the resident killed with SIGKILL comes back with a fresh session
 identity, the four declared identities byte-identical, and no orphan child
@@ -200,7 +210,9 @@ BEFORE/AFTER block, `session_uuid   <a> -> <b> (fresh)` and
 then the runner's own verdict line, quoted exactly: `Cake-level recovery
 held; actuator-safe recovery is not something this demo provides
 (LIMITATIONS.md).` That line closes the beat.
-Caveat: the next block.
+Caveat: this is a new activation from the configured Plan. The v0.1.3
+journal reports no committed record to recover. The next block explains
+the separate hardware-state boundary.
 
 ### 12. The honest edge: the actuators re-arm on reconnect
 
@@ -210,10 +222,9 @@ override it (`docs/claims.md` row 10).
 Shown by: the last line of the Beat 4 block, and the arm itself.
 Point at: `host           listening again on <ports>, TORQUE ENABLED BY THE
 HOST`.
-Caveat: this is the edge to state, not to soften. Cake restored its
-declared state byte for byte; the servos were re-armed by the host. Say
-that the demo reports it rather than claiming a guarantee it does not
-have, and that this is why the robot is on a stand.
+Caveat: the four declared identities match after relaunch; they do not
+describe motor state. LeRobot enables torque on connect. No capture in
+the v0.1.3 run measures torque, and the robot must remain on its stand.
 
 ### 13. The stop
 
@@ -222,9 +233,10 @@ child with it (`docs/claims.md` row 8).
 Shown by: terminal B parks the follower low by moving the leader and exits,
 then Enter at STOP in terminal A.
 Point at: `stopped: no resident, no host, no socket, no listener`.
-Caveat: the host's clean exit releases torque, so the arm goes limp on its
-support; `docs/stopping-and-cleanup.md` is the ordered procedure and the
-checks that prove nothing is left.
+Caveat: a completed LeRobot disconnect is expected to release torque;
+an error or forced termination can interrupt it. Follow
+[Stopping and cleanup](stopping-and-cleanup.md), inspect shutdown errors
+and check the physical result. Process absence alone is not torque readback.
 
 ## Telemetry live during teleoperation
 
@@ -245,16 +257,15 @@ the records you want to show out of the ring.
 
 ## What the audience watches on the robot at each beat
 
-- Beat 1: the arm stiffens, torque on. Nothing moves.
+- Beat 1: observe the supported arm as the host connects and enables torque.
 - Beat 2: the follower mirrors the leader. This is the only beat in which
   motion is expected, and it is the operator's motion.
-- Beat 3: the arm holds its pose while the host is replaced, then
-  re-stiffens as the fresh host enables torque again. Nothing is expected
-  to move; the record measured torque being re-enabled, not motion.
-- Beat 4: the same as Beat 3, after the resident itself has been killed and
-  relaunched; the laptop client is run again afterwards.
-- The stop: the arm goes limp on its support, which is why it was parked
-  first.
+- Beats 3 and 4: watch for any movement during host or resident restart.
+  A successful reconnect enables torque; the event trace cannot tell you
+  whether the arm held position or the motors became disarmed.
+- The stop: check the supported arm's physical state and the software
+  cleanup output. Report an observation as an observation, not a torque
+  measurement.
 
 Any motion nobody commanded is not part of the show: `SAFETY.md` makes it a
 finding, and the presenter stops the resident and says what was seen.

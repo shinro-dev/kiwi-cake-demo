@@ -1,141 +1,120 @@
 <!-- Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. -->
 
-# Why Cake sits under the LeKiwi teleoperation host
+# Why try Cake under the LeRobot host?
 
-This page compares three ways of running the same LeKiwi host on the
-robot: by hand in a terminal, under a plain systemd service, and under
-Cake. Each is given its due. The page is held to the same standard as
-the demo record: every capability sentence about Cake is one of the rows
-in `docs/claims.md`, cited inline, and where a thing was not measured,
-the page says so.
+The useful question is whether a LeKiwi host failure becomes easier to
+understand and reproduce. This demo lets you deliberately end the host
+or its supervisor, inspect lifecycle events, and compare the declared
+identities before and after relaunch.
 
-## The setup
+That is useful when investigating startup loops, separating a child exit
+from a resident restart, or discussing a reproducible failure with another
+developer. It does not establish the cause of a bad camera frame, a USB
+disconnect or a calibration error. Those still require LeRobot output
+and checks of the relevant hardware or configuration.
 
-A LeKiwi robot: a Raspberry Pi 5, one servo controller driving a
-six-joint SO-101 arm and three wheels, two cameras. Teleoperated from a
-laptop with an SO-101 leader arm over LeRobot's own ZMQ protocol on
-ports 5555 and 5556. The laptop side is unchanged in protocol and ports.
-It runs LeRobot's own `LeKiwiClient` class through
-`bin/laptop/teleop.py`, because `lerobot-teleoperate` at the pinned
-commit (b4e2d0b) has no LeKiwi client type; nothing on the laptop knows
-Cake exists.
+## Who benefits today?
 
-In every setup below the robot runs the same control program, the
-LeKiwi host, which owns the serial bus and the cameras and speaks the
-wire protocol. What differs is what runs the host.
+| Audience | Useful experiment | Cost or boundary |
+| --- | --- | --- |
+| LeKiwi developer investigating host lifecycle | Reproduce an exit and inspect which process restarted, with which identities | Requires the supported Pi environment and extra setup around the host |
+| Tinkerer evaluating supervision | Run the same lifecycle sequence with a harmless stub before using hardware | Robot-free does not mean desktop-compatible; release binaries are AArch64 |
+| LeRobot contributor reviewing a failure report | Compare a step transcript, host errors and named lifecycle events | Evidence is collected manually; there is no automatic diagnosis or support bundle |
+| Owner who wants teleoperation or dataset recording | Evaluate whether these diagnostics solve a problem they actually encounter | No demonstrated improvement to ordinary teleoperation, recording or policy execution |
 
-## 1. The host by hand, in a terminal
+For the upstream robot workflows, start with the
+[LeRobot LeKiwi guide](https://huggingface.co/docs/lerobot/en/lekiwi).
 
-You ssh in and start the host. Its lines go to that terminal, and that
-is the log.
+## Compare three ways to run the host
 
-The pinned host is sturdier than "a single process" suggests. An error
-while handling one message is logged (`Message fetching failed: ...`)
-and the loop goes on to the next message. What ends the host is a crash
-outside that loop, a signal, the terminal going away, or its own
-connection time elapsing: after `--host.connection_time_s` it prints
-`Cycle time reached.` and exits by itself.
+All three can use the same underlying LeRobot host, which owns the serial
+bus, cameras and wire protocol. The comparison below describes a direct
+launch, a conventional service, and this demo's supplied configuration.
+Additional logging, provenance or verification can be built around any
+of them.
 
-- Restart: none. Someone notices, sshes in, and starts it again.
-- Logs: the terminal, for as long as its scrollback lasts.
-- Identity: the pid, and nothing else.
+| Concern | Direct LeRobot host | Host under plain systemd | Host under this Cake demo |
+| --- | --- | --- | --- |
+| Restart after process exit | Operator or an added wrapper restarts it | `Restart=` and start limits provide restart policy | Cake restarts the child; systemd restarts the resident on abnormal exit |
+| Logs | Terminal output, which can be redirected to a file | Journal captures stdout/stderr and service lifecycle | Resident journal, captured host output, runner transcript and structured lifecycle events |
+| Identity | Record PID, arguments, revisions and environment yourself | Unit name, configuration, `MainPID` and `NRestarts`; add environment provenance as needed | Session plus Plan, configuration, build and target-profile identities; external Python environment still needs separate provenance |
+| Admission check | No capsule admission check in a direct launch | A basic unit starts its configured executable; extra verification requires configuration | Resident admits a signed supervisor capsule named by the Plan's content identity |
+| Setup | Upstream host and robot configuration | Host setup plus a service unit | Pinned host, adapter, release binaries, signing keys, Plan, resident configuration and service unit |
+| Robot state after restart | LeRobot connects and enables torque | Same LeRobot connect behavior | Same LeRobot connect behavior; no Cake actuator gate |
 
-For a bench rig this is fine, and it is how the runbook has you prove
-the host once before anything else runs it
-(`docs/reproduce-end-to-end.md`, section 4d).
+If restarting the host and retaining stderr solve your problem, a plain
+systemd service may be sufficient. The reason to evaluate this demo is
+its additional admission and identity checks and its structured lifecycle
+evidence. The [architecture](architecture.md) shows the actual boundaries.
 
-## 2. The host under a plain systemd service
+## What the evidence establishes
 
-A user unit whose `ExecStart=` names the host, with `Restart=on-failure`
-or `Restart=always` and a `RestartSec=`. This is a real step up, and it
-costs one file.
+The [claims map](claims.md) links assertions to captured observations or
+development-host checks:
 
-- Restart: a crashed or killed host is started again after `RestartSec`,
-  as often as `StartLimitBurst` allows within `StartLimitIntervalSec`;
-  under `Restart=always` a host that exits by itself at its connection
-  time is started again too.
-- Logs: journald keeps the host's stdout and stderr with timestamps,
-  and the unit's own lifecycle lines (started, exited with its status,
-  scheduled restart), readable with `journalctl --user -u <unit>`.
-- Identity: the unit name, `MainPID` and `NRestarts`, from
-  `systemctl --user show <unit>`.
+- **Admission:** a supervisor admitted only from a signed package under
+  the configured trust policy (`docs/claims.md` row 1 and row 3).
+  Modifying a byte in that capsule produces a refusal naming its content
+  identity (`docs/claims.md` row 2). The signature does not cover the
+  external LeRobot checkout, wrapper, dependencies or calibration.
+- **Child restart:** the event trace shows a child exit and another
+  launch with a restart ordinal (`docs/claims.md` row 6). The ordinary
+  stop must target the resident because signaling only the child can
+  trigger another launch (`docs/claims.md` row 11).
+- **Resident relaunch:** after SIGKILL, a fresh session reports the same
+  four declared identities, and the previous host does not survive
+  (`docs/claims.md` row 7). This is fresh activation of the configured
+  Plan; it does not establish restoration of application memory or a
+  recording session.
+- **Inspection:** three local read queries expose status, slots and
+  lifecycle events (`docs/claims.md` row 5). These report software
+  lifecycle facts, not motor state or end-to-end readiness.
 
-What it does not check or keep: it starts whatever file `ExecStart=`
-names, unverified byte for byte; every restart is a restart of the whole
-thing, since there is only one thing; and beyond the unit file there is
-no record of what the host was started from.
+The latest [v0.1.3 board record](demo-record.md#the-v013-run-on-the-tested-board-2026-09-13)
+exercised host and resident failures with the host idle and teleoperation
+skipped. It is evidence for those lifecycle behaviors, not for continuity
+during teleoperation or recording.
 
-## 3. The host under Cake
+## Understand the LeRobot baseline
 
-Cake runs on the robot beneath the same host. It does not replace the
-host and it does not touch the wire protocol. The resident starts with
-a signed package admitted and launches the host as its supervised
-child, owning its lifecycle (`docs/claims.md` row 4). In segment 2 the
-resident itself runs under a systemd user unit with a restart on
-abnormal exit, so setup 2's restart is still there, one level down, for
-the resident.
+The pinned host already catches errors while handling a message, logs
+`Message fetching failed: ...` and continues its loop. Such an error does
+not necessarily trigger a Cake restart. The host also exits when
+`--host.connection_time_s` expires, printing `Cycle time reached.`;
+supervision may restart that intentional exit too.
 
-- Restart: when the host dies, the supervisor spawns a fresh host under
-  the next restart ordinal, with the exit and the restart in the event
-  trace (`docs/claims.md` row 6). SIGINT or SIGTERM to the host alone
-  does not stop the demo; the supervisor respawns the host
-  (`docs/claims.md` row 11).
-- Logs: the resident's own lines reach journald as in setup 2. What
-  Cake keeps of the host's life is a structured event trace, read over
-  a local admin socket beside two other read queries and decoded by
-  name (`docs/claims.md` row 5).
-- Identity: a session identity, the Plan digest, the configuration
-  identity, the build identity and the target-profile digest, read back
-  over the socket. When the resident is killed with SIGKILL, it comes
-  back from the same configuration with a fresh session identity while
-  the other four stay identical, and the killed resident's host does
-  not survive it (`docs/claims.md` row 7).
+The demo uses LeRobot's `LeKiwiClient` through its own
+[arm-only laptop example](../bin/laptop/teleop.py), because
+`lerobot-teleoperate` at the pinned commit has no LeKiwi client type.
+Protocol and ports are unchanged, but the supplied client and host
+adapter are part of this bench workflow. The
+[runbook](reproduce-end-to-end.md) lists the exact pin and clamp fix.
 
-## What Cake adds
+## Boundaries that matter to an adopter
 
-- Signed admission. The host runs as the child of a package built and
-  signed on your machine with a key you generate, and a Plan names that
-  package by its content identity (`docs/claims.md` row 1). An unsigned
-  copy of the package is refused, and so is a copy signed with a key
-  the resident does not trust (`docs/claims.md` row 3).
-- Tamper refusal. When one byte of the stored package is changed, the
-  resident refuses to start and names the content identity; restoring
-  the byte clears the refusal (`docs/claims.md` row 2).
-- A declared-identity relaunch. After SIGKILL of the resident: a fresh
-  session identity, the four declared identities identical, no orphaned
-  host (`docs/claims.md` row 7).
-- Decoded lifecycle events over a socket. Three read queries, printed
-  as a live table with every event decoded by name (`docs/claims.md`
-  row 5).
-- The safe-stop hook. A command you configure runs once per observed
-  child exit (`docs/claims.md` row 9). The demo shows that it ran, not
-  what it did: the shipped template writes one log line, and anything
-  that touches the robot is yours to write and to test on a stand.
-- A clean stop on request, closing the socket and the host with it
-  (`docs/claims.md` row 8).
+The safe-stop template only writes a log line. If the host dies without
+completing its disconnect path, nothing here stops the wheels through an
+independent motor control path. Cake has no torque concept, and a
+successful LeRobot reconnect enables torque. The demo therefore requires
+the stand precautions in [Safety](../SAFETY.md). A successful software
+restart is not evidence of actuator-safe recovery.
 
-## What Cake does not add
+This is an evaluation of precompiled Cake binaries. The runtime source
+and a buildable module SDK are not supplied. The public scripts and
+documentation are under the repository's Business Source License terms,
+with an Apache 2.0 exception for the laptop client; pull requests are
+not accepted. Read [the license note](../LICENSE-NOTE.md),
+[contribution policy](../CONTRIBUTING.md) and [limitations](../LIMITATIONS.md)
+before deciding how to reuse the work.
 
-- A torque concept. The host re-enables torque on every connect,
-  recovery included, and Cake has nothing to gate that with:
-  actuator-safe recovery is not demonstrated (`docs/claims.md` row 10).
-  That is why segment 2 runs on a stand under `SAFETY.md`.
-- A live replacement of a running module (`docs/claims.md` row 12).
-- A log store for the host's lines. If you want them kept, setup 2
-  keeps them.
-- A stop of anything that touches the robot. When the host dies,
-  nothing here stops the wheels: the configured safe-stop command runs
-  once per exit (`docs/claims.md` row 9), but the template this release
-  ships only appends a log line, and anything that actually stops a
-  motor is yours to write and test on a stand. That is why segment 2
-  always runs with the wheels off the ground.
+## A useful first community evaluation
 
-## The one-line version
+Run [segment 1](segment-1-stub.md), then use
+[Diagnosing a run](diagnosing-a-run.md) to explain one injected failure
+from its transcript and events. If you have a supported LeKiwi bench,
+repeat with the live host under the documented precautions.
 
-Same laptop, same robot, same open protocol. By hand you get the host
-and nothing else; under systemd you get restarts, timestamps and a unit
-name; under Cake you get a supervisor admitted only from a signed package
-(`docs/claims.md` row 1), restarts that carry an ordinal
-(`docs/claims.md` row 6), a relaunch that names its identities
-(`docs/claims.md` row 7), and an event trace read over a socket
-(`docs/claims.md` row 5). In all three, the stand does the safety work.
+In your feedback, identify which question the evidence answered, which
+manual checks remained necessary, and whether a plain service journal
+would have been enough. A concrete reproduction and a clear account of
+the missing evidence are more useful than a general endorsement of Cake.

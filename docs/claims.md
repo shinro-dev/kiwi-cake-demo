@@ -2,13 +2,12 @@
 
 # Claims and their evidence
 
-Every capability sentence in `README.md`, `docs/why-cake-under-lerobot.md`
-and the two segment runbooks is one of the rows below. A row cites a
-statement of record from the demo record this release derives from (board
-captures of both segments, reproduced in `docs/demo-record.md`), a
-statement of the v0.1.3 run in the last section of `docs/demo-record.md`,
-or a line of the development-host gate record that the release is built
-against. Nothing in this repository claims more than a row here.
+Use this map to distinguish observed demo behavior from implementation
+details and from capabilities the demo does not establish. Each row cites
+a statement from the [board record](demo-record.md), its appended
+v0.1.3 run, or the development-host gate record. A successful run checks
+the exercised sequence; it does not establish the same outcome for every
+possible host or hardware failure.
 
 "Board" means a Raspberry Pi 5 matching the tested-board record: the one
 of the 2026-09-07 record and, where a row also cites the v0.1.3 run, the
@@ -47,6 +46,23 @@ a nonzero control beside every zero it reports.
 
 ## What is deliberately not claimed
 
-No timing figure of any kind. No wheel stop performed by Cake. No
-resumption of module memory across a relaunch. No signature on the Plan
-artifact (the capsule is what is signed). No physical fail-safe property.
+- Row 1 signs the supervisor capsule. The Plan is unsigned, and external
+  LeRobot code, dependencies, wrappers and calibration files are outside
+  that capsule's signature.
+- Row 5 reports admin query results. It does not establish motor state,
+  working cameras or a usable end-to-end client connection.
+- Row 7 compares declared identities across fresh activation. The
+  v0.1.3 journal says there was no committed record to recover; durable
+  application state and recording continuity are not demonstrated.
+- Rows 8 and 9 describe observed process cleanup and hook execution.
+  Neither establishes a motor stop, torque-off or a physical fail-safe
+  property. The supplied hook only appends a log line.
+- The v0.1.3 board run used an idle host with teleoperation skipped.
+  Earlier operator-confirmed teleoperation is a separate observation.
+- Configured waits, frame rates and captured timestamps are not qualified
+  performance measurements. Automatic root-cause diagnosis and an
+  automated support bundle are not supplied.
+
+See [Architecture](architecture.md), [Limitations](../LIMITATIONS.md) and
+[Diagnosing a run](diagnosing-a-run.md) for these boundaries and how to
+interpret the available evidence.

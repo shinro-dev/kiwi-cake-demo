@@ -1,10 +1,15 @@
 <!-- Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. -->
 
-# Segment 1: the stub-child integrity, telemetry and recovery demo
+# Segment 1: inspect failures without a robot
 
 Torque-free. No robot, no LeRobot install, nothing that opens a device. The
 child the resident supervises is a small shell script that prints a few
 lines, waits, and exits; `demo-plan` writes it out itself.
+
+Use this segment to learn which events distinguish a child exit from a
+resident relaunch, and which declared identities persist across that
+relaunch. Complete the [README quick start](../README.md#try-it-without-a-robot)
+first; run the commands below from the repository or release root.
 
 ```
 bin/demo-segment1.sh
@@ -60,8 +65,8 @@ hold, with the reason.
    lowercase hexadecimal characters, 32 for the session identity) or the
    step fails naming the field. Every admin-socket query runs under
    `KC_PROBE_TIMEOUT` seconds (default 10, above the probe's own 5-second
-   read timeout), so a probe that never answers cannot hold a step past its
-   budget.
+   read timeout). Keep a positive value: zero disables that timeout.
+   These are configured query limits, not measured restart latencies.
 10. Child kill. SIGKILL to the stub. Expected: a new child with a different
     pid; in the flight ring, `EVT_SUPERVISOR_CHILD_EXITED` whose status word
     says signal 9, then `EVT_SUPERVISOR_CHILD_STARTED` with restart ordinal 1.
@@ -71,21 +76,27 @@ hold, with the reason.
     configuration file. Expected after relaunch: a different session
     identity, identical Plan digest, configuration identity, build identity
     and target-profile digest, and a fresh child. The before-and-after table
-    is printed.
+    is printed. This is fresh activation from the same configuration;
+    module memory and application state are not restored by this test.
 12. Clean stop. SIGTERM to the resident. Expected: `cake-resident: stopped`,
     the socket gone, no child.
 13. Summary. The PASS line and the run directory.
 
 ## What this segment proves and what it does not
 
-It proves rows 1 to 8 of `docs/claims.md` on your own board with your own
-key. It proves nothing about actuators, because nothing in it touches one,
-and it makes no timing claim: every wait in the runner is a bounded wait,
-not a measurement.
+A passing run satisfies this runner's assertions for the exercised
+sequence with your local key. Rows 1 to 8 of the [claims map](claims.md)
+identify the related recorded evidence. The segment touches no actuator
+and supplies no hardware or performance measurement.
+
+Use [Diagnosing a run](diagnosing-a-run.md) to read the transcript and
+before/after polls, including when a step fails. Select and redact files
+before sharing: the run and state directories also contain private keys.
 
 ## The relaunch in step 11
 
 On the tested board, the relaunch after SIGKILL was performed by a systemd
 user unit. Here it is performed by the runner itself, exactly as the
-development-host gate does, so that segment 1 installs nothing on your
-machine. Segment 2 uses a systemd user unit.
+development-host gate does, so segment 1 installs no service unit. It
+still writes its local state and run files. Segment 2 uses a systemd user
+unit.

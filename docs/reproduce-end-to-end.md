@@ -2,11 +2,16 @@
 
 # Reproducing the demo end to end
 
-This is the one runbook that covers both machines, in the order the steps
-must happen: the Pi from an empty board to the first beat, the laptop from
-an empty environment to a moving follower, then the beats and the stop.
-`docs/segment-1-stub.md` and `docs/segment-2-live.md` are the Pi-side detail
-of each segment; this page tells you when to open them.
+Use this runbook to reproduce host and resident failures on a LeKiwi
+bench, then inspect what restarted. It covers both machines, from
+installation and calibration to the live beats and shutdown. For a first
+experiment without a robot, use [segment 1](segment-1-stub.md).
+For interpreting output or reporting a failed step, use
+[Diagnosing a run](diagnosing-a-run.md).
+
+The live sequence uses the demo's arm-only client. It is not a recording
+or policy-evaluation run. The [board record](demo-record.md) distinguishes
+earlier operator-confirmed teleoperation from the idle-host v0.1.3 run.
 
 ## The tested configuration
 
@@ -16,14 +21,15 @@ of each segment; this page tells you when to open them.
 | Pi operating system | Raspberry Pi OS based on Debian 13 (trixie), 64-bit, default kernel (16 KiB pages), glibc 2.41 |
 | Operator side | an SO-101 leader arm on an Ubuntu 24.04 laptop |
 | LeRobot | commit `b4e2d0b61017a0db646a12c98a2df3837e37a1b9` (version 0.6.1) on both machines, with the one-line clamp fix of section 4b on the Pi |
-| Network | one LAN, the laptop and the Pi on it, no firewall between them |
+| Network | one trusted LAN; the laptop can reach TCP 5555 and 5556 on the Pi |
 | Cake | the release named in the `VERSION` file of this checkout |
 
 ## What you need
 
 Hardware: the four items above. Software on the Pi: the operating system
-above with `git`, `openssl`, `gpg`, `tar` and either `curl` or the GitHub
-CLI `gh`; a Python 3.12 or newer environment with `lerobot` and its `lekiwi`
+above with `git`, `openssl`, `gpg`, `tar`, GNU coreutils (including `timeout`),
+`systemd`, `ss` and either `curl` or the GitHub CLI `gh`;
+a Python 3.12 or newer environment with `lerobot` and its `lekiwi`
 extra. Software on the laptop: a Python 3.12 or newer environment with
 `lerobot`, its `lekiwi` extra and, for the viewer, its `viz` extra; a clone
 of this repository (only `bin/laptop/teleop.py` is used there).
@@ -35,17 +41,20 @@ of this repository (only `bin/laptop/teleop.py` is used there).
 - The LeKiwi host listens on TCP 5555 (commands in) and 5556 (observations
   out). The laptop connects to both. The demo runner checks that both are
   listening on the Pi after every start.
-- Nothing may sit between the two machines that blocks those ports.
+- Allow those two ports from the laptop through any firewall. This demo
+  does not add authentication or encryption to LeRobot's ZMQ connection;
+  keep it on a trusted LAN and do not expose it to the public internet.
 
 ## Pi side
 
 ### 4a. Cake, segment 1
 
-From the README's quick start:
+On the Pi, clone into the path used throughout this runbook. If you
+already have this checkout there, enter it and continue with the fetcher:
 
 ```
-git clone https://github.com/shinro-dev/kiwi-cake-demo.git
-cd kiwi-cake-demo
+git clone https://github.com/shinro-dev/kiwi-cake-demo.git ~/kiwi-cake-demo
+cd ~/kiwi-cake-demo
 bin/fetch-release.sh
 bin/doctor.sh
 tests/smoke-segment1.sh
@@ -105,6 +114,11 @@ not.
 
 ### 4d. Calibrate the LeKiwi once, then prove the stock host by hand
 
+Read [Safety](../SAFETY.md) and meet its physical preconditions before
+opening the robot, including for this standalone host check. The robot
+must be on its stand with wheels clear and the arm supported. Verify
+that no existing host or Cake resident owns the hardware.
+
 ```
 ~/lerobot/.venv/bin/lerobot-calibrate --robot.type=lekiwi --robot.id=<robot-id> \
   --robot.port=/dev/serial/by-id/<adapter> --robot.cameras='{}'
@@ -130,14 +144,16 @@ What you see next: a short burst of `WARNING:root:No command available`,
 then `WARNING:root:Command not received for more than 500 milliseconds.
 Stopping the base.`, then nothing: the host's informational lines are not
 shown by default. Torque is on. Stop it with Ctrl-C: `Keyboard interrupt
-received. Exiting...`, `Shutting down Lekiwi Host.`, and torque is off
-again. This is the last time the prompt is answered by hand, and it is the
-place to debug your flags: under Cake the host's output is counted by the
-supervisor, not shown.
+received. Exiting...`, `Shutting down Lekiwi Host.`. A completed disconnect
+is expected to disable torque; inspect errors and check the physical
+result before continuing. This is the place to check your host flags.
+Under Cake, inspect captured host output as described in
+[Diagnosing a run](diagnosing-a-run.md).
 
 ### 4e. The two files
 
 ```
+cd ~/kiwi-cake-demo
 cp bin/templates/run-child.sh.example bin/run-child.sh
 cp bin/templates/safe-stop.sh.in bin/safe-stop.sh
 chmod 755 bin/run-child.sh bin/safe-stop.sh
@@ -157,6 +173,7 @@ host under the supervisor (`LIMITATIONS.md`). Check the file with
 ### 4f. Segment 2 up to Beat 1
 
 ```
+cd ~/kiwi-cake-demo
 bin/demo-segment2.sh
 ```
 
@@ -168,7 +185,14 @@ terminal at the Beat 2 prompt and go to the laptop.
 
 ### 5a. LeRobot on the laptop
 
-The same commit as 4b, with the viewer:
+On the laptop, clone this demo into `~/kiwi-cake-demo` too, unless that
+checkout already exists:
+
+```sh
+git clone https://github.com/shinro-dev/kiwi-cake-demo.git ~/kiwi-cake-demo
+```
+
+Install the same LeRobot commit as 4b, with the viewer:
 
 ```
 git clone https://github.com/huggingface/lerobot ~/lerobot
@@ -238,10 +262,11 @@ an arm-only action fails every message on the host.
 
 On the laptop: `teleop: connected; the follower mirrors the leader; Ctrl-C
 stops the client`, and, with the viewer, a window with the Pi's two camera
-streams and the action plots. On the robot: the follower arm moves with the
-leader within a second of the line above. Nothing else moves; the base
-velocities are sent as zero. The leader arm is unpowered throughout: it
-moves only when you move it.
+streams and the action plots. On the robot, check whether the follower arm
+tracks the leader. The example sends zero base velocities. Report missing
+observations, failure to follow, or unexpected movement; the connection
+message alone does not verify the end-to-end result. No response latency
+is measured here.
 
 ### 5f. Safe first movements
 
@@ -252,10 +277,11 @@ not command means `SAFETY.md`: stop the resident and treat it as a finding.
 ### 5g. Before you stop the client
 
 Move the leader so the follower rests low and supported. Then Ctrl-C.
-Ctrl-C closes the client only: the follower keeps holding that pose under
-the host's torque, and the host's watchdog stops the base within half a
-second. The follower goes limp when the host exits cleanly, which is the
-demo's stop beat; that is when an unparked arm falls. Expected line:
+Ctrl-C closes the client only; the host can keep the follower under
+torque. Its configured command watchdog depends on the host loop continuing
+to execute, and is not an independently measured motor-stop deadline.
+A completed host disconnect can release torque, so the arm must already
+be supported before the stop beat. Expected client line:
 `teleop: client closed; the follower holds its pose under the host's torque
 until the host exits`.
 
@@ -263,52 +289,61 @@ until the host exits`.
 
 Terminal A is an ssh session to the Pi running `bin/demo-segment2.sh`;
 terminal B is the laptop running `bin/laptop/teleop.py`. This is the
-alternation the operator performed; what each beat prints and checks in
-detail is in `docs/segment-2-live.md`.
+procedure for a run that includes teleoperation. The v0.1.3 board record
+used SKIP and had no connected client. What each beat prints and checks
+is detailed in [segment 2](segment-2-live.md).
 
 | Order | Terminal A (the Pi) | Terminal B (the laptop) | On the robot |
 | --- | --- | --- | --- |
 | 1 | `bin/demo-segment2.sh`, the acknowledgment, Enter at Beat 1: `host pid <n> listening on 5555 5556` | waits | the arm stiffens: torque on |
 | 2 | waits at the Beat 2 prompt | `bin/laptop/teleop.py ...`: `teleop: connected; the follower mirrors the leader` | the follower mirrors the leader |
 | 3 | types `CONFIRMED` (or `SKIP`, which the run's last line then records) | keeps running | unchanged |
-| 4 | Enter at Beat 3 (SIGTERM to the host only) | the client loses its connection while the host restarts; leave it or Ctrl-C it | the arm holds; the signalled host left torque as it was |
+| 4 | Enter at Beat 3 (SIGTERM to the host only) | the client loses its connection; exit it before starting another | torque may remain; observe the supported arm |
 | 5 | `host exited with signal 15 (sequence <n>), safe-stop ran (sequence <n>), fresh host pid <n> with restart ordinal 1; resident pid <n> and session unchanged` | waits | the arm re-stiffens as the fresh host enables torque |
 | 6 | waits at the Beat 4 acknowledgment | re-runs the client: mirroring again | the follower mirrors the leader |
-| 7 | re-types the acknowledgment, Enter at Beat 4 (SIGKILL to the resident) | the client loses its connection again | the arm holds |
+| 7 | re-types the acknowledgment, Enter at Beat 4 (SIGKILL to the resident) | the client loses its connection again | observe the supported arm through the restart |
 | 8 | `host <n> died with the resident (no orphan)`, then the BEFORE/AFTER block: `session_uuid <a> -> <b> (fresh)`, the four identities `IDENTICAL`, `TORQUE ENABLED BY THE HOST` | waits | the arm re-stiffens as the relaunched resident's host enables torque |
 | 9 | waits at the STOP prompt | re-runs the client: mirroring again | the follower mirrors the leader |
 | 10 | waits | parks the follower low by moving the leader, then Ctrl-C: `teleop: client closed; ...` (section 5g) | the follower holds the parked pose |
-| 11 | Enter at STOP: `stopped: no resident, no host, no socket, no listener` | done | the host's clean exit releases torque; the arm goes limp on its support |
-| 12 | the checks in `docs/stopping-and-cleanup.md` | done | unpowered |
+| 11 | Enter at STOP: `stopped: no resident, no host, no socket, no listener` | done | check the supported arm and host disconnect output |
+| 12 | the checks in [Stopping and cleanup](stopping-and-cleanup.md) | done | verify physical state separately from process absence |
 
-Torque is on from Beat 1 to the stop, and every restart re-enables it
+Treat every successful host connect as a torque-on event
 (`docs/claims.md` row 10); the client's connection is lost at every host
 restart because the host's sockets are the ones that close.
 
 ## The stop
 
 Enter at STOP. Expected: `stopped: no resident, no host, no socket, no
-listener`. The host's clean exit releases torque, so the arm must be low
-before this beat. Everything else about stopping, including the checks that
-prove nothing is left and the removal of the unit, is
-`docs/stopping-and-cleanup.md`.
+listener`. The arm must be low and supported before this beat because a
+completed host disconnect releases torque. Inspect errors and check the
+physical result. [Stopping and cleanup](stopping-and-cleanup.md) covers
+process checks, removal of the unit and incomplete shutdowns.
 
 ## When it does not work
 
-| What you see | Cause | What to do |
+Before a standalone host check, stop the resident and verify that the
+previous host and listeners are gone. Never run two hosts against the same
+robot. Read the earliest host error using [Diagnosing a run](diagnosing-a-run.md).
+
+| What you see | Possible cause | What to check |
 | --- | --- | --- |
 | `EVT_SUPERVISOR_RESTART_BOUND_REACHED` right after Beat 1 and the host never listens (`bin/telemetry.sh` shows five child exits) | the stock host's calibration prompt; or a wrapper that forwards `"$@"`; or a camera entry without `"type"`; or a wrong `by-id` path | use `bin/pi/lekiwi_host_noninteractive.py` as the host entry; keep the example's shape; run the host by hand (4d) to see its own error |
 | the host listens, then exits after about 30 seconds, and the restart bound is reached | `--host.connection_time_s` left at its default | set it to 86400 as the example does |
 | the follower never moves; by hand the host prints `ERROR:root:Message fetching failed: 'x.vel'` | the client sent arm keys only | the shipped client sends the base keys; use it |
 | the follower never moves; by hand the host prints `ERROR:root:Message fetching failed: 'arm_shoulder_pan.pos'` | the clamp defect of the pinned LeRobot commit | `bin/pi/apply-lerobot-clamp-fix.sh --apply ~/lerobot` (4b) |
-| the client exits with `Timeout waiting for LeKiwi Host to connect expired.` | the host is not at Beat 1 yet, the address is wrong, or 5556 is blocked | check `ss -tln` on the Pi and `<pi-ip>` |
+| the client exits with `Timeout waiting for LeKiwi Host to connect expired.` | the host is not ready, the address is wrong, a port is blocked, or observations failed | check host stderr, camera errors, listeners on TCP 5555/5556 and `<pi-ip>` |
 | the client asks to calibrate the leader, or the follower jumps at connect | the leader's id and the robot's id were swapped, or one is uncalibrated | 5c and 4d: two ids, two files |
-| `something already listens on 5555 5556` | your own host is still running | stop it first; segment 2 must be the only host |
+| a configured port is already listening, or its owner is unexpected | an existing host or another service holds a port | identify the process first; stop the appropriate service before retrying |
 
 ## The operator's live test
 
-Everything above the beats is verified by the tests in this repository and
-by the segment 1 smoke test on the board. The live teleoperation and beats
-2 to 4 on the physical rig are the maintainer's own test, performed with
-the robot on a stand under the preconditions in `SAFETY.md`; this page was
-written from that run, and no automated test covers it.
+The tooling tests check selected script behavior and documentation
+consistency. They do not perform this entire installation, calibration
+or teleoperation sequence. The Pi venv check above established installation
+and imports, not a hardware run from that environment.
+
+The [demo record](demo-record.md) is the authority for observed board
+behavior. It includes an earlier operator-confirmed teleoperation run
+and a v0.1.3 run with teleoperation skipped. Report the same distinction
+when sharing your own result.

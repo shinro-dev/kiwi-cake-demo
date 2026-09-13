@@ -2,16 +2,32 @@
 
 # Limitations
 
-This is a demo released as-is. Everything below is a limit of what this
-release does and shows. There is no roadmap in this repository, and nothing
-here should be read as a promise about a later release.
+Use this demo to evaluate host supervision and lifecycle evidence on the
+tested Pi 5. The [architecture](docs/architecture.md) describes the
+deployment; the [claims map](docs/claims.md) distinguishes recorded
+observations from development-host checks.
+
+## Scope of this release
+
+| Area | Available here | Not established by this demo |
+| --- | --- | --- |
+| Host lifecycle | Controlled child exits, restarts and resident relaunch | Automatic diagnosis of USB, camera, calibration or network faults |
+| Deployment identity | Comparison of Plan, configuration, build and target-profile identities | Reproducibility of the external Python environment or restoration of application state |
+| Modules | One supervisor slot, one resource and zero bindings | Independent camera or motion modules, or live module replacement |
+| LeRobot workflow | Pi host supervision and an arm-only laptop example | Ordinary recording, policy execution or continuity through a failure |
+| Inspection | Local admin queries, runner transcripts and captured host output | A durable event archive or an automated support bundle |
+| Hardware state | LeRobot connect/disconnect behavior and operator observations | An independent motor stop, a torque readback or recovery into a disarmed state |
+
+The latest [v0.1.3 board run](docs/demo-record.md#the-v013-run-on-the-tested-board-2026-09-13)
+used an idle host with teleoperation skipped. Its process and signal
+evidence does not establish behavior during an active client session.
 
 ## Actuator-safe recovery is not guaranteed
 
-After the resident is killed and relaunched, Cake restores its declared state
-exactly: the Plan digest, the configuration identity, the build identity and
-the target-profile digest read back identical, and a fresh session identity
-is reported. That is what the demo record measured and what this demo shows.
+After the resident is killed and relaunched, the Plan digest, configuration
+identity, build identity and target-profile digest read back identical,
+with a fresh session identity. These are comparisons of declared
+identities, not measurements of robot state.
 
 What it does not show is the actuators coming back disarmed. In this demo the
 motors are owned by the stock LeRobot host, which enables torque on every
@@ -24,48 +40,53 @@ references removed at the marked elisions:
 > actuator-safe-recovery NOT DEMONSTRATED ([...] the LeRobot child re-arms
 > unconditionally on connect).
 
-Treat every restart in segment 2 as a torque-on event. `SAFETY.md` is
-mandatory for that reason.
+Treat every restart in segment 2 as a torque-on event.
+[SAFETY.md](SAFETY.md) is mandatory for that reason.
 
 ## No live module replacement
 
 The public demo does not perform a live replacement of a running module.
-The demo shows admission, supervision, recovery and telemetry, and nothing
-else.
+It does not demonstrate the broader Cake v1.1 module architecture merely
+by running the host beneath a supervisor.
 
 ## The relaunch is a new process, not a resumed one
 
-A relaunched resident re-activates the Plan its configuration names.
+A relaunched resident activates the Plan its configuration names.
 Module memory does not survive it: the supervisor's restart ordinal begins
-again at zero, as the record's crash-recovery beat shows. Whether declared
-persistent resources survive a replacement is a property of the runtime
-that this demo does not exercise. "A fresh session identity" is a comparison
-between two status answers, not a description of the new process.
+again at zero. The v0.1.3 journal explicitly reports a fresh install with
+no committed record to recover. Matching identities after relaunch do
+not prove recovery of a committed transaction, persistent module state
+or an interrupted recording session.
 
 ## What is signed, and what is not
 
-The signed object is the capsule (the program package). The Plan artifact
-format carries no signature; the Plan is bound to the capsule by content
+The signed object is the supervisor capsule (the module package), not the
+external LeRobot program. The shell wrapper, Python dependencies, LeRobot
+checkout and calibration files are outside that capsule's signature. The
+Plan artifact format carries no signature; the Plan is bound to the capsule by content
 identity, which is exactly the binding the tamper beat breaks by changing one
 byte of the stored object. Under the `require` signature policy the resident
 refuses an unsigned capsule and a capsule signed by a key it does not trust,
 naming the policy word; that refusal is exercised by the demo's own verify
 step and was measured on the development host, not on the board.
 
-## No timing figure is a claim
+## Configured waits are not performance measurements
 
-Nothing in this demo, its transcripts or these documents states a latency, a
-duration or a rate. Restart backoff and the termination deadline are
-configured waits, not measurements.
+The scripts configure restart backoff, query timeouts, termination
+deadlines and client rates. Captures also contain timestamps. None of
+these establishes an end-to-end restart latency, control-loop rate or
+motor-stop deadline. The release has no qualified performance benchmark.
 
 ## The safe-stop command is yours
 
 The supervisor runs a configured command once for every child exit it
-observes. The demo record proves that it ran; it does not record what the
-operator's command did. This release ships only a template that writes one
+observes. The original record did not capture the operator's command's
+actions; the v0.1.3 run used the shipped template, which only writes one
 log line. Anything that touches the robot is yours to write and to test on a
-stand first. The wheels stop when the host stops because the host stops
-them, not because Cake does.
+stand first. A hard host death can skip its disconnect path. The host's
+watchdog depends on the host continuing to execute; it is not an
+independent motor stop. Nothing in the shipped safe-stop template
+guarantees that wheels stop or torque is disabled after a process death.
 
 ## The preflight cannot reach PASS in the public build
 
@@ -79,13 +100,15 @@ lines and accepts exactly that one refusal as the end of the roster; any
 other refusal stops the run. `bin/doctor.sh` re-implements the seventh check
 in shell (one no-op run of each shipped binary) and labels it as such.
 
-## The tested board record is exact
+## Platform checks do not qualify the whole robot
 
-`demo-preflight` compares the running machine against one embedded record:
+`demo-preflight` checks platform facts against an embedded board record:
 Raspberry Pi 5, Raspberry Pi OS based on Debian 13 (trixie), a 16 KiB page
 kernel, glibc 2.41. The page-size check requires equality with 16384, and the
 glibc check requires the running version to be at or above 2.41 as well as at
-or above the binaries' own floor of 2.34. Consequences, by construction:
+or above the binaries' own floor of 2.34. The doctor's board classification
+does not certify an identical OS image, working devices or a calibrated
+robot. Consequences of the preflight requirements:
 
 - A Raspberry Pi 4 is refused at the page-size check (its kernels use 4 KiB
   pages).
@@ -94,72 +117,17 @@ or above the binaries' own floor of 2.34. Consequences, by construction:
 - A Raspberry Pi 5 booted with the 4 KiB kernel (`kernel=kernel8.img`) is
   refused at the page-size check.
 
-`docs/targets.md` says what each refusal means and what the
+[Supported targets](docs/targets.md) says what each refusal means and what the
 `--unsupported-target` override does and does not allow. There is no x86-64
-build in this release: the compiled-in target profile is the aarch64 LeKiwi
-profile, so an x86-64 resident refuses its own package before anything runs.
+build in this release. The shipped binaries are AArch64 and cannot run
+natively on an x86-64 desktop.
 
-## The binaries contain a fixture signing key that must never be used
+## Demo keys are for local evaluation
 
-`demo-plan` carries a test-fixture Ed25519 key pair used by its
-`--gate-fixture-key` option. The seed of that key is derived at run time by
-hashing a label that is compiled into the binary, so anyone who has the
-binary can derive the private key. The demo never trusts that key: every
-resident configuration this demo writes trusts only the key you generate on
-your own machine, and the runner never passes `--gate-fixture-key`. Do not
-use that option for anything but a throwaway experiment, and never treat that
-key as a real key.
-
-## What a strings walk of these binaries shows
-
-The binaries are stripped, built with `panic=abort`, and every build-tree,
-vendor, registry and toolchain path is remapped to one neutral token. That
-resists a casual `strings` or `objdump` walk; it is not a security boundary,
-and the source stays private by policy rather than by this build. A walk
-still shows the following, all of it disclosed here rather than asserted away:
-
-- A bounded set of internal literals that are functional error text a
-  working binary prints by construction and that no build setting removes:
-  the rule identifiers `CAKE-ABI-018` and `LK-TARGET-001`; the citations
-  `Specification 10.3`, `Specification 12.4` and `Specification 14.1`; the
-  published module entry symbol name `cake_module_entry_v1`; the provenance
-  statement `the committed gate fixture key`; and the refusal text
-  `unrecognized plan_verdict byte`. The build's own gate counts their
-  occurrences per target; the count is not repeated here.
-- Rust standard library paths of the form `/rustc/<hash>/library/...`, which
-  the Rust project's own build bakes in and which name no file of ours.
-- The neutral remap token, which reads as an absolute path that exists on no
-  machine.
-- The implementation identifiers `dev.shinro.lekiwi.supervisor` and
-  `dev.shinro.lekiwi.supervisor.config`, which the telemetry also prints.
-- The full text of the stub child script, which `demo-plan` writes out for
-  segment 1, including comments that name the internal task numbers under
-  which it was written.
-- Provenance labels of the form `cake gate<n> T<nnn> <what>`, naming the
-  internal task that introduced a key, a policy or a toolchain. They are
-  inputs to digests and key derivations (the fixture key's seed is derived
-  from one of them), so they are part of what the binaries compute, not
-  decoration. Measured on the build this release derives from:
-  `cake gate1 t011 rotation key a`, `cake gate3 T050 lekiwi supervisr`
-  (quoted exactly as it appears in the binary; a pre-existing internal
-  label typo, functionally inert), `cake gate3 T050 supervisor toolchain
-  provenance` and `cake gate3 T051 demo plan policy`. The released
-  binaries' own gate evidence is the authority for the final set, and
-  this list is kept in step with it.
-- The text of the embedded tested-board record, including its comment
-  header, which names the board and the tools the facts were read with.
-- The public half of the fixture key described above.
-
-Nothing in the binaries names the machine or the person that built them.
-`tools/strings-gate.sh` is the scan every released binary passed, with its
-own nonzero control. It refuses to run without a private-tokens file
-(`KC_GATE_PRIVATE_TOKENS`, one extended regular expression per line), and
-the maintainer's tokens are not published, so what you can repeat on a
-downloaded release is the gate's generic patterns with a tokens file of
-your own; the private patterns are the maintainer's check, not yours. The
-gate rejects host paths, private names and source-tree paths; it does not
-reject the internal identifiers listed above, which are disclosed here
-instead of being scanned for.
+The runner generates and trusts a local demo key. The binary also contains
+a publicly derivable fixture key for gate experiments; never trust that
+fixture key in a real deployment. See [Release binary inspection](docs/release-internals.md)
+for the fixture-key warning and the disclosed binary-string details.
 
 ## The stock host prompts for calibration on connect
 

@@ -2,10 +2,15 @@
 
 # Stopping and cleanup
 
-This is the one ordered exit procedure for segment 2, with the motor state
+This is the ordered exit procedure for segment 2, with expected motor behavior
 after each step, the commands that prove nothing is left, the removal of
 the user unit, what to do if a stop hangs, and the emergency stop. The
 other documents point here rather than repeating it.
+
+Software cleanup checks establish process, socket and listener state.
+They do not measure torque. Inspect host shutdown errors and check the
+supported robot's physical state separately. For a failure report, retain
+the relevant output using [Diagnosing a run](diagnosing-a-run.md).
 
 Segment 1 needs none of this: its runner stops its own resident at the end
 of the run and on any failure, and `bin/demo-stop.sh` covers a run that was
@@ -13,15 +18,15 @@ interrupted. Nothing in segment 1 can move anything.
 
 ## The exit sequence, in order
 
-| Step | Where | What you do | Motor state afterwards |
+| Step | Where | What you do | Expected behavior and checks |
 | --- | --- | --- | --- |
 | 1 | the leader arm | Move the leader so the follower rests low and physically supported. | Torque on; the follower holds the parked pose under the host's torque. |
-| 2 | the laptop | Ctrl-C the client (`bin/laptop/teleop.py`). Expected line: `teleop: client closed; the follower holds its pose under the host's torque until the host exits`. | Torque on. The client only closed its sockets; the host's watchdog stops the base within its timeout; the arm keeps holding. |
-| 3 | the Pi | Stop the resident: press Enter at the runner's STOP beat, or run `bin/demo-stop.sh` at any other time. Expected: `stopped: no resident, no host, no socket, no listener` from the runner, or `kiwi-cake: stopped kiwi-cake-demo.service` then `kiwi-cake: done (1 stop action(s)): no resident, no supervised child, no socket` and exit 0 from the stop script; the stop script exits 1 and prints `kiwi-cake: FAIL:` naming what is left when the stop did not complete. | systemd's stop signals the resident only (`KillMode=mixed`, set in the unit), and the resident's own shutdown quiesces the host: SIGINT to the host, then a bounded deadline, then force. A host that exits on the SIGINT runs its disconnect and releases torque (`--robot.disable_torque_on_disconnect=true`), so the arm goes limp: it must already be parked. A host ended by force after the deadline did not run its disconnect, so torque may remain: check the robot. |
+| 2 | the laptop | Ctrl-C the client (`bin/laptop/teleop.py`). Expected line: `teleop: client closed; the follower holds its pose under the host's torque until the host exits`. | The client closes its sockets; it does not disable host torque. The host's command watchdog depends on its loop continuing to execute and is not an independent motor-stop guarantee. |
+| 3 | the Pi | Stop the resident: press Enter at the runner's STOP beat, or run `bin/demo-stop.sh` at any other time. Expected: `stopped: no resident, no host, no socket, no listener` from the runner, or `kiwi-cake: stopped kiwi-cake-demo.service` then `kiwi-cake: done (1 stop action(s)): no resident, no supervised child, no socket` and exit 0 from the stop script; the stop script exits 1 and prints `kiwi-cake: FAIL:` naming what is left when the stop did not complete. | systemd's stop signals the resident only (`KillMode=mixed`, set in the unit), and the resident's own shutdown quiesces the host: SIGINT to the host, then a bounded deadline, then force. A host that completes its disconnect with `--robot.disable_torque_on_disconnect=true` releases torque, so the arm must already be parked and supported. An error or forced termination can interrupt disconnect; torque may remain. Inspect shutdown output and check the robot. |
 | 4 | the Pi | Run the checks below. | Unchanged. |
 
 Never signal the host directly. SIGINT or SIGTERM to the LeRobot host alone
-is a child exit to the supervisor, which respawns the host at once, and the
+is a child exit to the supervisor, which can respawn the host, and the
 fresh host enables torque on connect (`docs/claims.md` row 11). The only
 correct stop is the resident's, which closes the socket and the child with
 it (`docs/claims.md` row 8).
@@ -181,7 +186,7 @@ the resident's `stub got SIGINT`: the stub's handlers only log, and its
 exit path runs a moment after the first signal, so a second signal that
 lands in the same instant is recorded rather than lost to a handler
 that exited first. The measurement records which signals arrived, never
-a duration (`LIMITATIONS.md`, "No timing figure is a claim").
+a duration. See [configured waits and performance limits](../LIMITATIONS.md#configured-waits-are-not-performance-measurements).
 
 ## Emergency stop
 
