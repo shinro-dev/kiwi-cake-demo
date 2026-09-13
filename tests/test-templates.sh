@@ -36,6 +36,29 @@ slug_for() { KC_ARCH="$1" KC_MODEL="$2" KC_PAGE_SIZE="$3" KC_GLIBC="$4" kc_targe
 [ "$(slug_for aarch64 'Raspberry Pi 4 Model B Rev 1.5' 4096 2.41)" = "pi5-aarch64" ] && echo "ok   a Pi 4 maps to the pi5-aarch64 tarball" || { echo "FAIL Pi 4 slug"; FAILS=$((FAILS + 1)); }
 [ "$(slug_for aarch64 'Raspberry Pi 5 Model B Rev 1.0' 16384 2.41)" = "pi5-aarch64" ] && echo "ok   a Pi 5 maps to the pi5-aarch64 tarball" || { echo "FAIL Pi 5 slug"; FAILS=$((FAILS + 1)); }
 [ -z "$(slug_for x86_64 unknown 4096 2.39)" ] && echo "ok   an x86-64 machine has no tarball" || { echo "FAIL x86-64 slug"; FAILS=$((FAILS + 1)); }
+# The user unit: rendered as the runner renders it, every field the stop path rests on present.
+U="$T/kiwi-cake-demo.service"
+sed -e "s|@@CAKE_RESIDENT@@|$ROOT/tests/mock-bin/cake-resident|" -e "s|@@RESIDENT_CONF@@|$T/resident.conf|" \
+  "$ROOT/bin/templates/kiwi-cake-demo.service.in" >"$U"
+kc_template_has_placeholder "$U" && { echo "FAIL the rendered unit still carries a placeholder"; FAILS=$((FAILS + 1)); } || echo "ok   the rendered unit carries no placeholder"
+for want in "ExecStart=$ROOT/tests/mock-bin/cake-resident --config $T/resident.conf" 'Restart=on-abnormal' 'RestartSec=2' 'KillMode=mixed' 'KillSignal=SIGTERM' 'TimeoutStopSec=60'; do
+  grep -qxF -- "$want" "$U" && echo "ok   unit has $want" || { echo "FAIL unit lacks $want"; FAILS=$((FAILS + 1)); }
+done
+grep -qx 'KillMode=process' "$U" && { echo "FAIL unit uses KillMode=process (cgroup cleanup lost)"; FAILS=$((FAILS + 1)); } || echo "ok   unit does not use KillMode=process"
+[ "$(grep -c '^KillMode=' "$U")" -eq 1 ] && echo "ok   KillMode is set exactly once" || { echo "FAIL KillMode is set $(grep -c '^KillMode=' "$U") times"; FAILS=$((FAILS + 1)); }
+if command -v systemd-analyze >/dev/null 2>&1; then
+  if OUT="$(systemd-analyze --user verify "$U" 2>&1)" || OUT="$(systemd-analyze verify "$U" 2>&1)"; then
+    echo "ok   systemd-analyze verify accepts the rendered unit"; [ -z "$OUT" ] || printf '%s\n' "$OUT" | sed 's/^/     /'
+  else
+    case "$OUT" in
+      *"Failed to connect"* | *"No such file"* | *"cgroup"*) echo "SKIP systemd-analyze verify: could not run here ($(printf '%s' "$OUT" | head -n 1))" ;;
+      *) echo "FAIL systemd-analyze verify rejected the rendered unit:"; printf '%s\n' "$OUT" | sed 's/^/     /'; FAILS=$((FAILS + 1)) ;;
+    esac
+  fi
+else
+  echo "SKIP systemd-analyze: not installed; the rendered unit was not verified by systemd"
+fi
+
 # Process helpers.
 sleep 30 &
 CHILD=$!

@@ -18,6 +18,22 @@ Type=simple
 ExecStart=@@CAKE_RESIDENT@@ --config @@RESIDENT_CONF@@
 Restart=on-abnormal
 RestartSec=2
+# The stop path. KillMode=mixed sends the stop signal (KillSignal, SIGTERM,
+# stated explicitly) to the resident only, never to the host. The resident
+# stops the host itself: the stop signal the Plan configured (SIGINT in
+# this demo), then a bounded deadline, then force (docs/claims.md row 8,
+# docs/stopping-and-cleanup.md). systemd's own SIGKILL to whatever is left
+# in the unit's control group follows only after the resident has exited,
+# or after TimeoutStopSec if it has not. The default, KillMode=control-group,
+# would send SIGTERM to the host at the same instant as to the resident,
+# and the pinned LeRobot host has no SIGTERM handler: it would die under
+# systemd's signal before its disconnect ran, whatever the resident then
+# did. TimeoutStopSec is a systemd figure, not a Cake one, set above the
+# resident's own bounded stop and below the manager's 90-second default,
+# so that a stuck stop ends sooner, not later.
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
 
 [Install]
 WantedBy=default.target

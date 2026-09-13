@@ -190,9 +190,14 @@ mkdir -p "$(dirname "$UNIT_PATH")" || beat_fail unit "cannot create $(dirname "$
 sed -e "s|@@CAKE_RESIDENT@@|$BIN/cake-resident|" -e "s|@@RESIDENT_CONF@@|$CONF|" \
   "$KC_SCRIPTS_DIR/templates/kiwi-cake-demo.service.in" >"$UNIT_PATH" || beat_fail unit "could not write $UNIT_PATH"
 grep -qxF "ExecStart=$BIN/cake-resident --config $CONF" "$UNIT_PATH" || beat_fail unit "the unit's ExecStart did not render as expected"
+grep -qx 'KillMode=mixed' "$UNIT_PATH" && grep -qE '^TimeoutStopSec=[0-9]+$' "$UNIT_PATH" ||
+  beat_fail unit "the rendered unit lacks KillMode=mixed or TimeoutStopSec; its stop path is not the documented one"
 systemctl --user daemon-reload || beat_fail unit "systemctl --user daemon-reload failed"
 if systemctl --user is-active --quiet "$UNIT"; then systemctl --user stop "$UNIT"; fi
-echo "installed $UNIT_PATH (Restart=on-abnormal, RestartSec=2)"
+unit_field() { sed -nE "s/^$1=(.*)\$/\\1/p" "$UNIT_PATH" | head -n 1; }
+UNIT_FIELDS=""
+for k in Restart RestartSec KillMode KillSignal TimeoutStopSec; do UNIT_FIELDS="$UNIT_FIELDS${UNIT_FIELDS:+, }$k=$(unit_field "$k")"; done
+echo "installed $UNIT_PATH ($UNIT_FIELDS)"
 if command -v loginctl >/dev/null 2>&1 && [ "$(loginctl show-user "$ME" -p Linger --value 2>/dev/null)" != "yes" ]; then
   echo "note: linger is not enabled for $ME; the unit stops when your last session ends (loginctl enable-linger $ME)"
 fi

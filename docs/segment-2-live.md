@@ -85,7 +85,9 @@ bin/demo-segment2.sh
    green checks.
 3. It writes `resident.conf`, installs
    `~/.config/systemd/user/kiwi-cake-demo.service` from the template with
-   absolute paths, and reloads the user manager.
+   absolute paths (the unit's stop signal goes to the resident only,
+   `KillMode=mixed`; `docs/stopping-and-cleanup.md`), and reloads the
+   user manager.
 4. Beat 1, on Enter: `systemctl --user start`. Expected: `plan active`, and
    your host listening on ports 5555 and 5556. Torque is now on.
 5. Beat 2: you type CONFIRMED once teleoperation works through the

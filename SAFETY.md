@@ -57,6 +57,9 @@ host alone does not stop the demo: the supervisor inside Cake treats that as
 a child exit and immediately spawns a fresh host, which re-enables torque on
 connect. The runbook-correct stop is the resident's own clean shutdown, which
 quiesces the child as part of it. `bin/demo-stop.sh` does exactly that.
+So does `systemctl --user stop kiwi-cake-demo.service`: the unit the runner
+installs sets `KillMode=mixed`, so systemd's stop signals the resident only,
+and the host hears from the resident's shutdown, not from systemd.
 
 The clean stop sends your host SIGINT and, if it has not exited after a
 short bounded deadline, ends it by force. Whether the motors are unpowered

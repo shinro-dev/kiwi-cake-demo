@@ -17,7 +17,7 @@ interrupted. Nothing in segment 1 can move anything.
 | --- | --- | --- | --- |
 | 1 | the leader arm | Move the leader so the follower rests low and physically supported. | Torque on; the follower holds the parked pose under the host's torque. |
 | 2 | the laptop | Ctrl-C the client (`bin/laptop/teleop.py`). Expected line: `teleop: client closed; the follower holds its pose under the host's torque until the host exits`. | Torque on. The client only closed its sockets; the host's watchdog stops the base within its timeout; the arm keeps holding. |
-| 3 | the Pi | Stop the resident: press Enter at the runner's STOP beat, or run `bin/demo-stop.sh` at any other time. Expected: `stopped: no resident, no host, no socket, no listener` from the runner, or `kiwi-cake: stopped kiwi-cake-demo.service` then `kiwi-cake: done (1 stop action(s)): no resident, no supervised child, no socket` and exit 0 from the stop script; the stop script exits 1 and prints `kiwi-cake: FAIL:` naming what is left when the stop did not complete. | The resident's own shutdown quiesces the host: SIGINT to the host, then a bounded deadline, then force. A host that exits on the SIGINT runs its disconnect and releases torque (`--robot.disable_torque_on_disconnect=true`), so the arm goes limp: it must already be parked. A host ended by force after the deadline did not run its disconnect, so torque may remain: check the robot. |
+| 3 | the Pi | Stop the resident: press Enter at the runner's STOP beat, or run `bin/demo-stop.sh` at any other time. Expected: `stopped: no resident, no host, no socket, no listener` from the runner, or `kiwi-cake: stopped kiwi-cake-demo.service` then `kiwi-cake: done (1 stop action(s)): no resident, no supervised child, no socket` and exit 0 from the stop script; the stop script exits 1 and prints `kiwi-cake: FAIL:` naming what is left when the stop did not complete. | systemd's stop signals the resident only (`KillMode=mixed`, set in the unit), and the resident's own shutdown quiesces the host: SIGINT to the host, then a bounded deadline, then force. A host that exits on the SIGINT runs its disconnect and releases torque (`--robot.disable_torque_on_disconnect=true`), so the arm goes limp: it must already be parked. A host ended by force after the deadline did not run its disconnect, so torque may remain: check the robot. |
 | 4 | the Pi | Run the checks below. | Unchanged. |
 
 Never signal the host directly. SIGINT or SIGTERM to the LeRobot host alone
@@ -75,12 +75,18 @@ run, so removing it costs nothing.
 ## If a stop hangs
 
 The clean stop is bounded on both sides. The resident gives the host its
-stop signal and a bounded deadline before ending it by force (`SAFETY.md`);
-`systemctl --user stop` waits for the unit's stop timeout, which is
-systemd's `DefaultTimeoutStopSec` (90 seconds unless your systemd is
-configured otherwise; a systemd figure, not a Cake one), and then ends what
-is left. Wait it out with your eyes on the
-arm and a hand near power, then run the checks above.
+stop signal and a bounded deadline before ending it by force
+(`SAFETY.md`). The unit the runner installs sets `KillMode=mixed` and
+`TimeoutStopSec=60`: on `systemctl --user stop`, systemd sends SIGTERM to
+the resident only, never to the host, and waits up to 60 seconds (a
+configured wait written in the unit, longer than the resident's own
+bounded teardown, not a measurement) for the resident's shutdown to
+finish; only then does it end whatever is left in the unit's control
+group with SIGKILL. While the resident lives, the host hears only from
+the resident; a host that is slow to exit is still ended by the
+resident's force after its deadline, and then torque may remain. Wait it
+out with your eyes on the arm and a hand near power, then run the checks
+above.
 
 A host process that outlives its resident is a finding to report, not
 something to work around: note the output of the checks and of
@@ -92,7 +98,37 @@ run its disconnect and leaves the servos as they were.
 One message in that journal is cosmetic: on the tested board the resident's
 own shutdown completed and printed `stopped` before systemd's cgroup
 teardown found and killed one lingering ZeroMQ background thread of the
-host. The devices were free.
+host. The devices were free. Under the current unit, a `Killing process`
+line that appears after the resident's `stopped` line is that same case;
+one that appears before it is a finding to report.
+
+## What was measured
+
+`tests/unit-stop-signals.sh` is the torque-free measurement behind the
+two unit settings above. It installs the unit template around a real
+resident whose child is a stub of segment 1's shape (a line-printing
+script that logs every signal it receives; no device is named or
+opened), starts the unit with `systemctl --user`, stops it with
+`systemctl --user stop`, and asserts eight things: the stop command
+returned 0; the stub logged `stub got SIGINT`; the stub logged
+`stub exit path ran`; the stub logged no `stub got SIGTERM`; the journal
+carries `cake-resident: stopped`; the journal carries no
+`Killing process` line for the stub's pid; the unit is `inactive`; no
+process naming the run directory remains. It prints two artefacts, the
+journal excerpt and the stub log, and ends on `unit-stop-signals: PASS`
+when all eight held. Only the resident can send SIGINT under a unit
+whose stop signal is SIGTERM, so the SIGINT line is the resident's and
+the absent SIGTERM line means systemd signalled nothing while the
+resident lived. The stub is not the LeRobot host: the measurement says
+nothing about a host's disconnect finishing inside the resident's
+deadline, and nothing about torque.
+
+`tests/unit-stop-signals.sh --template <path>` repeats the capture under
+another template. Under a template that sets no `KillMode`, systemd's
+default `control-group` sends SIGTERM to every process in the control
+group, the child included, and the stub logs `stub got SIGTERM`. The
+measurement records which signals arrived, never a duration
+(`LIMITATIONS.md`, "No timing figure is a claim").
 
 ## Emergency stop
 

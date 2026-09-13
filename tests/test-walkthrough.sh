@@ -64,4 +64,13 @@ while IFS= read -r m; do
   done
 done < <(grep -oE 'bin/[A-Za-z0-9_./-]+\.(sh|py)( --[a-z-]+( [0-9]+)?)+' "$W" | sed -E 's/ [0-9]+//g' | sort -u)
 echo "ok   $NFL script flags mentioned are parsed by their scripts"
+# 6. the stopping document and SAFETY.md state the unit's own stop settings
+U="$ROOT/bin/templates/kiwi-cake-demo.service.in"; SD="$ROOT/docs/stopping-and-cleanup.md"
+for key in KillMode TimeoutStopSec; do
+  val="$(sed -nE "s/^$key=(.*)$/\\1/p" "$U" | head -n 1)"
+  if [ -z "$val" ]; then echo "FAIL the unit template sets no $key"; FAILS=$((FAILS + 1))
+  elif grep -qF -- "\`$key=$val\`" "$SD"; then echo "ok   docs/stopping-and-cleanup.md states $key=$val as the unit does"
+  else echo "FAIL docs/stopping-and-cleanup.md does not state \`$key=$val\`"; FAILS=$((FAILS + 1)); fi
+done
+grep -qF 'signals the resident only' "$ROOT/SAFETY.md" && echo "ok   SAFETY.md says systemd's stop signals the resident only" || { echo "FAIL SAFETY.md lacks the resident-only stop sentence"; FAILS=$((FAILS + 1)); }
 [ "$FAILS" -eq 0 ] && echo "test-walkthrough: PASS" || { echo "test-walkthrough: $FAILS failure(s)"; exit 1; }
