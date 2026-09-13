@@ -59,7 +59,13 @@ for _ in $(seq 1 100); do [ -S "$SOCK" ] && break; sleep 0.05; done
 echo "cake-resident: plan active bindings=0 digest=$PLAN_DIGEST epoch=2 resources=1 slots=1"
 echo "cake-resident: ready pid=$$"
 ORDINAL=0; SPAWNS=0; CHILD_PID=""
-spawn() { "$CHILD" 3 0 900 "$RUN_TAG" >/dev/null 2>&1 & CHILD_PID=$!; SPAWNS=$((SPAWNS + 1)); rec "$ORDINAL" "$SPAWNS" 0x05fffffc; }
+# A background child of a non-interactive bash inherits SIGINT and SIGQUIT
+# ignored, and no shell can reset a signal ignored at its own entry, so a
+# subshell's trap cannot help once this mock was itself started as a bare &
+# job (bin/demo-segment1.sh). env --default-signal (GNU coreutils 8.31 or
+# later) resets both before the exec, so the configured stop signal (SIGINT)
+# reaches the child under any launcher, as it does under the real resident.
+spawn() { env --default-signal=INT,QUIT "$CHILD" 3 0 900 "$RUN_TAG" >/dev/null 2>&1 & CHILD_PID=$!; SPAWNS=$((SPAWNS + 1)); rec "$ORDINAL" "$SPAWNS" 0x05fffffc; }
 STOPPING=0
 on_term() {
   STOPPING=1
@@ -67,6 +73,8 @@ on_term() {
   wait "$CHILD_PID" 2>/dev/null
   kill "$SOCK_HELPER" 2>/dev/null; wait "$SOCK_HELPER" 2>/dev/null
   rm -f "$SOCK"
+  # The drain summary in the shape of the board record (docs/stopping-and-cleanup.md), then the stopped line.
+  echo "cake-resident: shutdown drain barrier_violations=0 deadline_exhausted=0 destroyed_after_drain=0 destroyed_before_drain=0 drained=1 live=1 members=1 quiesce_calls=1 quiesced_or_inactive=1 required=1"
   echo "cake-resident: stopped"
   exit 0
 }

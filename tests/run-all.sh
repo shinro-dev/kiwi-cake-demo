@@ -24,6 +24,7 @@ ROSTER=(
   'test-telemetry fakes'
   'test-ports pure-functions'
   'test-stop fakes'
+  'test-journal fakes'
   'test-segment1-mock mock-binaries'
   'test-archive mock-binaries'
 )

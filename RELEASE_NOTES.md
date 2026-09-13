@@ -49,7 +49,9 @@ The fixes, each with a regression test that fails on v0.1.2:
   shutdown, not from systemd; under the previous unit a SIGTERM from
   systemd would have ended the pinned host, which has no SIGTERM
   handler, before its disconnect could run. `tests/unit-stop-signals.sh`
-  is the torque-free board test behind it.
+  is the torque-free board test behind it; it takes the resident's clean
+  exit from `systemctl show` and reads the unit's journal from the system
+  journal where `journalctl --user` finds no files.
 - `tools/build-release.sh` and `tools/publish.sh`: the tarball is the
   repository at the tagged commit (`keys/`, `tests/`, `tools/`,
   `releases/` and the root documents included) with the four binaries

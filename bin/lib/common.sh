@@ -394,6 +394,67 @@ kc_port_owned_by() {
   return "$rc"
 }
 
+# --- the user unit's journal ------------------------------------------------------
+# journalctl --user -u reads the per-user journal. A board whose journald keeps
+# no per-user journal (the tested Pi 5: journalctl --user answers "No journal
+# files were found" while the unit's lines sit in the system journal) needs the
+# system journal read under the four matches --user -u applies to a service:
+# the unit's own processes (_SYSTEMD_USER_UNIT), the user manager's lines about
+# the unit (USER_UNIT, where "Stopped" and "Killing process" come from), both
+# for this uid, and coredumps of it (COREDUMP_USER_UNIT) and other processes'
+# lines about its processes (OBJECT_SYSTEMD_USER_UNIT), those two from root as
+# well. A member of adm or systemd-journal reads that without sudo.
+
+kc_journal_unreadable() {
+  # kc_journal_unreadable TEXT: true when a journalctl answer says it found no journal files.
+  printf '%s\n' "$1" | grep -q 'No journal files were found'
+}
+
+kc_journal_has_entries() {
+  # kc_journal_has_entries TEXT: true when TEXT holds a line that is neither a
+  # journalctl marker ('-- No entries --', '-- Boot ... --') nor blank.
+  printf '%s\n' "$1" | grep -qvE '^(-- .*|)$'
+}
+
+# shellcheck disable=SC2034  # KC_JOURNAL_SOURCE and KC_JOURNAL_ERR are read by the caller
+kc_unit_journal() {
+  # kc_unit_journal UNIT SINCE FILE: the user unit's journal since SINCE (a
+  # `date '+%Y-%m-%d %H:%M:%S'` reading), short-monotonic, written to FILE.
+  # The per-user read serves when it has entries; when it exits nonzero, finds
+  # no journal files or has no entries, the system-journal read takes over.
+  # Returns 0 when a read succeeded, possibly with no entries, and names that
+  # read in KC_JOURNAL_SOURCE; returns 1, FILE empty and the reads' complaints
+  # in KC_JOURNAL_ERR, when neither could be read. An unreadable journal is
+  # not an empty one: status 1 never says a line is absent.
+  local unit="$1" since="$2" file="$3" uid user_out sys_out user_ok=1 sys_ok=1
+  KC_JOURNAL_SOURCE=""; KC_JOURNAL_ERR=""
+  : >"$file" || return 1
+  user_out="$(journalctl --user -u "$unit" --since "$since" -o short-monotonic --no-pager 2>&1)" || user_ok=0
+  kc_journal_unreadable "$user_out" && user_ok=0
+  if [ "$user_ok" -eq 1 ] && kc_journal_has_entries "$user_out"; then
+    KC_JOURNAL_SOURCE="journalctl --user -u $unit"
+    printf '%s\n' "$user_out" >"$file"
+    return 0
+  fi
+  uid="$(id -u)"
+  sys_out="$(journalctl "_SYSTEMD_USER_UNIT=$unit" "_UID=$uid" + "USER_UNIT=$unit" "_UID=$uid" \
+    + "COREDUMP_USER_UNIT=$unit" _UID=0 "_UID=$uid" + "OBJECT_SYSTEMD_USER_UNIT=$unit" _UID=0 "_UID=$uid" \
+    --since "$since" -o short-monotonic --no-pager 2>&1)" || sys_ok=0
+  kc_journal_unreadable "$sys_out" && sys_ok=0
+  if [ "$sys_ok" -eq 1 ]; then
+    KC_JOURNAL_SOURCE="journalctl _SYSTEMD_USER_UNIT=$unit _UID=$uid + USER_UNIT=$unit _UID=$uid + COREDUMP_USER_UNIT=$unit _UID=0 _UID=$uid + OBJECT_SYSTEMD_USER_UNIT=$unit _UID=0 _UID=$uid"
+    printf '%s\n' "$sys_out" >"$file"
+    return 0
+  fi
+  if [ "$user_ok" -eq 1 ]; then
+    KC_JOURNAL_SOURCE="journalctl --user -u $unit"
+    printf '%s\n' "$user_out" >"$file"
+    return 0
+  fi
+  KC_JOURNAL_ERR="$(printf '%s\n%s\n' "$user_out" "$sys_out" | grep -vE '^(-- .*|)$')"
+  return 1
+}
+
 # --- the preflight roster ---------------------------------------------------------
 # demo-preflight runs seven checks in order and stops at the first refusal. In
 # the public build the sixth (observer) always refuses because the module it
