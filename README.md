@@ -234,6 +234,11 @@ aligned to the SVG's wording, which is the wording the record supports.
 | `SECURITY.md` | how to report a vulnerability, privately, and what to include |
 | `VERSION` | the release version, one line, read by every script and shipped in every tarball |
 
+A release archive is this tree at the tagged commit with the four binaries
+added under `bin/` and a `MANIFEST.txt` at the root; every path above holds
+inside an extracted archive except `releases/<version>/` for the archive's
+own version (`docs/verifying-a-release.md`).
+
 ## Verifying a release
 
 Every release carries `SHA256SUMS`, a detached signature over it, and a

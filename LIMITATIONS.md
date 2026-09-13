@@ -152,7 +152,11 @@ still shows the following, all of it disclosed here rather than asserted away:
 
 Nothing in the binaries names the machine or the person that built them.
 `tools/strings-gate.sh` is the scan every released binary passed, with its
-own nonzero control, so anyone can repeat it on a downloaded release. The
+own nonzero control. It refuses to run without a private-tokens file
+(`KC_GATE_PRIVATE_TOKENS`, one extended regular expression per line), and
+the maintainer's tokens are not published, so what you can repeat on a
+downloaded release is the gate's generic patterns with a tokens file of
+your own; the private patterns are the maintainer's check, not yours. The
 gate rejects host paths, private names and source-tree paths; it does not
 reject the internal identifiers listed above, which are disclosed here
 instead of being scanned for.

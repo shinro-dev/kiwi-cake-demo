@@ -21,8 +21,8 @@
 #
 #   @@PYTHON@@             the interpreter of the environment where LeRobot is installed (absolute path)
 #   @@HOST_ENTRY@@         the absolute path of bin/pi/lekiwi_host_noninteractive.py in this checkout
-#                          (scripts/pi/ inside a release tarball): the stock LeKiwi host minus
-#                          its calibration prompt, which crash-loops under the supervisor.
+#                          (the same path inside an extracted release archive): the stock LeKiwi
+#                          host minus its calibration prompt, which crash-loops under the supervisor.
 #                          bin/templates/run-child.sh.example is this template filled in.
 #   @@ROBOT_ID@@           the robot id you calibrated with
 #   @@ROBOT_PORT@@         the serial port, preferably a /dev/serial/by-id/ path

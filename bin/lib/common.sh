@@ -2,7 +2,9 @@
 # Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
 #
 # Shared functions for the kiwi-cake-demo scripts. Sourced by every script in
-# bin/ (repository layout) or scripts/ (release tarball layout); never run.
+# bin/, in a checkout and in an extracted release archive alike (the archive
+# is the repository at its tagged commit with the four binaries added under
+# bin/); never run.
 
 export KC_REPO="shinro-dev/kiwi-cake-demo"
 export KC_RELEASE_KEY_FINGERPRINT="5AB8730BB8420601F11965F46E6F9B724BB8EED2"

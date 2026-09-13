@@ -11,7 +11,8 @@
 #                  nothing else, so nothing here may rely on $HOME or on an
 #                  activated environment)
 #   host entry     the absolute path of bin/pi/lekiwi_host_noninteractive.py
-#                  in your checkout (scripts/pi/ inside a release tarball)
+#                  in your checkout (the same path inside an extracted
+#                  release archive)
 #   --robot.id     the id you calibrated the LeKiwi with on this Pi
 #                  (lerobot-calibrate --robot.type=lekiwi --robot.id=...);
 #                  my_awesome_kiwi is LeRobot's documentation default. It is

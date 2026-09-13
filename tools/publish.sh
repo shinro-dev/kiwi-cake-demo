@@ -7,21 +7,23 @@
 # from-scratch verification runs before the visibility change so that leaving
 # the repository private never skips it.
 #
-#   bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION [VERSION]
+#   bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION
 #
 #   KEYID            the GPG key that signs the release (keys/README.md)
 #   STAGING_DIR      a directory with pi5-aarch64/, holding the four
 #                    gate-clean binaries (one tarball is published)
 #   SOURCE_REVISION  the 40-character private source commit the binaries
 #                    were built from (recorded in MANIFEST.txt only)
-#   VERSION          default: the VERSION file at the repository root
+#
+# The version is always the VERSION file at the repository root; it is not
+# a command-line argument.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
-KEYID="${1:?usage: bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION [VERSION]}"
-STAGING="${2:?STAGING_DIR is required}"
-SRCREV="${3:?SOURCE_REVISION is required}"
-VERSION="${4:-$(tr -d '[:space:]' <VERSION)}"
+[ $# -eq 3 ] || { echo "usage: bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION (the version is the VERSION file)"; exit 1; }
+KEYID="$1"; STAGING="$2"; SRCREV="$3"
+VERSION="$(tr -d '[:space:]' <VERSION)"
+printf '%s' "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "VERSION is '$VERSION', not vX.Y.Z"; exit 1; }
 REPO="shinro-dev/kiwi-cake-demo"
 BRANCH="release/$VERSION"
 
@@ -86,9 +88,17 @@ else
 fi
 git push origin main "$VERSION" || exit 1
 
-confirm "6. Create the GitHub Release $VERSION with the tarballs, signatures and SHA256SUMS."
+step "6. the release notes"
+NOTES="$(mktemp "${TMPDIR:-/tmp}/kc-notes.XXXXXX")" || exit 1
+trap 'rm -f -- "$NOTES"' EXIT
+# Only this version's section of RELEASE_NOTES.md is the release body: from
+# the '## <version>' heading to the line before the next '## ' heading.
+awk -v h="## $VERSION" '$0 == h {p=1; next} p && /^## / {exit} p' RELEASE_NOTES.md >"$NOTES"
+grep -q '[^[:space:]]' "$NOTES" || { echo "RELEASE_NOTES.md has no text under '## $VERSION'"; exit 1; }
+echo "release body ($(wc -l <"$NOTES") lines):"; sed 's/^/  /' "$NOTES"
+confirm "6. Create the GitHub Release $VERSION with the tarballs, signatures, SHA256SUMS and the notes above."
 gh release create "$VERSION" dist/kiwi-cake-demo-"$VERSION"-*.tar.gz dist/kiwi-cake-demo-"$VERSION"-*.tar.gz.asc dist/SHA256SUMS dist/SHA256SUMS.asc \
-  --repo "$REPO" --title "kiwi-cake-demo $VERSION" --notes-file RELEASE_NOTES.md || exit 1
+  --repo "$REPO" --title "kiwi-cake-demo $VERSION" --notes-file "$NOTES" || exit 1
 
 step "7. verify the live release from scratch"
 # Runs before the visibility change so that declining it never skips this
