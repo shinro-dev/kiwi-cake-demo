@@ -2,7 +2,8 @@
 # Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
 # tests/test-python.sh: the operator scripts parse, teleop.py's usage works
 # without lerobot, its lerobot imports resolve where lerobot is installed,
-# and each script states the facts it exists for.
+# and each script states the facts it exists for, and its shutdown paths
+# close both devices independently against stub modules.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 command -v python3 >/dev/null 2>&1 || { echo "test-python: python3 missing"; exit 75; }
@@ -31,11 +32,17 @@ if [ -f "$T" ]; then
     grep -qF "$k" "$T" && echo "ok   teleop.py sends $k" || { echo "FAIL teleop.py lacks $k"; FAILS=$((FAILS + 1)); }
   done
   grep -q 'finally:' "$T" && grep -q 'disconnect()' "$T" && echo "ok   teleop.py disconnects in finally" || { echo "FAIL teleop.py has no finally/disconnect"; FAILS=$((FAILS + 1)); }
+  # The shutdown and usage paths, against stub lerobot modules (no device, no lerobot).
+  if OUT="$("${CLEAN[@]}" python3 "$ROOT/tests/test_teleop.py" 2>&1)"; then
+    echo "ok   tests/test_teleop.py: $(printf '%s\n' "$OUT" | grep -E '^Ran [0-9]+ tests? ' | head -n 1)"
+  else
+    echo "FAIL tests/test_teleop.py"; printf '%s\n' "$OUT" | sed 's/^/  /'; FAILS=$((FAILS + 1))
+  fi
   # The lerobot imports themselves, where lerobot is installed (exit 3 = not installed here, skipped).
   OUT="$("${CLEAN[@]}" python3 "$T" --check-imports 2>&1)"; RC=$?
   case "$RC" in
     0) echo "ok   teleop.py --check-imports: $(printf '%s\n' "$OUT" | tail -n 1)" ;;
-    3) echo "     (lerobot is not installed in this python3; --check-imports skipped)" ;;
+    3) echo "SKIP teleop.py --check-imports: lerobot is not installed in this python3 (rc 3)" ;;
     *) echo "FAIL teleop.py --check-imports rc=$RC: $OUT"; FAILS=$((FAILS + 1)) ;;
   esac
 fi
