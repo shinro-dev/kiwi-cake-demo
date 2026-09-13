@@ -222,12 +222,17 @@ echo "This beat is your observation; the runner measures nothing here."
 echo "Type CONFIRMED when the follower mirrors the leader, or SKIP to go on without teleoperating."
 printf '> '
 IFS= read -r TELEOP </dev/tty || on_interrupt
+TELEOP_SKIPPED=0
 case "$TELEOP" in
   CONFIRMED) echo "teleoperation through the supervised host: operator-confirmed" ;;
-  SKIP) echo "teleoperation: skipped by the operator" ;;
+  SKIP) echo "teleoperation: skipped by the operator"; TELEOP_SKIPPED=1 ;;
   *) beat_fail teleop "expected CONFIRMED or SKIP" ;;
 esac
-beat_ok teleop
+if [ "$TELEOP_SKIPPED" -eq 1 ]; then
+  BEAT=$((BEAT + 1)); echo "KIWI-CAKE beat $BEAT teleop: SKIPPED (operator)"
+else
+  beat_ok teleop
+fi
 
 # --- beat 3 ------------------------------------------------------------------------------------------------
 press_enter "BEAT 3: SIGTERM to the host only. Your safe-stop runs, then a fresh host connects and ENABLES TORQUE again."
@@ -312,5 +317,9 @@ echo "stopped: no resident, no host, no socket, no listener"
 echo "whether the motors are now unpowered is your host's own disconnect behaviour, not Cake's; check the robot"
 beat_ok stop
 echo "run directory: $KC_RUN"
-echo "KIWI-CAKE SEGMENT 2: DONE"
+if [ "$TELEOP_SKIPPED" -eq 1 ]; then
+  echo "KIWI-CAKE SEGMENT 2: DONE (teleop SKIPPED by the operator)"
+else
+  echo "KIWI-CAKE SEGMENT 2: DONE"
+fi
 exit 0

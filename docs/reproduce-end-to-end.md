@@ -268,7 +268,7 @@ detail is in `docs/segment-2-live.md`.
 | --- | --- | --- | --- |
 | 1 | `bin/demo-segment2.sh`, the acknowledgment, Enter at Beat 1: `host pid <n> listening on 5555 5556` | waits | the arm stiffens: torque on |
 | 2 | waits at the Beat 2 prompt | `bin/laptop/teleop.py ...`: `teleop: connected; the follower mirrors the leader` | the follower mirrors the leader |
-| 3 | types `CONFIRMED` | keeps running | unchanged |
+| 3 | types `CONFIRMED` (or `SKIP`, which the run's last line then records) | keeps running | unchanged |
 | 4 | Enter at Beat 3 (SIGTERM to the host only) | the client loses its connection while the host restarts; leave it or Ctrl-C it | the arm holds; the signalled host left torque as it was |
 | 5 | `host exited with signal 15 (sequence <n>), safe-stop ran (sequence <n>), fresh host pid <n> with restart ordinal 1; resident pid <n> and session unchanged` | waits | the arm re-stiffens as the fresh host enables torque |
 | 6 | waits at the Beat 4 acknowledgment | re-runs the client: mirroring again | the follower mirrors the leader |

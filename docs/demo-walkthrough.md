@@ -166,7 +166,11 @@ the runner records your word and measures nothing here. The laptop runs
 LeRobot's own LeKiwiClient class through `bin/laptop/teleop.py`, a small
 script derived from LeRobot's example, because `lerobot-teleoperate` has no
 LeKiwi client type; it speaks the stock protocol on the stock ports, and
-nothing on the laptop knows Cake exists.
+nothing on the laptop knows Cake exists. If you type SKIP instead of
+CONFIRMED, terminal A prints `KIWI-CAKE beat 4 teleop: SKIPPED
+(operator)` and the run's last line reads `KIWI-CAKE SEGMENT 2: DONE
+(teleop SKIPPED by the operator)`; the beats that follow run the same
+either way.
 
 ### 10. Beat 3: the host restarted under the operator's eyes
 

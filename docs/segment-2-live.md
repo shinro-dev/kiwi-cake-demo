@@ -91,7 +91,12 @@ bin/demo-segment2.sh
 5. Beat 2: you type CONFIRMED once teleoperation works through the
    supervised host from the laptop with `bin/laptop/teleop.py`
    (`docs/reproduce-end-to-end.md`, the laptop side), or SKIP. This beat is your observation;
-   the runner records what you typed and measures nothing.
+   the runner records what you typed and measures nothing. A SKIP is
+   printed as `KIWI-CAKE beat 4 teleop: SKIPPED (operator)` (the runner's
+   own beat counter, which counts the preflight and the unit as its beats
+   1 and 2), and the run's last line then reads `KIWI-CAKE SEGMENT 2: DONE
+   (teleop SKIPPED by the operator)` instead of `KIWI-CAKE SEGMENT 2:
+   DONE`; the exit status is still 0.
 6. Beat 3, on Enter: SIGTERM to the host only. Expected: the safe-stop event,
    then a fresh host with a new pid listening again, with the resident's pid
    and session identity unchanged. Torque is on again.

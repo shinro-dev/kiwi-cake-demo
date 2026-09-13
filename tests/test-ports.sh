@@ -69,4 +69,7 @@ A="$(grep -nF 'ask_ack || kc_fail' "$S" | cut -d: -f1 | head -n 1)"
 if [ -n "$G" ] && [ -n "$A" ] && [ "$G" -lt "$A" ]; then ok "the guard runs before the acknowledgment"; else fail "guard/acknowledgment order ($G, $A)"; fi
 has "operator-confirmed line" 'teleoperation through the supervised host: operator-confirmed'
 has "stop line quoted by the walkthrough" 'echo "stopped: no resident, no host, no socket, no listener"'
+has "teleop SKIP beat line" 'echo "KIWI-CAKE beat $BEAT teleop: SKIPPED (operator)"'
+has "teleop SKIP last line" 'echo "KIWI-CAKE SEGMENT 2: DONE (teleop SKIPPED by the operator)"'
+if grep -qxF '  echo "KIWI-CAKE SEGMENT 2: DONE"' "$S"; then ok "plain last line"; else fail "plain last line"; fi
 [ "$FAILS" -eq 0 ] && echo "test-ports: PASS" || { echo "test-ports: $FAILS failure(s)"; exit 1; }
