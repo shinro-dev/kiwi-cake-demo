@@ -14,6 +14,12 @@ outside this release was removed from a quoted statement is marked `[...]`. No
 duration, timestamp or process id in a capture is restated in prose: this
 page names what a capture shows, never how long it took.
 
+The last section, "The v0.1.3 run on the tested board", is the one part of
+this page not derived from that record: one run of this release's own
+segment 2 runner on the tested board on 2026-09-13, recorded from the run
+directory the runner wrote, from the unit's lines in the board's system
+journal, and from two statements by the operator, each marked as such.
+
 The physical preconditions the operator held for segment 2 are the ones in
 `SAFETY.md`.
 
@@ -234,3 +240,270 @@ record's last two rows state that the reclamation proof behind that beat
 holds at both build profiles on the development host, and that the ordering
 probe which gates the beat on the board has not run on this board. The
 public demo therefore does not include it.
+
+## The v0.1.3 run on the tested board, 2026-09-13
+
+One run of `bin/demo-segment2.sh` from the v0.1.3 tarball (its
+`MANIFEST.txt` names version v0.1.3 and source revision 79b52d9), on a
+tested Raspberry Pi 5 whose preflight matched the tested-board record,
+under the unit template this release ships. The sources of this section
+are the run directory the runner wrote (`transcript.txt`, `safe-stop.log`,
+and the host's captured output, `supervisor.log` in the module's data
+directory under the run's state root), the unit's lines in the board's
+system journal, read with the four matches of the command in
+`docs/stopping-and-cleanup.md` in journalctl's default output format with
+`--utc` (on this board `journalctl --user -u` answers `No journal files
+were found`), and two statements by the operator, marked as such where
+they appear. The preconditions were the ones in `SAFETY.md`; the operator
+typed the acknowledgment before Beat 1 and again before Beat 4. The
+excerpts below replace the operator's home directory, the board's
+hostname, process ids and systemd's CPU-time figures with placeholders,
+shorten digests, key ids and session identities, and mark whole lines
+left out of a transcript excerpt with a line reading `...`; nothing else
+in them is altered.
+
+The host was `bin/pi/lekiwi_host_noninteractive.py`: the stock host's
+main at lerobot b4e2d0b, unmodified, with its calibration prompt replaced
+(`LIMITATIONS.md`). The board's lerobot checkout also carried the clamp
+fix `LIMITATIONS.md` names and a local patch to the robot class that
+makes the arm servos' tracking gains configuration, with the stock values
+as defaults; neither touches the host's disconnect or its handling of
+signals.
+
+What this run is not: a teleoperation demonstration. At Beat 2 the
+operator typed SKIP. Operator-stated, and shown by the captures only for
+the last host: no teleoperation client was connected at any point in the
+run, no command reached any host, and the follower never mirrored
+anything because nothing drove it. The beats after it exercise
+supervision and recovery of a host that was connected to the robot and
+idle. The run performs no live replacement either.
+
+The runner's own beat counter counts the preflight and the unit as its
+beats 1 and 2, so its `KIWI-CAKE beat <n>` lines run two ahead of the
+runbook's beat names used below.
+
+### Beat 1: supervised start of the host
+
+The preflight ended in the accepted shape, five checks green and the
+observer check refused; the runner installed the unit and printed its
+stop settings; on Enter the resident reached `plan active`, the host
+listened on both ports with the listeners attributed to its pid, and the
+first poll answered all three queries, with one slot ACTIVE and its
+health surface served (`docs/claims.md` rows 4 and 5).
+
+Excerpt from the transcript:
+
+```
+preflight accepted this board (five-green-observer-refused)
+KIWI-CAKE beat 1 preflight: ok
+installed /home/<user>/.config/systemd/user/kiwi-cake-demo.service (Restart=on-abnormal, RestartSec=2, KillMode=mixed, KillSignal=SIGTERM, TimeoutStopSec=60)
+KIWI-CAKE beat 2 unit: ok
+...
+resident MainPID <a>: plan active, admin socket answering
+host pid <c> listening on 5555 5556
+listeners on 5555 5556 attributed to host pid <c>
+...
+poll queries answered 3 of 3
+poll tables printed 1
+KIWI-CAKE beat 3 start: ok
+```
+
+### Beat 2: teleoperation, skipped
+
+Excerpt from the transcript:
+
+```
+> teleoperation: skipped by the operator
+KIWI-CAKE beat 4 teleop: SKIPPED (operator)
+```
+
+Nothing was measured and nothing was observed at this beat. It carries
+no statement row, as it carries none in the 2026-09-07 record either.
+
+### Beat 3: SIGTERM to the host only
+
+The runner sent SIGTERM to the host alone. From the flight ring it
+decoded the host's exit carrying signal 15, the safe-stop run, and a
+fresh host under restart ordinal 1, with the resident's pid and the
+session identity unchanged (`docs/claims.md` rows 6 and 9). The
+configured safe-stop command was the shipped template, which appends one
+line to `safe-stop.log`; the log gained its first line here (it is quoted
+in full under the stop, below).
+
+Excerpt from the transcript:
+
+```
+sent SIGTERM to host pid <c> (flight baseline: sequence 17)
+listeners on 5555 5556 attributed to host pid <d>
+host exited with signal 15 (sequence 18), safe-stop ran (sequence 20), fresh host pid <d> with restart ordinal 1; resident pid <a> and session unchanged
+KIWI-CAKE beat 5 child-restart: ok
+```
+
+The unit's journal has no line between the resident's `ready` line and
+Beat 4: the host's exit and respawn are the supervisor's business inside
+the resident, and neither the resident nor the manager logged them.
+
+### Beat 4: SIGKILL to the resident, the crash path
+
+The runner sent SIGKILL to the resident. The host was gone within the
+runner's bounded wait, no orphan; systemd relaunched the resident; the
+relaunched resident reported a fresh session identity with the Plan
+digest, config identity, build identity and target-profile digest
+identical; and a fresh host listened on both ports again
+(`docs/claims.md` row 7).
+
+Excerpt from the transcript:
+
+```
+sent SIGKILL to resident pid <a> (host pid <d>)
+host <d> died with the resident (no orphan)
+listeners on 5555 5556 attributed to host pid <e>
+BEFORE/AFTER:
+  resident pid   <a> -> <b> (new)
+  host pid       <d> -> <e> (new)
+  session_uuid   01a09af76949... -> 01a09af89a70... (fresh)
+  plan_digest, config_identity, build_identity, target_profile_digest: IDENTICAL
+  host           listening again on 5555 5556, TORQUE ENABLED BY THE HOST
+Cake-level recovery held; actuator-safe recovery is not something this demo provides (LIMITATIONS.md).
+KIWI-CAKE beat 6 crash-recovery: ok
+```
+
+The journal shows how the host ended and how the resident came back:
+
+```
+Sep 13 13:32:56 <board> systemd[<m>]: kiwi-cake-demo.service: Main process exited, code=killed, status=9/KILL
+Sep 13 13:32:56 <board> systemd[<m>]: kiwi-cake-demo.service: Killing process <d> (python3) with signal SIGKILL.
+Sep 13 13:32:56 <board> systemd[<m>]: kiwi-cake-demo.service: Killing process <d1> (python3) with signal SIGKILL.
+Sep 13 13:32:56 <board> systemd[<m>]: kiwi-cake-demo.service: Killing process <d2> (python3) with signal SIGKILL.
+Sep 13 13:32:56 <board> systemd[<m>]: kiwi-cake-demo.service: Killing process <d3> (python3) with signal SIGKILL.
+Sep 13 13:32:56 <board> systemd[<m>]: kiwi-cake-demo.service: Failed with result 'signal'.
+Sep 13 13:32:56 <board> systemd[<m>]: kiwi-cake-demo.service: Consumed <figure> CPU time.
+Sep 13 13:32:58 <board> systemd[<m>]: kiwi-cake-demo.service: Scheduled restart job, restart counter is at 1.
+Sep 13 13:32:58 <board> systemd[<m>]: Started kiwi-cake-demo.service - kiwi-cake-demo: Cake resident supervising the LeKiwi host (user unit).
+Sep 13 13:32:58 <board> cake-resident[<b>]: cake-resident: signature policy require, trusted keys loaded 1, trusted key ids 8ec06ce2...
+Sep 13 13:32:58 <board> cake-resident[<b>]: cake-resident: journal at start format version 1, records read 0, torn tail none, journal read, next sequence 1
+Sep 13 13:32:58 <board> cake-resident[<b>]: cake-resident: durable start fresh install, no committed record to recover
+Sep 13 13:32:58 <board> cake-resident[<b>]: cake-resident: plan active bindings=0 digest=b4ca0fda... epoch=2 resources=1 slots=1
+Sep 13 13:32:58 <board> cake-resident[<b>]: cake-resident: ready pid=<b>
+```
+
+The main process died of the signal, and the manager then sent SIGKILL
+to what remained in the unit's control group: four entries named
+`python3`, the host's pid among them (whether the other three were
+threads of the host or processes of its own, the journal does not say).
+This is `KillMode=mixed` doing the second half of its job. Its first
+half, on an ordinary stop, is to signal the resident only; its second,
+once the main process is gone for any reason, is to end by force whatever
+is left. A resident killed with SIGKILL runs nothing and so cannot
+quiesce its host. Whether the host was already dying of the parent-death
+signal the 2026-09-07 record names for this beat, or ended on the
+manager's signal, the journal does not say: it shows the manager's
+SIGKILL reaching the host's pid, and the runner found no orphan. Either
+way nothing of the host was left behind, which is what the second half
+of `KillMode=mixed` is for. `KillMode=process` would leave that second
+half out, and `tests/test-templates.sh` refuses it for exactly that
+reason. The relaunched resident is a fresh activation: `records read 0`
+and `durable start fresh install, no committed record to recover` on its
+side, restart counter 1 on the manager's.
+
+No safe-stop command ran at this beat: a killed resident observes no
+exit, and the relaunched resident observed none at this beat.
+`safe-stop.log` has no line between Beat 3's and the stop's.
+
+Torque after this beat is the fresh host's doing on connect, as at every
+connect, not Cake's (`docs/claims.md` row 10). The runner's `TORQUE
+ENABLED BY THE HOST` is its own statement of that, printed at every run;
+no capture measures torque, and this section carries no separate
+observation of the arm at this beat.
+
+### STOP: the clean stop under this release's unit
+
+On Enter the runner ran `systemctl --user stop`. Afterwards there was no
+resident, no host, no admin socket and no listener on either port
+(`docs/claims.md` row 8).
+
+Excerpt from the transcript:
+
+```
+stopped: no resident, no host, no socket, no listener
+whether the motors are now unpowered is your host's own disconnect behaviour, not Cake's; check the robot
+KIWI-CAKE beat 7 stop: ok
+```
+
+The journal's stop sequence, complete:
+
+```
+Sep 13 13:33:09 <board> systemd[<m>]: Stopping kiwi-cake-demo.service - kiwi-cake-demo: Cake resident supervising the LeKiwi host (user unit)...
+Sep 13 13:33:09 <board> cake-resident[<b>]: cake-resident: shutdown drain barrier_violations=0 deadline_exhausted=0 destroyed_after_drain=0 destroyed_before_drain=0 drained=1 live=1 members=1 quiesce_calls=1 quiesced_or_inactive=1 required=1
+Sep 13 13:33:09 <board> cake-resident[<b>]: cake-resident: stopped
+Sep 13 13:33:09 <board> systemd[<m>]: Stopped kiwi-cake-demo.service - kiwi-cake-demo: Cake resident supervising the LeKiwi host (user unit).
+Sep 13 13:33:09 <board> systemd[<m>]: kiwi-cake-demo.service: Consumed <figure> CPU time.
+```
+
+`Stopping`, the resident's own drain line with its deadline not exhausted
+and the module drained, the resident's `stopped` line, `Stopped`, and no
+`Killing process` line anywhere in the sequence: nothing of the host
+outlived the resident's shutdown for the manager to end. Under the unit
+of the 2026-09-07 record, segment 2's Beat 5 above records one such kill
+after the `stopped` line, of a lingering ZeroMQ background thread; under
+this release's unit there is none.
+
+The last host's captured output ends with the two lines the host's main
+prints on SIGINT: the line of its `KeyboardInterrupt` handler, then the
+first line of its shutdown block, the one printed before its disconnect.
+The watchdog line before them is the host's own reaction to receiving no
+command from any client: a zero-velocity write to the base motors by the
+host itself, which its disconnect repeats. No client issued a wheel
+command.
+
+```
+WARNING:root:Command not received for more than 500 milliseconds. Stopping the base.
+Keyboard interrupt received. Exiting...
+Shutting down Lekiwi Host.
+```
+
+SIGINT is the stop signal the Plan configured for the child, and under
+this unit only the resident sends it: the manager's stop signal is
+SIGTERM, sent to the resident alone under `KillMode=mixed`, and the host's
+main installs no signal handler, so a SIGTERM reaching it would have
+ended it before either line was printed. The host heard from the
+resident's shutdown and not from systemd. That is the change to the unit
+in this release, observed on the real host; `docs/stopping-and-cleanup.md`,
+"What was measured", has the torque-free measurement behind it.
+
+`safe-stop.log` gained its second line during this stop: the resident
+observed the host's exit and ran the configured command once, as it had
+at Beat 3 and at no other time in the run (`docs/claims.md` row 9). The
+log, complete:
+
+```
+safe-stop ran at 2026-09-13T13:32:18Z
+safe-stop ran at 2026-09-13T13:33:09Z
+```
+
+Operator-confirmed, not measured by any capture and outside any claims
+row: the arm went limp at the stop. Releasing torque is what the host's
+disconnect does under `--robot.disable_torque_on_disconnect=true`, and
+what a host ended by force does not do, so the disconnect ran at least
+that far. Whether the host then exited on its own within the resident's
+child deadline, or was ended by force after that, is not in the captures:
+the flight record carrying the host's exit status at the stop was never
+read, because the admin socket is gone once the stop has completed.
+
+The limit of this observation, stated plainly: the host was connected
+and idle. No client was attached at any point in the run (the operator's
+statement, above), so this section shows the stop of an idle host, not
+the stop of a host serving a client. The host's handler is the same code
+whether or not a client is attached, and nothing in the unit or the
+runner changes with one; the resident's own stop path is not readable
+from this repository. That is what makes the stop independent of
+teleoperation as a statement about the code; this run did not show it
+with a client attached.
+
+### v0.1.3 run statements of record
+
+| Capability |
+| --- |
+| Beat 3's SIGTERM to the host alone was followed by the configured safe-stop command running once and a fresh host under restart ordinal 1, with the resident's pid and session identity unchanged (`docs/claims.md` rows 6 and 9). |
+| Beat 4's SIGKILL of the resident was followed by the manager's SIGKILL signalled to what remained of the host in the unit's control group, no orphan, and a relaunch reporting a fresh session identity while the four declared identities stayed identical; the fresh host's torque state is the host's own and was not measured (`docs/claims.md` rows 7 and 10). |
+| The stop under this release's unit ran the resident's own shutdown and nothing else: the journal carries the resident's drain and stopped lines and no `Killing process` line; the host acted on SIGINT, the stop signal the Plan configured, and reached the line it prints before its disconnect; the safe-stop command ran once; afterwards no resident, no host, no socket, no listener (`docs/claims.md` rows 8 and 9). Operator-confirmed, outside any row: the arm went limp. |

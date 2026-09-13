@@ -3,15 +3,18 @@
 # Claims and their evidence
 
 Every capability sentence in `README.md`, `docs/why-cake-under-lerobot.md`
-and the two segment runbooks is one of the rows below. A row cites either a statement of record from the
-demo record this release derives from (board captures of both segments,
-reproduced in `docs/demo-record.md`), or a line of the development-host gate
-record that the release is built against. Nothing in this repository claims
-more than a row here.
+and the two segment runbooks is one of the rows below. A row cites a
+statement of record from the demo record this release derives from (board
+captures of both segments, reproduced in `docs/demo-record.md`), a
+statement of the v0.1.3 run in the last section of `docs/demo-record.md`,
+or a line of the development-host gate record that the release is built
+against. Nothing in this repository claims more than a row here.
 
-"Board" means the tested Raspberry Pi 5 on 2026-09-07. "Gate" means the
-automated gate run on the development host on every build, with a nonzero
-control beside every zero it reports.
+"Board" means a Raspberry Pi 5 matching the tested-board record: the one
+of the 2026-09-07 record and, where a row also cites the v0.1.3 run, the
+one of 2026-09-13 (the last section of `docs/demo-record.md`). "Gate"
+means the automated gate run on the development host on every build, with
+a nonzero control beside every zero it reports.
 
 | # | Claim as written in this repository | Evidence | Where measured |
 | --- | --- | --- | --- |
@@ -22,9 +25,9 @@ control beside every zero it reports.
 | 5 | Answers three read queries over a local admin socket, printed as a live table with every event decoded by name. | record, segment 1 statement: "... answers the admin socket's three read queries (get-status, list-slots, read-flight)."; gate line `queries answered over the socket 3 of 3` | board and gate |
 | 6 | When the child is killed, spawns a fresh child under the next restart ordinal, with the exit and the restart in the event trace. | record, segment 1 statement: "kill -9 of the child is followed by a supervisor restart under the next restart ordinal ...", whose own evidence is the gate lines `child kills followed by a supervisor restart 1 of 1` and `child exit records carrying the kill signal 1 of 1` (the board's segment 1 captures contain no child kill); record, segment 2 statement on Beat 3 (SIGTERM to the host, safe-stop ran once, resident pid and session unchanged) | gate (SIGKILL) and board (SIGTERM, Beat 3) |
 | 7 | When the resident is killed with SIGKILL, comes back from the same configuration with a fresh session identity while the Plan digest, configuration identity, build identity and target-profile digest stay identical; the killed resident's child does not survive it. | record, segment 1 statement: "... kill -9 of the resident is followed by a relaunch reporting a session identity distinct from the killed process's."; segment 2 statement on Beat 4: "... while the Plan digest, config identity, build identity and target-profile digest stay byte identical, and the killed resident's child dies with it, no orphan."; gate line `children surviving a resident kill 0` with `orphan control red 1 of 1` | board and gate |
-| 8 | Stops cleanly on request, closing the socket and the child with it. | record, segment 1 statement: "The clean stop path (systemctl --user stop) prints the resident's own stopped line and removes the admin socket, leaving no live resident or child." | board |
-| 9 | The configured safe-stop command runs once per observed child exit. | record, segment 2 statement on Beat 3: "... the configured post-exit safe-stop command running once (EVT_SUPERVISOR_SAFE_STOP_RAN) ..." | board; what the command did is not recorded |
-| 10 | Actuator-safe recovery is not demonstrated: the LeRobot host re-enables torque on every connect and Cake has no torque concept. | record, segment 2 statement: "The actuator re-arms after Beat 4's crash recovery because the LeRobot child unconditionally re-enables torque on connect; Cake's admin protocol carries no torque concept, so this boundary is not closed by this demo ..." and the operator's verdict | board |
+| 8 | Stops cleanly on request, closing the socket and the child with it. | record, segment 1 statement: "The clean stop path (systemctl --user stop) prints the resident's own stopped line and removes the admin socket, leaving no live resident or child."; record, v0.1.3 run statement on the stop (the same stop under this release's unit: the host's own SIGINT lines, no `Killing process` line in the journal) | board |
+| 9 | The configured safe-stop command runs once per observed child exit. | record, segment 2 statement on Beat 3: "... the configured post-exit safe-stop command running once (EVT_SUPERVISOR_SAFE_STOP_RAN) ..."; record, v0.1.3 run statements on Beat 3 and on the stop: `safe-stop.log` carries one line for each of the two host exits the resident observed and none for Beat 4, where the killed resident observed nothing | board; what the command did on 2026-09-07 is not recorded; on 2026-09-13 it was the shipped template, which appends one line to its log |
+| 10 | Actuator-safe recovery is not demonstrated: the LeRobot host re-enables torque on every connect and Cake has no torque concept. | record, segment 2 statement: "The actuator re-arms after Beat 4's crash recovery because the LeRobot child unconditionally re-enables torque on connect; Cake's admin protocol carries no torque concept, so this boundary is not closed by this demo ..." and the operator's verdict; record, v0.1.3 run statement on Beat 4 (torque after the relaunch is the fresh host's own and was not measured) | board |
 | 11 | SIGINT or SIGTERM to the child alone does not stop the demo; the supervisor respawns the child. | record, segment 2 statement on Beat 5 | board |
 | 12 | The demo does not perform a live module replacement. | record statement: the ordering probe that gates that beat "has not run on this board" | board |
 
