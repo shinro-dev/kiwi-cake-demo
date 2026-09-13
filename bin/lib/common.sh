@@ -339,6 +339,59 @@ kc_settle_absent() {
   return 1
 }
 
+# --- TCP listeners ----------------------------------------------------------------
+# The listener table comes from ss; KC_SS names the command so a test can point
+# it at a fake that prints a recorded table. A port is held when a line carries
+# ':PORT ' or '.PORT ' (the Local Address:Port column, then the peer column).
+
+kc_listeners() {
+  # kc_listeners [owners]: 'ss -tln'; with the word owners, 'ss -tlnp', whose
+  # users= column names the owning pid for the caller's own sockets (root sees all).
+  if [ "${1:-}" = "owners" ]; then "${KC_SS:-ss}" -tlnp 2>/dev/null; else "${KC_SS:-ss}" -tln 2>/dev/null; fi
+}
+
+kc_table_has_port() { printf '%s\n' "$1" | grep -qE "[:.]$2 "; }
+
+kc_port_listening() {
+  # kc_port_listening PORT: true when a listener on PORT is in the current table.
+  kc_table_has_port "$(kc_listeners)" "$1"
+}
+
+kc_any_port_listening() {
+  # kc_any_port_listening PORT...: true when any PORT has a listener; prints the ports that do.
+  local table p held=""
+  table="$(kc_listeners)"
+  for p in "$@"; do kc_table_has_port "$table" "$p" && held="$held $p"; done
+  [ -n "$held" ] || return 1
+  printf '%s\n' "${held# }"
+}
+
+kc_all_ports_listening() {
+  # kc_all_ports_listening PORT...: true only when every PORT has a listener.
+  local table p
+  table="$(kc_listeners)"
+  for p in "$@"; do kc_table_has_port "$table" "$p" || return 1; done
+  return 0
+}
+
+kc_port_owned_by() {
+  # kc_port_owned_by PID PORT...: 0 when every PORT's line carries pid=PID,; 1 when a
+  # line names owners and PID is not among them; 2 when a PORT has no line or its line
+  # has no users= column (without root, ss -p is silent about other users' sockets).
+  local pid="$1" table p line rc=0
+  shift
+  table="$(kc_listeners owners)"
+  for p in "$@"; do
+    line="$(printf '%s\n' "$table" | grep -E "[:.]$p " | head -n 1)"
+    case "$line" in
+      *"pid=$pid,"*) ;;
+      *users:*) return 1 ;;
+      *) rc=2 ;;
+    esac
+  done
+  return "$rc"
+}
+
 # --- the preflight roster ---------------------------------------------------------
 # demo-preflight runs seven checks in order and stops at the first refusal. In
 # the public build the sixth (observer) always refuses because the module it

@@ -33,6 +33,8 @@ for p in $HOST_PORTS; do
   case "$p" in *[!0-9]* | "") kc_fail "KC_HOST_PORTS must list port numbers, got '$p'" 5 ;; esac
   [ "$p" -ge 1 ] && [ "$p" -le 65535 ] || kc_fail "KC_HOST_PORTS port $p is out of range" 5
 done
+read -r -a PORTS <<<"$HOST_PORTS"
+[ "${#PORTS[@]}" -ge 1 ] || kc_fail "KC_HOST_PORTS lists no port" 5
 
 kc_facts
 CLASS="$(kc_classify)"
@@ -51,13 +53,8 @@ case "$BIN$KC_STATE$KC_RUNTIME" in
 esac
 systemctl --user show-environment >/dev/null 2>&1 || kc_fail "systemctl --user is not available in this session" 3
 
-ports_listening() {
-  local p
-  for p in $HOST_PORTS; do ss -tln 2>/dev/null | grep -qE "[:.]$p " || return 1; done
-  return 0
-}
-if ports_listening; then
-  kc_fail "something already listens on $HOST_PORTS; stop your existing host first (segment 2 must be the only host)" 3
+if HELD="$(kc_any_port_listening "${PORTS[@]}")"; then
+  kc_fail "something already listens on $HELD; stop your existing host first (segment 2 must be the only host)" 3
 fi
 
 # --- the acknowledgment -----------------------------------------------------------------
@@ -138,8 +135,18 @@ wait_ready() {
 }
 wait_ports() {
   local _
-  for _ in $(seq 1 240); do ports_listening && return 0; sleep 0.5; done
+  for _ in $(seq 1 240); do kc_all_ports_listening "${PORTS[@]}" && return 0; sleep 0.5; done
   return 1
+}
+note_owner() {
+  # note_owner PID: does ss -p attribute every listener to the host pid? Reported, not
+  # asserted: without root ss names owners only for the caller's own sockets.
+  kc_port_owned_by "$1" "${PORTS[@]}"
+  case $? in
+    0) echo "listeners on $HOST_PORTS attributed to host pid $1" ;;
+    1) kc_warn "a listener on $HOST_PORTS is attributed to a pid other than the host pid $1; check that run-child.sh execs the host" ;;
+    *) echo "note: the listener on $HOST_PORTS is not attributed to the host pid $1 (ss -p printed no users= column)" ;;
+  esac
 }
 flight_max_seq() { kc_query "$BIN/admin-probe" "$SOCK" read-flight | sed -nE 's/.* sequence=([0-9]+) .*/\1/p' | sort -n | tail -n 1; }
 
@@ -200,6 +207,7 @@ echo "resident MainPID $(main_pid): plan active, admin socket answering"
 HOST_1="$(wait_host 400)" || beat_fail start "the resident spawned no host process"
 wait_ports || beat_fail start "the host is not listening on $HOST_PORTS (the arm may be under torque; stopping)"
 echo "host pid $HOST_1 listening on $HOST_PORTS"
+note_owner "$HOST_1"
 STATUS_A="$(kc_query "$BIN/admin-probe" "$SOCK" get-status)"
 REASON="$(kc_status_fields_ok "$STATUS_A")" || beat_fail start "get-status $REASON"
 SESSION_A="$(kc_hex_field "$STATUS_A" session_uuid 32)" || beat_fail start "get-status reported no well-formed session identity"
@@ -231,6 +239,7 @@ echo "sent SIGTERM to host pid $CHILD_3 (flight baseline: sequence $BASE_SEQ)"
 kc_wait_gone "$CHILD_3" 600 || beat_fail child-restart "the signalled host $CHILD_3 is still in the process table"
 CHILD_3B="$(wait_host 600)" || beat_fail child-restart "no host was running after the restart"
 wait_ports || beat_fail child-restart "the fresh host is not listening on $HOST_PORTS"
+note_owner "$CHILD_3B"
 EXITED=""; SAFE=""; STARTED=""
 for _ in $(seq 1 40); do
   FLIGHT="$(kc_query "$BIN/admin-probe" "$SOCK" read-flight)"
@@ -283,6 +292,7 @@ REASON="$(kc_identities_match "$STATUS_B" "$STATUS_C" plan_digest config_identit
   beat_fail crash-recovery "a declared identity changed across the relaunch ($REASON)"
 CHILD_4B="$(wait_host 400)" || beat_fail crash-recovery "the relaunched resident spawned no host"
 wait_ports || beat_fail crash-recovery "the relaunched resident's host is not listening on $HOST_PORTS"
+note_owner "$CHILD_4B"
 echo "BEFORE/AFTER:"
 echo "  resident pid   $RES_PID_4 -> $NEW_PID (new)"
 echo "  host pid       $CHILD_4 -> $CHILD_4B (new)"
@@ -297,7 +307,7 @@ press_enter "STOP: the resident's own clean shutdown, which quiesces the host (S
 systemctl --user stop "$UNIT" || beat_fail stop "systemctl --user stop failed"
 kc_wait_gone "$CHILD_4B" 400 || beat_fail stop "the host survived the clean stop"
 [ ! -S "$SOCK" ] || beat_fail stop "the admin socket is still present"
-ports_listening && beat_fail stop "a listener is still on $HOST_PORTS"
+HELD="$(kc_any_port_listening "${PORTS[@]}")" && beat_fail stop "a listener is still on $HELD"
 echo "stopped: no resident, no host, no socket, no listener"
 echo "whether the motors are now unpowered is your host's own disconnect behaviour, not Cake's; check the robot"
 beat_ok stop

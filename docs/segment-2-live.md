@@ -60,9 +60,12 @@ minimal environment (a PATH of `/usr/bin:/bin` and nothing else), so use
 absolute paths and export inside `run-child.sh` any variable your host
 needs; and the runner expects the host to listen on ports 5555 and 5556
 (set `KC_HOST_PORTS="a b"` for other ports). It refuses to start while
-something already listens there, and it waits up to two minutes for the
-ports to appear after each start, a window during which torque may already
-be on; if they never appear it stops the unit and fails. Every admin-socket
+something already listens there (the refusal names the occupied ports),
+and it waits up to two minutes for every port to appear after each start,
+a window during which torque may already be on; if they never appear it
+stops the unit and fails. Once they appear it also reports whether `ss -p`
+attributes the listeners to the host pid; a missing attribution is a note
+and a different pid is a warning, and neither stops the run. Every admin-socket
 query the runner and `bin/telemetry.sh` make runs under `KC_PROBE_TIMEOUT`
 seconds (default 10); one that does not return in time is reported as
 `timed out` and the beat fails.
