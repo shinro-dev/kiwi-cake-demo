@@ -31,6 +31,9 @@ if [ -f "$T" ]; then
   for k in '"x.vel": 0.0' '"y.vel": 0.0' '"theta.vel": 0.0'; do
     grep -qF "$k" "$T" && echo "ok   teleop.py sends $k" || { echo "FAIL teleop.py lacks $k"; FAILS=$((FAILS + 1)); }
   done
+  for d in README.md docs/reproduce-end-to-end.md; do
+    grep -qF 'arm-only bench example' "$ROOT/$d" && echo "ok   $d labels teleop.py an arm-only bench example" || { echo "FAIL $d does not label teleop.py an arm-only bench example"; FAILS=$((FAILS + 1)); }
+  done
   grep -q 'finally:' "$T" && grep -q 'disconnect()' "$T" && echo "ok   teleop.py disconnects in finally" || { echo "FAIL teleop.py has no finally/disconnect"; FAILS=$((FAILS + 1)); }
   # The shutdown and usage paths, against stub lerobot modules (no device, no lerobot).
   if OUT="$("${CLEAN[@]}" python3 "$ROOT/tests/test_teleop.py" 2>&1)"; then

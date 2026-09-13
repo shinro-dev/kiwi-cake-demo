@@ -72,6 +72,10 @@ In order across the two machines:
 - an ssh session to the Pi, for terminal A of segment 2;
 - a clone of this repository, for `bin/laptop/teleop.py`.
 
+`bin/laptop/teleop.py` is an arm-only bench example: the base velocities
+`x.vel`, `y.vel` and `theta.vel` are held at zero in every action it
+sends, so the wheels never receive a drive command from it.
+
 Segment 1 needs only the Pi and none of the LeRobot parts.
 
 ## Segment 1, on the Pi

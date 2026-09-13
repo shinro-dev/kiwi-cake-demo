@@ -227,10 +227,12 @@ The same four values can come from the environment as `KC_REMOTE_IP`,
 `--no-rerun` if you do not want the viewer.
 
 Why a script and not `lerobot-teleoperate`: at this LeRobot commit that
-command has no LeKiwi client among its `--robot.type` choices. Why the
-script sends `x.vel`, `y.vel` and `theta.vel` as zero with every action:
-the host indexes those three keys unconditionally, and an arm-only action
-fails every message on the host (the base stays still either way).
+command has no LeKiwi client among its `--robot.type` choices.
+`bin/laptop/teleop.py` is an arm-only bench example: the base velocities
+`x.vel`, `y.vel` and `theta.vel` are held at zero in every action it
+sends, so the wheels never receive a drive command from it. The three
+keys are sent at all because the host indexes them unconditionally, and
+an arm-only action fails every message on the host.
 
 ### 5e. What you should see
 
