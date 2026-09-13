@@ -173,6 +173,26 @@ kc_generate_keypair() {
 
 kc_keypair_public() { sed -nE 's/^ed25519-public ([0-9a-f]{64})$/\1/p' "$1" | head -n 1; }
 
+# --- release publishing ------------------------------------------------------
+
+kc_dirty_entries() {
+  # kc_dirty_entries EXCEPT_PREFIX: reads git-status --porcelain text from
+  # stdin and prints every entry that is non-empty and does not start with
+  # EXCEPT_PREFIX. tools/publish.sh's step 0 clean-tree check pipes into
+  # this instead of reading a heredoc: an empty git status --porcelain fed
+  # through <<HEREDOC still yields one blank line (the newline before the
+  # terminator), which a naive catch-all case turns into a dirty entry on a
+  # clean tree.
+  local except="$1" line
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -z "$line" ] && continue
+    case "$line" in
+      "$except"*) ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done
+}
+
 # --- manifest and admin helpers ----------------------------------------------
 
 kc_manifest_value() { sed -nE "s/^$2 (.*)\$/\\1/p" "$1" | head -n 1; }

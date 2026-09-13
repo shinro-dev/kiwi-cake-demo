@@ -19,6 +19,8 @@
 # a command-line argument.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=../bin/lib/common.sh
+. "$ROOT/bin/lib/common.sh"
 cd "$ROOT" || exit 1
 [ $# -eq 3 ] || { echo "usage: bash tools/publish.sh KEYID STAGING_DIR SOURCE_REVISION (the version is the VERSION file)"; exit 1; }
 KEYID="$1"; STAGING="$2"; SRCREV="$3"
@@ -41,17 +43,8 @@ gh auth status >/dev/null 2>&1 || { echo "gh is not logged in (gh auth login)"; 
 # tools/build-release.sh just wrote under releases/$VERSION/, which step 3
 # below is what commits it. That is the pipeline's own intended handoff, not
 # a dirty tree; anything else here still fails the check as before.
-DIRTY=""
-while IFS= read -r line; do
-  case "$line" in
-    "?? releases/$VERSION/"*) : ;;
-    *) DIRTY="$DIRTY$line
-" ;;
-  esac
-done <<STATUS
-$(git status --porcelain)
-STATUS
-[ -z "$DIRTY" ] || { echo "the working tree is not clean"; printf '%s' "$DIRTY"; exit 1; }
+DIRTY="$(git status --porcelain | kc_dirty_entries "?? releases/$VERSION/")"
+[ -z "$DIRTY" ] || { echo "the working tree is not clean"; printf '%s\n' "$DIRTY"; exit 1; }
 git rev-parse --verify "$BRANCH" >/dev/null 2>&1 || { echo "branch $BRANCH does not exist"; exit 1; }
 [ "$(git branch --show-current)" = "$BRANCH" ] || git switch "$BRANCH" || exit 1
 grep -q 'PLACEHOLDER' keys/shinro-release-signing.pub.asc && { echo "keys/shinro-release-signing.pub.asc is still the placeholder; export the release key there first (keys/README.md)"; exit 1; }

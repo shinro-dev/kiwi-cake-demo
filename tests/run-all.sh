@@ -14,6 +14,7 @@ T="$(mktemp -d "${TMPDIR:-/tmp}/kc-run-all.XXXXXX")"; trap 'rm -rf -- "$T"' EXIT
 ROSTER=(
   'test-docs documents'
   'test-version pure-functions'
+  'test-publish-gate pure-functions'
   'test-python real-tools'
   'test-preflight-classify pure-functions'
   'test-doctor fakes'
