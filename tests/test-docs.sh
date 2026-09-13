@@ -8,10 +8,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 FAILS=0
 mapfile -t FILES < <(git ls-files | grep -vE '^(THIRD_PARTY_LICENSES/|LICENSE$|releases/|docs/architecture\.(png|svg)$|keys/.*\.asc$)')
+# grep -P with this class needs PCRE and a UTF-8 locale; probe once on U+1F300.
+EMOJI='[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]'
+if printf '\xf0\x9f\x8c\x80\n' | grep -qP "$EMOJI" 2>/dev/null; then PCRE=1; else PCRE=0; echo "SKIP emoji scan: grep -P is unusable here (no PCRE support or a non-UTF-8 locale)"; fi
 for f in "${FILES[@]}"; do
   [ -f "$f" ] || continue
   if grep -q $'\xe2\x80\x94' "$f"; then echo "FAIL em-dash in $f"; FAILS=$((FAILS + 1)); fi
-  if grep -qP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' "$f" 2>/dev/null; then echo "FAIL emoji in $f"; FAILS=$((FAILS + 1)); fi
+  if [ "$PCRE" -eq 1 ] && grep -qP "$EMOJI" "$f"; then echo "FAIL emoji in $f"; FAILS=$((FAILS + 1)); fi
   case "$f" in
     *.md | *.sh | *.in | tools/* | bin/* | tests/* | .github/*)
       case "$f" in tests/mock-bin/*|tests/fixtures/*|tools/gate-allowlist.txt) ;; *)
@@ -33,7 +36,7 @@ PRIVATE="${KC_GATE_PRIVATE_TOKENS:-$ROOT/state/gate-private-tokens.txt}"
 if [ -f "$PRIVATE" ]; then
   LEAK="$LEAK|$(grep -v '^[[:space:]]*#' "$PRIVATE" | grep -v '^[[:space:]]*$' | paste -sd '|')"
 else
-  echo "note: no private-tokens file at $PRIVATE; scanning generic patterns only"
+  echo "SKIP private-token scan: no tokens file at $PRIVATE (generic patterns only)"
 fi
 if git ls-files | grep -vE '^(THIRD_PARTY_LICENSES/|docs/architecture\.(png|svg)$)' | xargs grep -nE -- "$LEAK" 2>/dev/null | grep -v '^tests/test-docs.sh:'; then
   echo "FAIL private-tree name or source layout in a committed file"; FAILS=$((FAILS + 1))
@@ -46,6 +49,6 @@ fi
 if command -v shellcheck >/dev/null 2>&1; then
   shellcheck -S warning -s bash -x -P bin bin/*.sh bin/pi/*.sh bin/lib/common.sh tools/*.sh tests/*.sh || { echo "FAIL shellcheck"; FAILS=$((FAILS + 1)); }
 else
-  echo "note: shellcheck not installed, skipped"
+  echo "SKIP shellcheck: not installed"
 fi
 [ "$FAILS" -eq 0 ] && echo "test-docs: PASS" || { echo "test-docs: $FAILS failure(s)"; exit 1; }

@@ -6,6 +6,7 @@
 # allowlist under a temporary directory; never touches the committed ones.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+command -v strings >/dev/null 2>&1 || { echo "test-gate: strings (binutils) missing"; exit 75; }
 T="$(mktemp -d "${TMPDIR:-/tmp}/kc-test-gate.XXXXXX")"; trap 'rm -rf -- "$T"' EXIT
 FAILS=0
 GATE="$ROOT/tools/strings-gate.sh"
