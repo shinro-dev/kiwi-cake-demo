@@ -12,6 +12,8 @@ printf '%s' "$V" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$' && echo "ok   VERSION is
 . "$ROOT/bin/lib/common.sh"
 [ "$KC_VERSION" = "$V" ] && echo "ok   common.sh exports KC_VERSION=$KC_VERSION" || { echo "FAIL KC_VERSION=$KC_VERSION"; FAILS=$((FAILS + 1)); }
 grep -qx "## $V" "$ROOT/RELEASE_NOTES.md" && echo "ok   RELEASE_NOTES.md has a $V section" || { echo "FAIL RELEASE_NOTES.md lacks '## $V'"; FAILS=$((FAILS + 1)); }
+SECTION="$(awk -v v="## $V" '$0 == v {p=1; next} p && /^## / {exit} p' "$ROOT/RELEASE_NOTES.md")"
+printf '%s\n' "$SECTION" | grep -qF "releases/$V/SHA256SUMS" && echo "ok   the $V section names releases/$V/SHA256SUMS" || { echo "FAIL the $V section does not name releases/$V/SHA256SUMS"; FAILS=$((FAILS + 1)); }
 HARD="$(cd "$ROOT" && grep -rnE '^[[:space:]]*(export[[:space:]]+)?(KC_VERSION=|[A-Z_]*VERSION="v[0-9])' bin tools tests | grep -vE '^bin/lib/common\.sh:[0-9]+:[[:space:]]*KC_VERSION=("\$\(tr |"")')"
 if [ -n "$HARD" ]; then echo "FAIL a script hardcodes or reassigns the version:"; printf '%s\n' "$HARD"; FAILS=$((FAILS + 1)); else echo "ok   no script hardcodes a version"; fi
 [ "$FAILS" -eq 0 ] && echo "test-version: PASS" || { echo "test-version: $FAILS failure(s)"; exit 1; }

@@ -2,6 +2,84 @@
 
 # Release notes
 
+## v0.1.3
+
+The binaries are the same bytes as in v0.1.2, v0.1.1 and v0.1.0 (private
+source revision 79b52d9dda83c65bf2fc1172314e4570ab72782c, recorded in
+each tarball's `MANIFEST.txt`). What changed is the scripts, the tests
+and the documents, after an external audit of v0.1.2.
+
+The organizing finding of that audit: as shipped, after a stop there is
+no reliable, tested software guarantee about the physical torque state
+of the arm, because the startup port guard, the stop command's success
+reporting, and the systemd stop path each have an independent hole, and
+the safe-stop template only logs; the stand does the safety work. This
+round closes the three software holes; it does not claim actuator-safe
+recovery (`LIMITATIONS.md` is unchanged on that point).
+
+The fixes, each with a regression test that fails on v0.1.2:
+
+- `bin/demo-segment2.sh`: the port guard tells any, all and none apart,
+  so one leaked listener no longer passes both the startup check and the
+  post-stop check; a SKIP at the teleoperation beat is printed as
+  `KIWI-CAKE beat 4 teleop: SKIPPED (operator)` and the last line as
+  `KIWI-CAKE SEGMENT 2: DONE (teleop SKIPPED by the operator)`.
+- `bin/demo-stop.sh`: waits for the stop, reports what it stopped and
+  what is left, and exits 1 when a resident of this checkout or its
+  supervised child survives; before, it exited 0 in every case and
+  looked for the host under a tag the segment 2 host never carries.
+- `bin/doctor.sh`: exits 6 when the preflight refuses and 7 when its
+  output cannot be parsed; before, both cases exited 0 on the tested
+  board. `docs/targets.md` carries the table.
+- `bin/lib/common.sh`: the preflight verdict reads the exit status and
+  every refusal line, so a signal death or a second refusal is no longer
+  accepted as the five-green shape; every admin-probe query is bounded
+  by a wall-clock timeout (`timeout` from coreutils is now a required
+  tool), and the readiness waits are bounded by wall clock.
+- `bin/telemetry.sh` and both runners: a get-status reply counts as
+  answered only when it carries the fields the runners compare, so two
+  empty identities can no longer compare as identical; get-health
+  reports served, not served, failed and timed out as four outcomes.
+- `bin/laptop/teleop.py`: `--fps` must be an integer from 1 to 1000,
+  checked before LeRobot is imported, and both devices are disconnected
+  even when the first disconnect raises.
+- `bin/templates/kiwi-cake-demo.service.in`: `KillMode=mixed`,
+  `KillSignal=SIGTERM` and `TimeoutStopSec=60`, so systemd's stop
+  signals the resident only and the host hears from the resident's own
+  shutdown, not from systemd; under the previous unit a SIGTERM from
+  systemd would have ended the pinned host, which has no SIGTERM
+  handler, before its disconnect could run. `tests/unit-stop-signals.sh`
+  is the torque-free board test behind it.
+- `tools/build-release.sh` and `tools/publish.sh`: the tarball is the
+  repository at the tagged commit (`keys/`, `tests/`, `tools/`,
+  `releases/` and the root documents included) with the four binaries
+  in `bin/` beside the scripts and no `scripts/` directory, so
+  `bin/verify.sh` and `tests/smoke-segment1.sh` work from inside it;
+  the one file it cannot contain is `releases/<version>/SHA256SUMS` for
+  its own version; `--version` must equal `VERSION`; `--releases-dir`
+  keeps a dry assembly out of the checkout; the release body is this
+  version's section alone; `docs/verifying-a-release.md` names the
+  download directory `bin/fetch-release.sh` writes.
+- `docs/why-cake-under-lerobot.md` compares the host by hand, under a
+  plain systemd service and under Cake, each given its due, with every
+  Cake capability sentence cited to its `docs/claims.md` row; it no
+  longer says the stock host has no supervision or recovery of its own,
+  or that the laptop needs no script for teleoperation. It states
+  plainly that nothing here stops the wheels when the host dies, and
+  that a signed package admits the supervisor, not the host's own
+  bytes. The README says what is precompiled (the four Cake binaries)
+  and what is source (everything else here).
+- README and runbook: `bin/laptop/teleop.py` is labelled an arm-only
+  bench example whose actions hold the base velocities at zero.
+
+The test report: `tests/run-all.sh` prints one line per suite with its
+kind and status (PASS, PASS with skipped checks, SKIPPED for a missing
+precondition, FAIL), lists every skipped check, and ends with a count
+line, so a skipped check is no longer folded silently into PASS.
+
+v0.1.2 stays valid; v0.1.3 supersedes it. Checksums:
+`releases/v0.1.3/SHA256SUMS`.
+
 ## v0.1.2
 
 The binaries are the same bytes as in v0.1.1 and v0.1.0 (private source
