@@ -178,7 +178,7 @@ else
       check="${VERDICT#refused:}"; check="${check%%:*}"; msg="${VERDICT#refused:*:}"
       kc_explain_refusal "$check" "$msg"
       step_fail preflight "demo-preflight refused this board at check $check; nothing was started" 3 ;;
-    *) step_fail preflight "demo-preflight output could not be parsed (see $KC_RUN/preflight.out and .err)" ;;
+    *) kc_explain_unparsed "$VERDICT"; step_fail preflight "demo-preflight output could not be parsed (${VERDICT#unparsed:}; see $KC_RUN/preflight.out and .err)" ;;
   esac
 fi
 step_ok preflight

@@ -277,7 +277,7 @@ kc_settle_absent() {
 # accepted shape is: the five earlier check lines present, then exactly that
 # one refusal. See LIMITATIONS.md.
 
-KC_PREFLIGHT_OBSERVER_REFUSAL='^demo-preflight: REFUSED: check observer: --observer-module was not given'
+KC_PREFLIGHT_OBSERVER_REFUSAL='^demo-preflight: REFUSED: check observer: --observer-module was not given, so the module this board builds for itself would first be exercised by the resident; that is the divergence this check exists to close$'
 
 kc_preflight_five_green() {
   # kc_preflight_five_green STDOUT_FILE: true when all five check lines are present.
@@ -291,17 +291,24 @@ kc_preflight_five_green() {
 
 kc_classify_preflight() {
   # kc_classify_preflight STDOUT_FILE STDERR_FILE RC
-  # Prints: pass | five-green-observer-refused | refused:<check>:<message> | refused:usage:<message> | unparsed
-  local out="$1" err="$2" rc="$3" line check msg
-  if [ "$rc" -eq 0 ] && grep -qx 'demo-preflight: PASS' "$out"; then
-    echo pass
-    return
-  fi
-  line="$(grep -E '^demo-preflight: REFUSED: ' "$err" | head -n 1)"
-  if [ -z "$line" ]; then
-    echo unparsed
-    return
-  fi
+  # Prints: pass | five-green-observer-refused | refused:<check>:<message> |
+  # refused:usage:<message> | unparsed:no-pass-line | unparsed:no-refusal-line |
+  # unparsed:contradictory-refusals | unparsed:abnormal-exit:<rc>
+  # demo-preflight exits 0 only after its PASS line and 1 for any refusal;
+  # every other status (128 + n is death on signal n) reached no verdict.
+  local out="$1" err="$2" rc="$3" line check msg count
+  case "$rc" in
+    0)
+      if grep -qx 'demo-preflight: PASS' "$out"; then echo pass; else echo unparsed:no-pass-line; fi
+      return ;;
+    1) ;;
+    *) echo "unparsed:abnormal-exit:$rc"; return ;;
+  esac
+  count="$(grep -cE '^demo-preflight: REFUSED: ' "$err" 2>/dev/null)"
+  count="${count:-0}"
+  if [ "$count" -eq 0 ]; then echo unparsed:no-refusal-line; return; fi
+  if [ "$count" -gt 1 ]; then echo unparsed:contradictory-refusals; return; fi
+  line="$(grep -E '^demo-preflight: REFUSED: ' "$err")"
   if printf '%s\n' "$line" | grep -qE "$KC_PREFLIGHT_OBSERVER_REFUSAL" && kc_preflight_five_green "$out"; then
     echo five-green-observer-refused
     return
@@ -352,6 +359,28 @@ kc_explain_refusal() {
     *)
       echo "What this means: an unrecognised check name; report the line above."
       ;;
+  esac
+}
+
+kc_explain_unparsed() {
+  # kc_explain_unparsed VERDICT: one line on stdout saying why an 'unparsed:<reason>' verdict is no verdict.
+  local reason="${1#unparsed:}" rc
+  case "$reason" in
+    no-pass-line) echo "What this means: demo-preflight exited 0 without printing 'demo-preflight: PASS'; a pass always prints that line, so this run is not one." ;;
+    no-refusal-line) echo "What this means: demo-preflight exited 1 without a 'demo-preflight: REFUSED: ' line, so the check it stopped at is unknown." ;;
+    contradictory-refusals) echo "What this means: demo-preflight printed more than one REFUSED line; it stops at the first refusal, so two cannot come from one run." ;;
+    abnormal-exit:*)
+      rc="${reason#abnormal-exit:}"
+      case "$rc" in
+        '' | *[!0-9]*) echo "What this means: demo-preflight's exit status '$rc' is not a number; the run did not end the way a process does." ;;
+        *)
+          if [ "$rc" -ge 128 ]; then
+            echo "What this means: demo-preflight exited $rc, which is 128 + $((rc - 128)): it died on signal $((rc - 128)) before reaching a verdict (139 is SIGSEGV, 137 SIGKILL)."
+          else
+            echo "What this means: demo-preflight exited $rc; it exits only 0 (PASS) or 1 (a refusal), so no verdict was reached."
+          fi ;;
+      esac ;;
+    *) echo "What this means: the classifier returned '$1', which the runner does not know." ;;
   esac
 }
 

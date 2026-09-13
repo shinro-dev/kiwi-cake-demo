@@ -107,7 +107,7 @@ if [ -n "$CAPSULE" ]; then
       msg="${VERDICT#refused:*:}"
       echo "Preflight verdict: REFUSED."
       kc_explain_refusal "$check" "$msg" ;;
-    *) echo "Preflight verdict: could not be parsed; the raw output is above." ;;
+    *) echo "Preflight verdict: could not be parsed (${VERDICT#unparsed:}); the raw output is above."; kc_explain_unparsed "$VERDICT" ;;
   esac
   rm -f -- "$OUT" "$ERR"
 fi

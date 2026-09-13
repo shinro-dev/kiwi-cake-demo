@@ -171,7 +171,7 @@ case "$VERDICT" in
     check="${VERDICT#refused:}"; check="${check%%:*}"; msg="${VERDICT#refused:*:}"
     kc_explain_refusal "$check" "$msg"
     beat_fail preflight "demo-preflight refused this board at check $check; nothing was started" 3 ;;
-  *) beat_fail preflight "demo-preflight output could not be parsed" ;;
+  *) kc_explain_unparsed "$VERDICT"; beat_fail preflight "demo-preflight output could not be parsed (${VERDICT#unparsed:})" ;;
 esac
 beat_ok preflight
 
