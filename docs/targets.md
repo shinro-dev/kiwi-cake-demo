@@ -55,6 +55,19 @@ The flag is rejected on the tested Pi 5 (it is not needed there) and it is
 never honoured by `bin/demo-segment2.sh`: nothing that moves a robot runs on
 a board the preflight has not accepted.
 
+## What `bin/doctor.sh` exits with
+
+| Exit | Meaning |
+| --- | --- |
+| 0 | the tested board, every shipped binary starts, and with `--capsule` the preflight accepted the package |
+| 3 | the board is not the tested one; informational, segment 1 may still run with `--unsupported-target` |
+| 4 | a shipped binary did not start under this board's dynamic loader, or `demo-preflight --list-checks` failed |
+| 5 | no release binaries were found, or usage |
+| 6 | with `--capsule`: `demo-preflight` refused at a named check; the doctor explains which and why |
+| 7 | with `--capsule`: `demo-preflight` output could not be parsed, for example because the process died on a signal (exit 128 plus the signal number); the reason is printed after the raw output |
+
+When more than one applies, the first in this order wins: 5, 4, 6, 7, 3, then 0.
+
 ## The x86-64 row
 
 Every binary, on every target, carries the same compiled-in target profile:

@@ -11,7 +11,9 @@
 #
 # Exit codes: 0 tested board and every binary runs; 3 the board is not the
 # tested one (informational, segment 1 may still run with --unsupported-target);
-# 4 a shipped binary did not start; 5 no release binaries found or usage.
+# 4 a shipped binary did not start or --list-checks failed; 5 no release
+# binaries found or usage; 6 demo-preflight refused at a named check;
+# 7 demo-preflight output could not be parsed. Precedence: 5, 4, 6, 7, 3, 0.
 set -uo pipefail
 # shellcheck source=lib/common.sh
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
@@ -68,7 +70,7 @@ if [ "$KC_MEMFD" = "2" ]; then
 fi
 echo
 
-BIN_DIR="$(kc_binaries_dir 2>/dev/null)" || { echo "No release binaries found; run bin/fetch-release.sh first."; exit 5; }
+BIN_DIR="$(kc_binaries_dir)" || { echo "No release binaries found; run bin/fetch-release.sh first."; exit 5; }
 kc_check_binaries "$BIN_DIR"
 kc_need_tool timeout "it bounds each binary probe"
 echo "Shipped binaries under $BIN_DIR (one no-op run each, the shell equivalent of the preflight's shipped-binaries check):"
@@ -84,9 +86,12 @@ done
 echo
 echo "demo-preflight publishes these checks, in order:"
 "$BIN_DIR/demo-preflight" --list-checks 2>/dev/null | sed 's/^/  /'
+LIST_RC="${PIPESTATUS[0]}"
+if [ "$LIST_RC" -ne 0 ]; then echo "  demo-preflight --list-checks failed (exit $LIST_RC)"; BAD=$((BAD + 1)); fi
 echo "In this release the observer check always refuses (LIMITATIONS.md); five green checks then that refusal is the accepted shape."
 echo
 
+PRE_RC=0
 if [ -n "$CAPSULE" ]; then
   [ -n "$TRUSTED" ] || kc_fail "--capsule needs --trusted-key" 5
   [ -n "$SCRATCH" ] || SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/kiwi-cake-preflight.XXXXXX")"
@@ -107,12 +112,13 @@ if [ -n "$CAPSULE" ]; then
       check="${VERDICT#refused:}"; check="${check%%:*}"
       msg="${VERDICT#refused:*:}"
       echo "Preflight verdict: REFUSED."
-      kc_explain_refusal "$check" "$msg" ;;
-    *) echo "Preflight verdict: could not be parsed (${VERDICT#unparsed:}); the raw output is above."; kc_explain_unparsed "$VERDICT" ;;
+      kc_explain_refusal "$check" "$msg"; PRE_RC=6 ;;
+    *) echo "Preflight verdict: could not be parsed (${VERDICT#unparsed:}); the raw output is above."; kc_explain_unparsed "$VERDICT"; PRE_RC=7 ;;
   esac
   rm -f -- "$OUT" "$ERR"
 fi
 
 [ "$BAD" -eq 0 ] || exit 4
+[ "$PRE_RC" -eq 0 ] || exit "$PRE_RC"
 [ "$CLASS" = "pi5-tested" ] || exit 3
 exit 0
