@@ -17,7 +17,7 @@ interrupted. Nothing in segment 1 can move anything.
 | --- | --- | --- | --- |
 | 1 | the leader arm | Move the leader so the follower rests low and physically supported. | Torque on; the follower holds the parked pose under the host's torque. |
 | 2 | the laptop | Ctrl-C the client (`bin/laptop/teleop.py`). Expected line: `teleop: client closed; the follower holds its pose under the host's torque until the host exits`. | Torque on. The client only closed its sockets; the host's watchdog stops the base within its timeout; the arm keeps holding. |
-| 3 | the Pi | Stop the resident: press Enter at the runner's STOP beat, or run `bin/demo-stop.sh` at any other time. Expected: `stopped: no resident, no host, no socket, no listener` from the runner, or `kiwi-cake: stopped kiwi-cake-demo.service` then `kiwi-cake: done (1 stop action(s))` from the stop script. | The resident's own shutdown quiesces the host: SIGINT to the host, then a bounded deadline, then force. A host that exits on the SIGINT runs its disconnect and releases torque (`--robot.disable_torque_on_disconnect=true`), so the arm goes limp: it must already be parked. A host ended by force after the deadline did not run its disconnect, so torque may remain: check the robot. |
+| 3 | the Pi | Stop the resident: press Enter at the runner's STOP beat, or run `bin/demo-stop.sh` at any other time. Expected: `stopped: no resident, no host, no socket, no listener` from the runner, or `kiwi-cake: stopped kiwi-cake-demo.service` then `kiwi-cake: done (1 stop action(s)): no resident, no supervised child, no socket` and exit 0 from the stop script; the stop script exits 1 and prints `kiwi-cake: FAIL:` naming what is left when the stop did not complete. | The resident's own shutdown quiesces the host: SIGINT to the host, then a bounded deadline, then force. A host that exits on the SIGINT runs its disconnect and releases torque (`--robot.disable_torque_on_disconnect=true`), so the arm goes limp: it must already be parked. A host ended by force after the deadline did not run its disconnect, so torque may remain: check the robot. |
 | 4 | the Pi | Run the checks below. | Unchanged. |
 
 Never signal the host directly. SIGINT or SIGTERM to the LeRobot host alone
@@ -46,9 +46,18 @@ tested board, `/run/user/<uid>/kiwi-cake-demo/admin.sock`), with a fallback
 under `/tmp` when `XDG_RUNTIME_DIR` is unset.
 
 `bin/demo-stop.sh` may be run again at this point; it reports
-`kiwi-cake-demo.service is installed and not active` and `done (0 stop
-action(s))` when there was nothing to stop, and it warns if a supervised
-child process is still in the process table.
+`kiwi-cake: kiwi-cake-demo.service is installed and not active` and
+`kiwi-cake: done (0 stop action(s)): no resident, no supervised child, no
+socket` when there was nothing to stop, and exits 0. It exits 1 with one
+`still alive: <pid> <cmdline>` line per process and `kiwi-cake: FAIL: <n>
+process(es) still in the process table after the stop` when a host, a
+stub or a resident of this checkout outlived the stop, or `kiwi-cake:
+FAIL: kiwi-cake-demo.service is still <state> after <n> s` when the unit
+did not stop within `KC_STOP_DEADLINE` seconds (default 75); that is a
+finding to report (below), not something to work around. It always
+prints `kiwi-cake: motor state is your host's own disconnect behaviour
+and is not visible to this script; check the robot` before its last
+line.
 
 ## Remove the user unit
 
