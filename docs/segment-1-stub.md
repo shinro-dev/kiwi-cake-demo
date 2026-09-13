@@ -56,7 +56,9 @@ hold, with the reason.
    `read-flight` (and `get-health` when served), decodes every event by name,
    and reports `poll queries answered 3 of 3`. The slot `supervisor.lekiwi`
    is `ACTIVE`. The session identity and the four declared identities are
-   recorded for step 11. Every admin-socket query runs under
+   recorded for step 11. Each identity must have its declared shape (64
+   lowercase hexadecimal characters, 32 for the session identity) or the
+   step fails naming the field. Every admin-socket query runs under
    `KC_PROBE_TIMEOUT` seconds (default 10, above the probe's own 5-second
    read timeout), so a probe that never answers cannot hold a step past its
    budget.

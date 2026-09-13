@@ -7,7 +7,14 @@ SOCK="$2"; OP="$3"; STATE="$SOCK.state"
 if [ "${KC_MOCK_PROBE_HANG:-0}" = "1" ]; then exec sleep 3600; fi
 seq_next() { local n; n="$(grep -c '^record ' "$STATE/flight" 2>/dev/null || echo 0)"; echo "$n"; }
 mint_admin() { printf 'record arg0=1000 arg1=1000 correlation=0 epoch=0 event=0x0b000001 flags=0 sequence=%s severity=0 subject=%s\n' "$(seq_next)" "$$" >>"$STATE/flight"; }
-header() { echo "status ok"; echo "replay 0"; echo "snapshot_present 1"; cat "$STATE/status"; }
+header() {
+  echo "status ok"; echo "replay 0"; echo "snapshot_present 1"
+  if [ "${KC_MOCK_PROBE_BLANK_FIELDS:-0}" = "1" ]; then
+    grep -vE '^(build_identity|session_uuid|plan_digest) ' "$STATE/status"
+  else
+    cat "$STATE/status"
+  fi
+}
 case "$OP" in
   get-status) header; mint_admin ;;
   list-slots) header; echo "slot capsule=$(sed -n 's/^capsule //p' "$STATE/plan") config=b2b7 generation=1 instance=1 name=supervisor.lekiwi state=ACTIVE uuid=50505430405080500000737570657276"; mint_admin ;;

@@ -204,6 +204,45 @@ kc_deadline_passed() {
   [ $((SECONDS - $1)) -ge "$2" ]
 }
 
+# --- reply shapes -----------------------------------------------------------------
+kc_hex_field() {
+  # kc_hex_field TEXT NAME LEN: the value of NAME when it is exactly LEN lowercase hex characters.
+  local v
+  v="$(kc_field "$1" "$2")"
+  printf '%s\n' "$v" | grep -qE "^[0-9a-f]{$3}\$" || return 1
+  printf '%s\n' "$v"
+}
+
+kc_int_field() {
+  # kc_int_field TEXT NAME: the value of NAME when it is digits only.
+  local v
+  v="$(kc_field "$1" "$2")"
+  printf '%s\n' "$v" | grep -qE '^[0-9]+$' || return 1
+  printf '%s\n' "$v"
+}
+
+kc_status_fields_ok() {
+  # kc_status_fields_ok TEXT: a get-status reply with status ok and every declared identity well-formed.
+  local text="$1" n
+  [ "$(kc_field "$text" status)" = "ok" ] || { echo "missing or malformed: status"; return 1; }
+  for n in build_identity:64 session_uuid:32 plan_digest:64 config_identity:64 target_profile_digest:64; do
+    kc_hex_field "$text" "${n%%:*}" "${n##*:}" >/dev/null || { echo "missing or malformed: ${n%%:*}"; return 1; }
+  done
+  kc_int_field "$text" epoch >/dev/null || { echo "missing or malformed: epoch"; return 1; }
+}
+
+kc_identities_match() {
+  # kc_identities_match TEXT_A TEXT_B NAME...: every NAME well-formed on both sides and equal.
+  local a="$1" b="$2" n len va vb
+  shift 2
+  for n in "$@"; do
+    len=64; [ "$n" = "session_uuid" ] && len=32
+    va="$(kc_hex_field "$a" "$n" "$len")" || { echo "identity $n: missing or malformed before"; return 1; }
+    vb="$(kc_hex_field "$b" "$n" "$len")" || { echo "identity $n: missing or malformed after"; return 1; }
+    [ "$va" = "$vb" ] || { echo "identity $n: $va before, $vb after"; return 1; }
+  done
+}
+
 kc_write_resident_conf() {
   # kc_write_resident_conf PATH STORE_ROOT SOCKET PUBLIC_KEY PLAN_ARTIFACT
   {

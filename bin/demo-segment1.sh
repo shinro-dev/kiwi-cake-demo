@@ -246,12 +246,12 @@ step_ok start
 grep -q '^poll queries answered 3 of 3$' "$KC_RUN/poll-before.txt" || step_fail telemetry "the poll did not answer all three queries"
 grep -q '^slot name=supervisor.lekiwi state=ACTIVE ' "$KC_RUN/poll-before.txt" || step_fail telemetry "the supervisor slot is not listed ACTIVE"
 STATUS_A="$(kc_query "$BIN/admin-probe" "$SOCK" get-status)"
+REASON="$(kc_status_fields_ok "$STATUS_A")" || step_fail telemetry "get-status $REASON"
 SESSION_A="$(kc_field "$STATUS_A" session_uuid)"
 PLAN_A="$(kc_field "$STATUS_A" plan_digest)"
 CONFIG_A="$(kc_field "$STATUS_A" config_identity)"
 BUILD_A="$(kc_field "$STATUS_A" build_identity)"
 PROFILE_A="$(kc_field "$STATUS_A" target_profile_digest)"
-[ "${#SESSION_A}" -eq 32 ] || step_fail telemetry "get-status reported no session identity"
 step_ok telemetry
 
 # --- 10. child kill -------------------------------------------------------------------------------
@@ -292,15 +292,11 @@ echo "no child of the killed resident survives (five consecutive clean scans)"
 echo "relaunching from the same configuration file (the runner's own loop, as the development-host gate does)"
 start_resident second || step_fail resident-kill "the relaunch from the same configuration did not reach plan active"
 STATUS_B="$(kc_query "$BIN/admin-probe" "$SOCK" get-status)"
+REASON="$(kc_status_fields_ok "$STATUS_B")" || step_fail resident-kill "the relaunched resident's get-status $REASON"
 SESSION_B="$(kc_field "$STATUS_B" session_uuid)"
-PLAN_B="$(kc_field "$STATUS_B" plan_digest)"
-CONFIG_B="$(kc_field "$STATUS_B" config_identity)"
-BUILD_B="$(kc_field "$STATUS_B" build_identity)"
-PROFILE_B="$(kc_field "$STATUS_B" target_profile_digest)"
-[ "${#SESSION_B}" -eq 32 ] || step_fail resident-kill "the relaunched resident reported no session identity"
 [ "$SESSION_B" != "$SESSION_A" ] || step_fail resident-kill "the relaunched resident reused the killed one's session identity"
-[ "$PLAN_A" = "$PLAN_B" ] && [ "$CONFIG_A" = "$CONFIG_B" ] && [ "$BUILD_A" = "$BUILD_B" ] && [ "$PROFILE_A" = "$PROFILE_B" ] ||
-  step_fail resident-kill "a declared identity changed across the relaunch"
+REASON="$(kc_identities_match "$STATUS_A" "$STATUS_B" plan_digest config_identity build_identity target_profile_digest)" ||
+  step_fail resident-kill "a declared identity changed across the relaunch ($REASON)"
 kc_wait_for_tag "$RUN_TAG" 400 || step_fail resident-kill "the relaunched resident supervises no child"
 FRESH=0
 for p in $(kc_pids_carrying "$RUN_TAG"); do

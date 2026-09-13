@@ -101,16 +101,20 @@ print_table() {
   local round="$1" answered=0 required=3 status
   echo "=== poll $round/$ROUNDS ==="
 
-  local status_out
+  local status_out reason
   status_out="$(run_query get-status)" || status_out=""
   status="$(status_of "$status_out")"
   if [ "$status" = "ok" ]; then
-    answered=$((answered + 1))
     echo "build_identity $(sed_field "$status_out" 'build_identity')"
     echo "session_uuid $(sed_field "$status_out" 'session_uuid')"
     echo "plan_digest $(sed_field "$status_out" 'plan_digest')"
     echo "epoch $(sed_field "$status_out" 'epoch')"
     echo "config_identity $(sed_field "$status_out" 'config_identity')"
+    if reason="$(kc_status_fields_ok "$status_out")"; then
+      answered=$((answered + 1))
+    else
+      echo "get_status_fields $reason"
+    fi
   else
     echo "get_status_status ${status:-no_response}"
   fi
@@ -140,12 +144,12 @@ print_table() {
     echo "list_slots_status ${status:-no_response}"
   fi
 
-  local flight_out
+  local flight_out records
   flight_out="$(run_query read-flight)" || flight_out=""
   status="$(status_of "$flight_out")"
-  if [ "$status" = "ok" ]; then
+  if [ "$status" = "ok" ] && records="$(kc_int_field "$flight_out" flight_records)"; then
     answered=$((answered + 1))
-    echo "flight_records $(sed_field "$flight_out" 'flight_records')"
+    echo "flight_records $records"
     printf '%s\n' "$flight_out" | grep -E '^record ' | tail -n "$FLIGHT_ROWS" |
       while IFS= read -r rec; do
         local arg0 arg1 seq ev name
@@ -156,14 +160,18 @@ print_table() {
         name="$(decode_event "$ev" "$REGISTRY")"
         echo "record event=$name arg0=$arg0 arg1=$arg1 sequence=$seq"
       done
+  elif [ "$status" = "ok" ]; then
+    echo "read_flight_fields missing or malformed: flight_records"
   else
     echo "read_flight_status ${status:-no_response}"
   fi
 
-  local health_out health_status
-  health_out="$(run_query get-health)" || health_out=""
+  local health_out health_status health_rc
+  health_out="$(run_query get-health)"; health_rc=$?
   health_status="$(status_of "$health_out")"
-  if [ "$health_status" = "ok" ]; then
+  if [ "$health_rc" -eq 124 ]; then
+    echo "health_query timed out"
+  elif [ "$health_status" = "ok" ]; then
     echo "health_surface served"
     echo "health_read_epoch $(sed_field "$health_out" 'health_read_epoch')"
     echo "health_rows $(sed_field "$health_out" 'health_rows')"
@@ -189,8 +197,12 @@ print_table() {
           *) echo "health slot=$slot_name surface=unknown" ;;
         esac
       done
+  elif [ -n "$health_status" ]; then
+    echo "health_surface not served (status $health_status)"
+  elif [ "$health_rc" -ne 0 ]; then
+    echo "health_query failed (probe exit $health_rc)"
   else
-    echo "health_surface not served"
+    echo "health_surface not served (status no_response)"
   fi
 
   echo "poll queries answered $answered of $required"

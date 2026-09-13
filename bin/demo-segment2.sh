@@ -201,8 +201,10 @@ HOST_1="$(wait_host 400)" || beat_fail start "the resident spawned no host proce
 wait_ports || beat_fail start "the host is not listening on $HOST_PORTS (the arm may be under torque; stopping)"
 echo "host pid $HOST_1 listening on $HOST_PORTS"
 STATUS_A="$(kc_query "$BIN/admin-probe" "$SOCK" get-status)"
-SESSION_A="$(kc_field "$STATUS_A" session_uuid)"
+REASON="$(kc_status_fields_ok "$STATUS_A")" || beat_fail start "get-status $REASON"
+SESSION_A="$(kc_hex_field "$STATUS_A" session_uuid 32)" || beat_fail start "get-status reported no well-formed session identity"
 "$KC_SCRIPTS_DIR/telemetry.sh" --probe "$BIN/admin-probe" --socket "$SOCK" --registry "$KC_ROOT/docs/event-codes.md" --rounds 1 | tee "$KC_RUN/poll-1.txt"
+[ "${PIPESTATUS[0]}" -eq 0 ] && grep -q '^poll queries answered 3 of 3$' "$KC_RUN/poll-1.txt" || beat_fail start "the first poll did not answer all three queries"
 beat_ok start
 
 # --- beat 2 ---------------------------------------------------------------------------------------------
@@ -245,7 +247,7 @@ done
 [ -n "$SAFE" ] || beat_fail child-restart "no EVT_SUPERVISOR_SAFE_STOP_RAN after the baseline"
 [ -n "$STARTED" ] || beat_fail child-restart "no EVT_SUPERVISOR_CHILD_STARTED with a restart ordinal above 0 after the baseline"
 [ "$(main_pid)" = "$RES_PID_3" ] || beat_fail child-restart "the resident's pid changed during a child-only restart"
-SESSION_3="$(kc_field "$(kc_query "$BIN/admin-probe" "$SOCK" get-status)" session_uuid)"
+SESSION_3="$(kc_hex_field "$(kc_query "$BIN/admin-probe" "$SOCK" get-status)" session_uuid 32)" || beat_fail child-restart "get-status after the child restart reported no well-formed session identity"
 [ "$SESSION_3" = "$SESSION_A" ] || beat_fail child-restart "the session identity changed during a child-only restart"
 echo "host exited with signal 15 (sequence $EXITED), safe-stop ran (sequence $SAFE), fresh host pid $CHILD_3B with restart ordinal $STARTED; resident pid $RES_PID_3 and session unchanged"
 beat_ok child-restart
@@ -259,6 +261,7 @@ RES_PID_4="$(main_pid)"
 [ -n "$RES_PID_4" ] && [ "$RES_PID_4" != "0" ] || beat_fail crash-recovery "systemd reports no MainPID"
 CHILD_4="$(wait_host 100)" || beat_fail crash-recovery "no host process before the kill"
 STATUS_B="$(kc_query "$BIN/admin-probe" "$SOCK" get-status)"
+REASON="$(kc_status_fields_ok "$STATUS_B")" || beat_fail crash-recovery "get-status before the kill $REASON"
 kill -9 "$RES_PID_4" || beat_fail crash-recovery "cannot send SIGKILL to the resident"
 echo "sent SIGKILL to resident pid $RES_PID_4 (host pid $CHILD_4)"
 kc_wait_gone "$CHILD_4" 100 || beat_fail crash-recovery "host $CHILD_4 survived the resident's death (orphan)"
@@ -274,11 +277,10 @@ while :; do
 done
 [ "$RELAUNCHED" -eq 1 ] || { systemctl --user status --no-pager "$UNIT" >&2; beat_fail crash-recovery "$UNIT did not relaunch the resident"; }
 STATUS_C="$(kc_query "$BIN/admin-probe" "$SOCK" get-status)"
-SESSION_C="$(kc_field "$STATUS_C" session_uuid)"
-[ "$SESSION_C" != "$(kc_field "$STATUS_B" session_uuid)" ] || beat_fail crash-recovery "the relaunched resident reused the session identity"
-for k in plan_digest config_identity build_identity target_profile_digest; do
-  [ "$(kc_field "$STATUS_B" "$k")" = "$(kc_field "$STATUS_C" "$k")" ] || beat_fail crash-recovery "$k changed across the relaunch"
-done
+SESSION_C="$(kc_hex_field "$STATUS_C" session_uuid 32)" || beat_fail crash-recovery "the relaunched resident reported no well-formed session identity"
+[ "$SESSION_C" != "$(kc_hex_field "$STATUS_B" session_uuid 32)" ] || beat_fail crash-recovery "the relaunched resident reused the session identity"
+REASON="$(kc_identities_match "$STATUS_B" "$STATUS_C" plan_digest config_identity build_identity target_profile_digest)" ||
+  beat_fail crash-recovery "a declared identity changed across the relaunch ($REASON)"
 CHILD_4B="$(wait_host 400)" || beat_fail crash-recovery "the relaunched resident spawned no host"
 wait_ports || beat_fail crash-recovery "the relaunched resident's host is not listening on $HOST_PORTS"
 echo "BEFORE/AFTER:"

@@ -11,4 +11,7 @@ nothing else. They are test doubles, not Cake, and prove nothing about Cake.
 
 `admin-probe` reads two knobs from the environment: `KC_MOCK_PROBE_HANG=1`
 makes any `request` hang forever (`exec sleep 3600`) after its socket and
-state checks, to exercise the wall-clock deadline in `kc_query`.
+state checks, to exercise the wall-clock deadline in `kc_query`;
+`KC_MOCK_PROBE_BLANK_FIELDS=1` answers `get-status` and `list-slots`
+without the `build_identity`, `session_uuid` and `plan_digest` lines, to
+exercise the identity-shape helpers on an incomplete reply.
