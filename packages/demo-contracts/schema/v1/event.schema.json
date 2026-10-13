@@ -1,0 +1,1349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Event",
+  "description": "The event envelope of the operator console contract v1. Discriminator: kind. The payload shape for each kind is the oneOf branch whose kind const matches; every kind has exactly one branch. Every envelope field is required; an absent fact is an explicit null.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "seq",
+    "run_id",
+    "action_id",
+    "observation_id",
+    "kind",
+    "producer",
+    "source_session",
+    "t_mono_ns",
+    "clock_domain",
+    "t_wall_utc",
+    "reason_code",
+    "payload",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/contract_version"
+    },
+    "seq": {
+      "description": "Position in the runtime session's single ordered stream. The only ordering a consumer may rely on.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/nullable_id"
+    },
+    "action_id": {
+      "$ref": "common.schema.json#/$defs/nullable_id"
+    },
+    "observation_id": {
+      "$ref": "common.schema.json#/$defs/nullable_id"
+    },
+    "kind": {
+      "$ref": "#/$defs/kind"
+    },
+    "producer": {
+      "$ref": "common.schema.json#/$defs/producer"
+    },
+    "source_session": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "t_mono_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clock_domain": {
+      "$ref": "common.schema.json#/$defs/clock_domain"
+    },
+    "t_wall_utc": {
+      "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+    },
+    "reason_code": {
+      "$ref": "common.schema.json#/$defs/nullable_reason_code"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "provenance": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "common.schema.json#/$defs/provenance"
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "kind": {
+          "const": "run.started"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_run_started"
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "run.config"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_run_config"
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "run.finished"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_run_finished"
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "state.transition"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_state_transition"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "action.planned"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_action_planned"
+        },
+        "action_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "action.started"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_action_started"
+        },
+        "action_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "action.completed"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_action_completed"
+        },
+        "action_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "action.refused"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_action_refused"
+        },
+        "action_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "reason_code": {
+          "$ref": "common.schema.json#/$defs/reason_code"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "measured.state"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_measured_state"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "observation.captured"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_observation_captured"
+        },
+        "observation_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "perception.result"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_perception_result"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "predicate.evaluated"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_predicate_evaluated"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "stop.requested"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_stop_requested"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "stop.acknowledged"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_stop_acknowledged"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "stop.outcome"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_stop_outcome"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "timing.span"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_timing_span"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "evidence.gap"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_evidence_gap"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "telemetry.dropped"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_telemetry_dropped"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "diagnostic.text"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload_diagnostic_text"
+        }
+      },
+      "required": [
+        "kind",
+        "payload"
+      ]
+    }
+  ],
+  "$defs": {
+    "kind": {
+      "title": "EventKind",
+      "enum": [
+        "run.started",
+        "run.config",
+        "run.finished",
+        "state.transition",
+        "action.planned",
+        "action.started",
+        "action.completed",
+        "action.refused",
+        "measured.state",
+        "observation.captured",
+        "perception.result",
+        "predicate.evaluated",
+        "stop.requested",
+        "stop.acknowledged",
+        "stop.outcome",
+        "timing.span",
+        "evidence.gap",
+        "telemetry.dropped",
+        "diagnostic.text"
+      ]
+    },
+    "payload_run_started": {
+      "title": "PayloadRunStarted",
+      "description": "A run exists from this record on. command_type is null for a run the console did not start.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "command_type",
+        "data_mode",
+        "plan_only",
+        "holding"
+      ],
+      "properties": {
+        "command_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "command_type": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/command_type"
+            }
+          ]
+        },
+        "data_mode": {
+          "$ref": "common.schema.json#/$defs/data_mode"
+        },
+        "plan_only": {
+          "type": "boolean"
+        },
+        "holding": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "payload_run_config": {
+      "title": "PayloadRunConfig",
+      "description": "A SANITIZED summary of the configuration a run used, plus the digest of the full configuration. Never an endpoint, a path or a credential: named_value cannot spell them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "config_digest",
+        "summary"
+      ],
+      "properties": {
+        "config_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "summary": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/named_value"
+          }
+        }
+      }
+    },
+    "payload_run_finished": {
+      "title": "PayloadRunFinished",
+      "description": "How a run ended. The physical outcome (outcome, predicates) and the completeness of the evidence (evidence_complete, evidence_gaps) are SEPARATE facts: a cube can be placed on thin evidence and a refusal can be fully evidenced. The one cross rule: evidence_complete true means evidence_gaps is 0. Optional extension, so that an outcome can be READ without a terminal: reason_code is the machine-readable reason the run did not end well, derived where the decision was made and never by parsing a sentence; phase is the state the machine was in; failure carries the sentence, the values that decided it and the observations in scope. All three are null (or absent, in an older record) for a run that ended as it should.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "exit_status",
+        "predicates",
+        "automatic_retries",
+        "task_control_interventions",
+        "evidence_complete",
+        "evidence_gaps"
+      ],
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/run_outcome"
+        },
+        "exit_status": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "predicates": {
+          "title": "RunPredicates",
+          "description": "The measured end predicates. null means not evaluated, which is not the same as false.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_secured",
+            "placed",
+            "clearance_target_met",
+            "base_returned"
+          ],
+          "properties": {
+            "object_secured": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "placed": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "clearance_target_met": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "base_returned": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        },
+        "automatic_retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "task_control_interventions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_complete": {
+          "type": "boolean"
+        },
+        "evidence_gaps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason_code": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "phase": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "failure": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/run_failure"
+            }
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "evidence_complete": {
+            "const": true
+          }
+        },
+        "required": [
+          "evidence_complete"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence_gaps": {
+            "description": "0 when evidence_complete is true",
+            "const": 0
+          }
+        }
+      }
+    },
+    "run_outcome": {
+      "title": "RunOutcome",
+      "description": "How a run ended, physically. unknown is a real answer: nothing established what happened, which is not the same as failed.",
+      "enum": [
+        "placed_new",
+        "already_placed_noop",
+        "stopped",
+        "refused",
+        "failed",
+        "unknown"
+      ]
+    },
+    "run_failure": {
+      "title": "RunFailure",
+      "description": "Why a run did not end well, as the controller decided it at the point of decision: the sentence the operator saw, the measured values and thresholds that decided it, and the observations that were in scope. The machine-readable reason_code and the phase sit next to this object in the payload, because they are what a console routes on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detail",
+        "measurements",
+        "observation_ids"
+      ],
+      "properties": {
+        "detail": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/named_value"
+          }
+        },
+        "observation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        }
+      }
+    },
+    "payload_state_transition": {
+      "title": "PayloadStateTransition",
+      "description": "One transition of a named state machine. from_state is null for the first state.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "machine",
+        "from_state",
+        "to_state"
+      ],
+      "properties": {
+        "machine": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "from_state": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "to_state": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      }
+    },
+    "payload_action_planned": {
+      "title": "PayloadActionPlanned",
+      "description": "An action was planned; nothing has moved yet. The envelope's action_id names it from here on. Optional extension: evidence_refs are the observations this decision CONSUMED, said on the record itself rather than inferred from the envelope's provenance, which also carries model and calibration identity and is not a statement about what was looked at; rule_ref names the rule that chose the action. An empty evidence_refs says the decision consumed no observation, which is not the same as an absent one, where the record does not say.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_type",
+        "plan_only",
+        "parameters"
+      ],
+      "properties": {
+        "action_type": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "plan_only": {
+          "type": "boolean"
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/named_value"
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        },
+        "rule_ref": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        }
+      }
+    },
+    "payload_action_started": {
+      "title": "PayloadActionStarted",
+      "description": "The first command of the action was sent.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_type"
+      ],
+      "properties": {
+        "action_type": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      }
+    },
+    "payload_action_completed": {
+      "title": "PayloadActionCompleted",
+      "description": "The action ended.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_type",
+        "result",
+        "duration_ns"
+      ],
+      "properties": {
+        "action_type": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "result": {
+          "enum": [
+            "ok",
+            "stopped",
+            "failed"
+          ]
+        },
+        "duration_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "payload_action_refused": {
+      "title": "PayloadActionRefused",
+      "description": "The action was refused. before_motion says whether anything had moved in this run when the refusal came. The envelope's reason_code is required for this kind. Optional extension: evidence_refs are the observations the refusal was taken on, so a refusal can say what it looked at rather than leaving a reader to infer it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_type",
+        "before_motion",
+        "detail"
+      ],
+      "properties": {
+        "action_type": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before_motion": {
+          "type": "boolean"
+        },
+        "detail": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        }
+      }
+    },
+    "payload_measured_state": {
+      "title": "PayloadMeasuredState",
+      "description": "The measured robot state the controller acted on, together with consumed_source_stamp: the exact host observation it read. Arm joints are in the host's position units as consumed; null marks a joint the observation did not carry.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "joints",
+        "base_velocity",
+        "consumed_source_stamp"
+      ],
+      "properties": {
+        "joints": {
+          "$ref": "#/$defs/measured_joints"
+        },
+        "base_velocity": {
+          "$ref": "#/$defs/measured_base_velocity"
+        },
+        "consumed_source_stamp": {
+          "$ref": "common.schema.json#/$defs/source_stamp"
+        }
+      }
+    },
+    "measured_joints": {
+      "title": "MeasuredJoints",
+      "description": "One value per arm joint. The six names are always present, so a joint the sample did not carry is visible as null instead of absent.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shoulder_pan",
+        "shoulder_lift",
+        "elbow_flex",
+        "wrist_flex",
+        "wrist_roll",
+        "gripper"
+      ],
+      "properties": {
+        "shoulder_pan": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shoulder_lift": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "elbow_flex": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wrist_flex": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wrist_roll": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gripper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "measured_base_velocity": {
+      "title": "MeasuredBaseVelocity",
+      "description": "The measured base velocity.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x_mps",
+        "y_mps",
+        "theta_dps"
+      ],
+      "properties": {
+        "x_mps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "y_mps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "theta_dps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "payload_observation_captured": {
+      "title": "PayloadObservationCaptured",
+      "description": "A sensor observation was captured. The envelope's observation_id is required for this kind. source_role is a role, never a device id. retained says whether the observation is kept in the evidence store.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_role",
+        "media",
+        "width_px",
+        "height_px",
+        "content_digest",
+        "source_stamp",
+        "retained"
+      ],
+      "properties": {
+        "source_role": {
+          "enum": [
+            "wrist",
+            "front",
+            "base",
+            "other"
+          ]
+        },
+        "media": {
+          "enum": [
+            "frame",
+            "frame_pair",
+            "scalar_set"
+          ]
+        },
+        "width_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "height_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "content_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "source_stamp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/source_stamp"
+            }
+          ]
+        },
+        "retained": {
+          "type": "boolean"
+        }
+      }
+    },
+    "payload_perception_result": {
+      "title": "PayloadPerceptionResult",
+      "description": "What a detector concluded from named observations. The model identity travels in the envelope's provenance.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detector",
+        "observation_ids",
+        "result",
+        "confidence",
+        "measurements"
+      ],
+      "properties": {
+        "detector": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "observation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        },
+        "result": {
+          "enum": [
+            "detected",
+            "not_detected",
+            "ambiguous",
+            "error"
+          ]
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/named_value"
+          }
+        }
+      }
+    },
+    "payload_predicate_evaluated": {
+      "title": "PayloadPredicateEvaluated",
+      "description": "One predicate, the value it evaluated to, the threshold and the measurement behind it, and the evidence the evaluation rests on. value null means the predicate could not be evaluated. measurements is an optional extension for the further numbers a decision consumed, which threshold and measured have no place for (a direction, a bound, a second measured quantity); it is absent when there are none. Optional extension, so that 'no value' can be read without guessing which of the three ways it happened: state separates not_evaluated (nobody asked) from not_applicable (the question does not arise here) and unavailable (it was asked and the answer could not be obtained), and the last two carry a reason_code of their own inside the payload. In a record that carries no state the older reading holds unchanged: a non-null value was evaluated, a null value was not. rule_ref and rule_digest name the rule that decided the verdict and pin the threshold set it was decided with, so a later threshold change mints a different digest and cannot rewrite a verdict already recorded. The time of the VERDICT is the envelope (seq, t_mono_ns, clock_domain); the freshness of the EVIDENCE it consumed is consumed_source_stamp, and the two are never the same fact.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predicate",
+        "value",
+        "threshold",
+        "measured",
+        "evidence",
+        "consumed_source_stamp"
+      ],
+      "properties": {
+        "predicate": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "state": {
+          "description": "Optional extension: which of the four states this evaluation is in. Absent means the older reading, where a non-null value is an evaluated predicate and a null one was not evaluated.",
+          "enum": [
+            "not_evaluated",
+            "not_applicable",
+            "unavailable",
+            "evaluated"
+          ]
+        },
+        "reason_code": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "rule_ref": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "rule_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "threshold": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "measured": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "description": "Optional extension: the unit shared by threshold and measured.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_/%.-]{1,16}$"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "title": "PredicateEvidence",
+            "description": "One piece of evidence. scalar_name is set for type scalar and null otherwise. Optional extension, so that a piece of evidence can be read on its own instead of only through the predicate that consumed it: measurement is the value this piece carried, with its name and its unit, and source_stamp is the session, sequence number and clock domain the piece itself came from. A piece with no number of its own writes measurement null, and a piece that is not a host sample writes source_stamp null.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "observation_ids",
+              "scalar_name"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "frame",
+                  "frame_pair",
+                  "scalar",
+                  "pad_measurement",
+                  "anchor"
+                ]
+              },
+              "observation_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/id"
+                }
+              },
+              "scalar_name": {
+                "$ref": "common.schema.json#/$defs/nullable_id"
+              },
+              "measurement": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "common.schema.json#/$defs/named_value"
+                  }
+                ]
+              },
+              "source_stamp": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "common.schema.json#/$defs/source_stamp"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "consumed_source_stamp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/source_stamp"
+            }
+          ]
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/named_value"
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "not_applicable",
+              "unavailable"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "reason_code"
+        ],
+        "properties": {
+          "reason_code": {
+            "description": "a reason_code, required when state is not_applicable or unavailable",
+            "type": "string"
+          }
+        }
+      },
+      "not": {
+        "description": "a predicate that says it was evaluated and carries no value",
+        "properties": {
+          "state": {
+            "const": "evaluated"
+          },
+          "value": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "state",
+          "value"
+        ]
+      }
+    },
+    "payload_stop_requested": {
+      "title": "PayloadStopRequested",
+      "description": "Somebody asked for a stop. A request is not an outcome.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "command_id"
+      ],
+      "properties": {
+        "origin": {
+          "enum": [
+            "operator_console",
+            "operator_signal",
+            "runtime_watchdog",
+            "controller",
+            "unknown"
+          ]
+        },
+        "command_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        }
+      }
+    },
+    "payload_stop_acknowledged": {
+      "title": "PayloadStopAcknowledged",
+      "description": "A component acknowledged the stop request. latency_ns is measured from the request, in the envelope's clock domain.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acknowledged_by",
+        "command_id",
+        "latency_ns"
+      ],
+      "properties": {
+        "acknowledged_by": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "command_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "latency_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "payload_stop_outcome": {
+      "title": "PayloadStopOutcome",
+      "description": "What the stop achieved. motion_ceased is a measurement (null when nothing measured it), not an assumption.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "motion_ceased",
+        "evidence"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "holding",
+            "ceased_unverified",
+            "no_active_run",
+            "failed",
+            "unknown"
+          ]
+        },
+        "motion_ceased": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        }
+      }
+    },
+    "payload_timing_span": {
+      "title": "PayloadTimingSpan",
+      "description": "One measured duration. clock_domain is the domain duration_ns was measured in, which may differ from the envelope's.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "span",
+        "duration_ns",
+        "clock_domain"
+      ],
+      "properties": {
+        "span": {
+          "enum": [
+            "capture",
+            "transfer",
+            "model_init",
+            "inference",
+            "planning",
+            "motion",
+            "settle",
+            "base_measurement",
+            "waiting"
+          ]
+        },
+        "duration_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_domain": {
+          "$ref": "common.schema.json#/$defs/clock_domain"
+        }
+      }
+    },
+    "payload_evidence_gap": {
+      "title": "PayloadEvidenceGap",
+      "description": "Something the record should contain is missing. Each gap counts once in run.finished.evidence_gaps.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gap",
+        "detail",
+        "observation_ids"
+      ],
+      "properties": {
+        "gap": {
+          "enum": [
+            "frame_missing",
+            "source_stamp_missing",
+            "config_not_recorded",
+            "calibration_not_recorded",
+            "controller_output_unparsed",
+            "clock_domain_unknown",
+            "record_truncated",
+            "other"
+          ]
+        },
+        "detail": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        },
+        "observation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        }
+      }
+    },
+    "payload_telemetry_dropped": {
+      "title": "PayloadTelemetryDropped",
+      "description": "Records were dropped at a named stage. first_seq and last_seq bound the dropped range when it is known.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "stage",
+        "first_seq",
+        "last_seq"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stage": {
+          "enum": [
+            "producer_queue",
+            "transport",
+            "store",
+            "client_stream"
+          ]
+        },
+        "first_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "last_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "payload_diagnostic_text": {
+      "title": "PayloadDiagnosticText",
+      "description": "A line of text for a human. Never parsed for meaning by a consumer. redacted is true when the emitter altered the line to make it safe.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream",
+        "level",
+        "text",
+        "redacted"
+      ],
+      "properties": {
+        "stream": {
+          "enum": [
+            "stdout",
+            "stderr",
+            "log"
+          ]
+        },
+        "level": {
+          "enum": [
+            "debug",
+            "info",
+            "warning",
+            "error",
+            "unknown"
+          ]
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        },
+        "redacted": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

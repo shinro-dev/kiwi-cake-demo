@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "seq": 21,
+  "run_id": "synthetic-run-0001",
+  "action_id": null,
+  "observation_id": null,
+  "kind": "run.finished",
+  "producer": {
+    "name": "synthetic-fixture",
+    "version": "0.0.0",
+    "artifact_digest": null,
+    "contract_version": "1"
+  },
+  "source_session": "synthetic-session-0001",
+  "t_mono_ns": 1021000000,
+  "clock_domain": "laptop_monotonic",
+  "t_wall_utc": "2026-01-01T00:00:00Z",
+  "reason_code": "start_pose_refused",
+  "payload": {
+    "outcome": "refused",
+    "exit_status": 3,
+    "predicates": {
+      "object_secured": null,
+      "placed": null,
+      "clearance_target_met": null,
+      "base_returned": null
+    },
+    "automatic_retries": 0,
+    "task_control_interventions": 0,
+    "evidence_complete": true,
+    "evidence_gaps": 0
+  },
+  "provenance": null
+}

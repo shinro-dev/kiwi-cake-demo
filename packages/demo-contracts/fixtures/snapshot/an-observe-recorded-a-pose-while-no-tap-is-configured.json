@@ -1,0 +1,197 @@
+{
+  "contract_version": "1",
+  "runtime_session": "synthetic-session-0001",
+  "seq_cursor": 6,
+  "retained_from_seq": 1,
+  "data_mode": "synthetic",
+  "link": {
+    "state": "connected",
+    "source_stamp": {
+      "session": "synthetic-host-session-0001",
+      "seq": 41,
+      "sample_mono_ns": 2000000000,
+      "clock_domain": "pi_monotonic"
+    },
+    "receive_age_ms": 35.0
+  },
+  "owner": {
+    "kind": "autonomous",
+    "run_id": "synthetic-run-0001",
+    "lease": {
+      "host_session": "synthetic-host-session-0001",
+      "generation": 2,
+      "expires_in_ms": 450.0
+    }
+  },
+  "active_run": null,
+  "last_outcome": {
+    "run_id": "synthetic-run-0002",
+    "finished_seq": 6,
+    "result": {
+      "outcome": "unknown",
+      "exit_status": 0,
+      "predicates": {
+        "object_secured": null,
+        "placed": null,
+        "clearance_target_met": null,
+        "base_returned": null
+      },
+      "automatic_retries": 0,
+      "task_control_interventions": 0,
+      "evidence_complete": true,
+      "evidence_gaps": 0
+    }
+  },
+  "capabilities": [
+    {
+      "id": "start_cycle",
+      "state": "enabled",
+      "reason_code": null,
+      "reason": null,
+      "dependency": null,
+      "planned": false
+    },
+    {
+      "id": "manual_base_pulse",
+      "state": "blocked",
+      "reason_code": "owner_not_free",
+      "reason": "an autonomous run holds the robot",
+      "dependency": "owner",
+      "planned": false
+    },
+    {
+      "id": "cake_update",
+      "state": "disabled",
+      "reason_code": "not_built",
+      "reason": "no resident is reachable from this console",
+      "dependency": "cake_resident",
+      "planned": true
+    },
+    {
+      "id": "observe",
+      "state": "unknown",
+      "reason_code": null,
+      "reason": null,
+      "dependency": "link",
+      "planned": false
+    }
+  ],
+  "components": [
+    {
+      "id": "cycle-controller",
+      "layer": "logical_python",
+      "role": "plans and sequences the single-cube cycle",
+      "health": "ok",
+      "active": true,
+      "version": "0.0.0",
+      "evidence": "synthetic: the last run.finished record"
+    },
+    {
+      "id": "robot-host",
+      "layer": "process",
+      "role": "the hardware host process on the robot",
+      "health": "unknown",
+      "active": null,
+      "version": null,
+      "evidence": "synthetic: no observation received yet",
+      "cake_slot": null
+    },
+    {
+      "id": "wrist-camera",
+      "layer": "device",
+      "role": "the wrist camera",
+      "health": "degraded",
+      "active": true,
+      "version": null,
+      "evidence": "synthetic: two of the last ten captures were missing"
+    },
+    {
+      "id": "mobile-approach",
+      "layer": "cake_module",
+      "role": "bounded desired base motion from fresh target observations",
+      "health": "unknown",
+      "active": false,
+      "version": null,
+      "evidence": "synthetic: no resident is reachable, nothing was read",
+      "cake_slot": {
+        "slot_id": "mobile_approach",
+        "generation": 0
+      }
+    }
+  ],
+  "cake": {
+    "synthetic": true,
+    "ladder": {
+      "synthetic": true,
+      "artifacts_available": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "resident_reachable": {
+        "value": false,
+        "evidence": "synthetic: nothing connects this console to a resident today, so none is reachable from it"
+      },
+      "admin_interface_compatible": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "modules_active": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "mission_participation": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      }
+    },
+    "slots": [],
+    "transactions": [],
+    "update_preview": null,
+    "continuity": null
+  },
+  "latest_retained_observation": {
+    "observation_id": "synthetic-observation-0007",
+    "source_role": "wrist",
+    "media": "frame",
+    "width_px": 1280,
+    "height_px": 720,
+    "content_digest": "sha256:4d1f2a9c8b3e",
+    "source_stamp": {
+      "session": "synthetic-host-session-0001",
+      "seq": 41,
+      "sample_mono_ns": 2000000000,
+      "clock_domain": "pi_monotonic"
+    },
+    "retained": true,
+    "seq": 4,
+    "t_wall_utc": "2026-09-21T21:09:29.019000Z"
+  },
+  "evidence": {
+    "complete": false,
+    "gaps": 1,
+    "dropped_telemetry": 3
+  },
+  "latest_measured_state": {
+    "joints": {
+      "shoulder_pan": -9.582,
+      "shoulder_lift": -79.429,
+      "elbow_flex": 38.374,
+      "wrist_flex": 67.209,
+      "wrist_roll": -96.659,
+      "gripper": 79.848
+    },
+    "base_velocity": {
+      "x_mps": 0.0,
+      "y_mps": 0.0,
+      "theta_dps": 0.0
+    },
+    "consumed_source_stamp": {
+      "session": "synthetic-host-session-0001",
+      "seq": 41,
+      "sample_mono_ns": 2000000000,
+      "clock_domain": "pi_monotonic"
+    },
+    "seq": 5,
+    "t_wall_utc": "2026-09-21T21:09:29.150910Z"
+  }
+}

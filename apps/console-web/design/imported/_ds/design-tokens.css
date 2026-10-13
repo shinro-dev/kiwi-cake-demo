@@ -1,0 +1,22 @@
+/* Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. */
+/*
+ * The design system tokens the imported design ACTUALLY references, taken verbatim from the project's own
+ * _ds_bundle.css (@shinro/web, Tailwind v4.3.3 build).
+ *
+ * WHY NOT THE WHOLE BUNDLE. The project's _ds_bundle.css is 267.7 KB and the design integration's get_file caps a
+ * read at 256 KiB, so a fetched copy comes back TRUNCATED (mid-rule, inside the trailing utilities layer). Vendoring
+ * a truncated stylesheet would put a file in the tree that looks complete and is not. It is not needed either: the
+ * design references exactly FIVE custom properties and carries two `class=` attributes in 796 lines, styling
+ * everything else inline, so the truncated part (Tailwind utility classes) is unused by this design.
+ *
+ * Verified by extracting every `var(--…)` in the design and checking each against the bundle's definitions: 5 used,
+ * 5 defined, 0 missing. If a future design revision starts using utility classes or more tokens, that check fails
+ * and the bundle has to be brought in by a path that is not capped at 256 KiB.
+ */
+:root {
+  --color-border: #27272a;
+  --color-card: #12121a;
+  --color-muted-foreground: #9ca3af;
+  --font-sans: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+}

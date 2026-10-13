@@ -1,0 +1,6 @@
+{
+  "command_id": "synthetic-command-0001",
+  "status": "rejected",
+  "reason_code": "owner_not_free",
+  "run_id": null
+}

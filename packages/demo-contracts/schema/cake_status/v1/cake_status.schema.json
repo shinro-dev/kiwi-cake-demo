@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cake_status.schema.json",
+  "title": "CakeStatus",
+  "description": "A READ-ONLY report of what a real Cake resident answered, versioned separately from the operator console contract v1 and referenced by nothing in it. The v1 snapshot's cake object is sealed (additionalProperties false) and stays exactly as it was; this surface exists so that a console can read structured facts instead of parsing a ladder rung's evidence prose. It is self-contained on purpose: the validator resolves a $ref only inside this file or to a sibling of the same directory, and this surface does not share a version with schema/v1. Nothing here is a Cake ABI: it mirrors what the supported admin-probe client printed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cake_status_version",
+    "configured",
+    "reachable",
+    "reason_code",
+    "stale",
+    "session_changed",
+    "clock_domain",
+    "observation",
+    "activity",
+    "mission_participation"
+  ],
+  "properties": {
+    "cake_status_version": {
+      "description": "The major version of THIS surface. It is not the console contract version and the two move independently. A consumer refuses a value it does not know instead of guessing.",
+      "type": "string",
+      "const": "1"
+    },
+    "configured": {
+      "description": "Whether this runtime was told where a resident's read-only admin interface is. False means nothing was asked, which is not the same as having asked and been refused.",
+      "type": "boolean"
+    },
+    "reachable": {
+      "description": "Whether the resident answered the MOST RECENT read. It says a resident is running and answering, and nothing about whether any module is active or whether this robot's task is being carried by Cake.",
+      "type": "boolean"
+    },
+    "reason_code": {
+      "description": "Why the most recent read did not produce an answer, or null when it did.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+    },
+    "stale": {
+      "description": "True when `observation` is RETAINED from an earlier read that is no longer current. A consumer must draw retained information as stale rather than as current, and must not replace it with an empty inventory.",
+      "type": "boolean"
+    },
+    "session_changed": {
+      "description": "True when the resident that answered most recently reports a different session than the one this runtime had seen before it, which is what a restart looks like from here. False when the session is the same. NULL when this runtime has not had two answers to compare, which is not the same as a resident that did not restart.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "clock_domain": {
+      "description": "The clock every time and duration in this object was read from. Values from different domains are never subtracted from each other.",
+      "type": "string",
+      "const": "laptop_monotonic"
+    },
+    "observation": {
+      "description": "The most recent read that SUCCEEDED, or null when this runtime has never had one. It is never a placeholder: a read that failed leaves the previous observation in place and sets `stale`, and a runtime that never reached a resident reports null here rather than an inventory of zeroes.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/observation"
+        }
+      ]
+    },
+    "activity": {
+      "$ref": "#/$defs/activity_finding"
+    },
+    "mission_participation": {
+      "$ref": "#/$defs/participation_finding"
+    }
+  },
+  "$defs": {
+    "safe_text": {
+      "title": "CakeStatusSafeText",
+      "description": "Free text for an operator's screen. The emitter sanitizes it; the schema is the tripwire: a home-directory path or a dotted-quad address fails validation.",
+      "type": "string",
+      "maxLength": 1024,
+      "not": {
+        "description": "a home-directory path or a dotted-quad address",
+        "type": "string",
+        "pattern": "/(home|Users|root)/|(^|[^0-9.])[0-9]{1,3}(\\.[0-9]{1,3}){3}([^0-9.]|$)"
+      }
+    },
+    "digest": {
+      "title": "CakeStatusDigest",
+      "description": "A content identity the resident printed: lowercase hex, 12 to 64 digits. A path or a file name is not one.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{12,64}$"
+    },
+    "plan_digest": {
+      "title": "CakeStatusPlanDigest",
+      "description": "The digest the resident reports for its Plan. It does NOT establish that any particular Plan was admitted, and a consumer must not present it as if it did.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{12,64}$"
+    },
+    "count": {
+      "title": "CakeStatusCount",
+      "description": "A number the resident reported about itself. Zero is an answer, not a failed read; null is the absence of one.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "activity_finding": {
+      "title": "CakeStatusActivityFinding",
+      "description": "Whether the resident supplies evidence that anything is RUNNING in it, and what that rests on. Not derived from a slot count, which is not execution status: zero slots supports no loaded modules, and a positive count on its own establishes nothing. value null means this runtime did not establish it, which is a third answer and never a no.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "evidence"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/safe_text"
+        }
+      }
+    },
+    "participation_finding": {
+      "title": "CakeStatusParticipationFinding",
+      "description": "Whether this robot's task is being carried by Cake, and what that rests on. It is not derived from anything an admin socket can answer: a resident answering, a module being active and this robot's task being carried by Cake are three separate facts.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "evidence"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/safe_text"
+        }
+      }
+    },
+    "observation": {
+      "title": "CakeStatusObservation",
+      "description": "One successful read of the resident, with the time it was taken. wall_utc is for display; age_ms is measured on the laptop's monotonic clock, which is the only clock this object carries.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wall_utc",
+        "mono_ns",
+        "age_ms",
+        "resident",
+        "counts",
+        "transaction_state",
+        "flight"
+      ],
+      "properties": {
+        "wall_utc": {
+          "description": "UTC wall time, RFC 3339 with a Z suffix, for display only. Ordering and ages use mono_ns.",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+        },
+        "mono_ns": {
+          "description": "When the read was taken, on the clock named by clock_domain.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "age_ms": {
+          "description": "How long ago the read was taken, on the same clock. This is what makes a retained observation legible as retained.",
+          "type": "number",
+          "minimum": 0
+        },
+        "resident": {
+          "$ref": "#/$defs/resident"
+        },
+        "counts": {
+          "$ref": "#/$defs/counts"
+        },
+        "transaction_state": {
+          "description": "A token the resident printed, passed through verbatim. Deliberately not an enum: the resident's own interface is authoritative and this surface does not invent its vocabulary.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+        },
+        "flight": {
+          "description": "The resident's flight recorder, as it reported it. Reading it is the reason it moves: this runtime's own read-only probe writes a record every time it connects, so growth here is not evidence that anything else happened.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/flight"
+            }
+          ]
+        }
+      }
+    },
+    "resident": {
+      "title": "CakeStatusResident",
+      "description": "Who answered. session_uuid is the identity that changes when a resident restarts, and it is the only thing here that does.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_uuid",
+        "build_identity",
+        "config_identity",
+        "target_profile_digest",
+        "plan_digest"
+      ],
+      "properties": {
+        "session_uuid": {
+          "$ref": "#/$defs/digest"
+        },
+        "build_identity": {
+          "$ref": "#/$defs/digest"
+        },
+        "config_identity": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/plan_digest"
+        }
+      }
+    },
+    "counts": {
+      "title": "CakeStatusCounts",
+      "description": "What the resident reports it holds. A zero is its own answer; a positive slot count on its own does not establish that anything is running.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "epoch",
+        "slots",
+        "bindings",
+        "resources",
+        "replay",
+        "snapshot_present"
+      ],
+      "properties": {
+        "epoch": {
+          "$ref": "#/$defs/count"
+        },
+        "slots": {
+          "$ref": "#/$defs/count"
+        },
+        "bindings": {
+          "$ref": "#/$defs/count"
+        },
+        "resources": {
+          "$ref": "#/$defs/count"
+        },
+        "replay": {
+          "$ref": "#/$defs/count"
+        },
+        "snapshot_present": {
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "flight": {
+      "title": "CakeStatusFlight",
+      "description": "The bounds of the resident's flight ring at the time of the read, and how many records the read returned.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "records",
+        "oldest",
+        "next"
+      ],
+      "properties": {
+        "records": {
+          "$ref": "#/$defs/count"
+        },
+        "oldest": {
+          "$ref": "#/$defs/count"
+        },
+        "next": {
+          "$ref": "#/$defs/count"
+        }
+      }
+    }
+  }
+}

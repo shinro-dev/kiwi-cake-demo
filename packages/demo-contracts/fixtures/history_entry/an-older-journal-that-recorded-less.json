@@ -1,0 +1,13 @@
+{
+  "run_id": "synthetic-run-0000",
+  "command_id": "synthetic-command-0000",
+  "command_type": null,
+  "started_wall_utc": "2026-01-01T00:00:00Z",
+  "finished_wall_utc": null,
+  "outcome": null,
+  "exit_status": null,
+  "evidence_complete": null,
+  "evidence_gaps": null,
+  "artifact_digest": null,
+  "adopted": true
+}

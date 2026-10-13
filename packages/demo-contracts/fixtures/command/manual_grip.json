@@ -1,0 +1,13 @@
+{
+  "contract_version": "1",
+  "command_id": "synthetic-command-0006",
+  "type": "manual_grip",
+  "args": {
+    "action": "latch",
+    "plan_only": false
+  },
+  "client": {
+    "session_id": "synthetic-client-0001",
+    "contract_version": "1"
+  }
+}

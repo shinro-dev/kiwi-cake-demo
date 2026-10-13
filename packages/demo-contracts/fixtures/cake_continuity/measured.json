@@ -1,0 +1,22 @@
+{
+  "synthetic": true,
+  "mission_restarted": false,
+  "motor_owner_restarted": false,
+  "update_induced_hold": true,
+  "max_command_gap_ms": 120.0,
+  "max_observation_gap_ms": 80.0,
+  "affected_module_interruption_ms": 400.0,
+  "natural_dwell_ms": 1500.0,
+  "completed": true,
+  "sources": [
+    {
+      "name": "stable-motion-gateway",
+      "outside_replaced_module": true
+    },
+    {
+      "name": "host-observation-stream",
+      "outside_replaced_module": true
+    }
+  ],
+  "transaction_id": "synthetic-transaction-0001"
+}

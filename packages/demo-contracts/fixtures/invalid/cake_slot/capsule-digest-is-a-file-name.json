@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "slot_id": "mobile_approach",
+  "generation": 1,
+  "process_session": "synthetic-process-0001",
+  "capsule_digest": "mobile_approach.capsule",
+  "config_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000011",
+  "lifecycle_state": "ACTIVE"
+}

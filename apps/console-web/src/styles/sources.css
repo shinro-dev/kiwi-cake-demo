@@ -1,0 +1,41 @@
+/* Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. */
+
+/* The compact source summary on the presentation screen. Only `panels/SourcesPanel.tsx` imports this.
+
+   It is a stack of rows and not a table on purpose. The reference band is about a third of a wide screen, and a
+   four-column table of source, state, identity and age scrolled sideways inside its own card there: the two columns
+   that answer the question were the two that went off the edge. A row that wraps has no edge to fall off. */
+
+.source-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.source-row:last-child {
+  border-bottom: none;
+}
+
+.source-row__name {
+  font-size: var(--text-sm);
+  min-width: 0;
+}
+
+/* A reason code is one long unbreakable token, and in a narrow column it ran past the edge of its own card. Inside
+   this row it wraps instead. The badge keeps its own shape everywhere else on the screen. */
+.source-row .badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* The identity and the freshness, under the name, so neither is ever pushed out of the card by the other. */
+.source-row__detail {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  min-width: 0;
+}

@@ -1,0 +1,19 @@
+{
+  "synthetic": true,
+  "transaction_id": "synthetic-transaction-0003",
+  "kind": "hotfix",
+  "phase": "rejected",
+  "committed": false,
+  "durable": false,
+  "native_events": [
+    {
+      "code": "candidate_incompatible",
+      "text": "candidate names an unadmitted capsule"
+    },
+    {
+      "code": "active_state_unchanged",
+      "text": "synthetic: Plan digest and epoch are unchanged"
+    }
+  ],
+  "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000030"
+}

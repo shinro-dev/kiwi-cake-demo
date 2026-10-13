@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "seq": 6,
+  "run_id": "synthetic-run-0001",
+  "action_id": "synthetic-action-0001",
+  "observation_id": null,
+  "kind": "measured.state",
+  "producer": {
+    "name": "synthetic-fixture",
+    "version": "0.0.0",
+    "artifact_digest": null,
+    "contract_version": "1"
+  },
+  "source_session": "synthetic-session-0001",
+  "t_mono_ns": 1006000000,
+  "clock_domain": "laptop_monotonic",
+  "t_wall_utc": "2026-01-01T00:00:00Z",
+  "reason_code": null,
+  "payload": {
+    "joints": {
+      "shoulder_pan": -10.0,
+      "shoulder_lift": -50.0,
+      "elbow_flex": 20.0,
+      "wrist_flex": 40.0,
+      "wrist_roll": 0.0,
+      "gripper": 50.0
+    },
+    "base_velocity": {
+      "x_mps": 0.0,
+      "y_mps": 0.0,
+      "theta_dps": 0.0
+    },
+    "consumed_source_stamp": {
+      "session": "synthetic-host-session-0001",
+      "seq": 41,
+      "sample_mono_ns": 2000000000,
+      "clock_domain": "pi_monotonic"
+    }
+  },
+  "provenance": null
+}

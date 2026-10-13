@@ -1,0 +1,24 @@
+{
+  "available": false,
+  "state": "disconnected",
+  "reason": "tap_source_not_attached",
+  "source_stamp": null,
+  "joints": null,
+  "base_velocity": null,
+  "receive_mono_ns": null,
+  "receive_age_ms": null,
+  "clock_domains": {
+    "sample": "pi_monotonic",
+    "receive": "laptop_monotonic"
+  },
+  "measured_rate_hz": null,
+  "subscriber_gap_count": null,
+  "publisher_drop_count": null,
+  "session_changes": null,
+  "malformed_count": null,
+  "transport_errors": null,
+  "lease": null,
+  "rejections": null,
+  "commands": null,
+  "ingestion": null
+}

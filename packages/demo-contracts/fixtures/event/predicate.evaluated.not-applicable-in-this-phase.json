@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "seq": 13,
+  "run_id": "synthetic-run-0001",
+  "action_id": null,
+  "observation_id": null,
+  "kind": "predicate.evaluated",
+  "producer": {
+    "name": "synthetic-fixture",
+    "version": "0.0.0",
+    "artifact_digest": null,
+    "contract_version": "1"
+  },
+  "source_session": "synthetic-session-0001",
+  "t_mono_ns": 1011000000,
+  "clock_domain": "laptop_monotonic",
+  "t_wall_utc": "2026-01-01T00:00:00Z",
+  "reason_code": null,
+  "payload": {
+    "predicate": "base_returned",
+    "value": null,
+    "threshold": null,
+    "measured": null,
+    "unit": "mm",
+    "evidence": [],
+    "consumed_source_stamp": null,
+    "state": "not_applicable",
+    "reason_code": "the_base_never_left_the_start",
+    "rule_ref": "base_returned.v1",
+    "rule_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000004"
+  },
+  "provenance": {
+    "observation_ids": [
+      "synthetic-obs-0001"
+    ],
+    "model_identity": null,
+    "calibration_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+    "config_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+    "module_generation": null,
+    "reconstructed": true
+  }
+}

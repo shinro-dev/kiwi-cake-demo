@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "seq": 13,
+  "run_id": "synthetic-run-0001",
+  "action_id": null,
+  "observation_id": null,
+  "kind": "stop.acknowledged",
+  "producer": {
+    "name": "synthetic-fixture",
+    "version": "0.0.0",
+    "artifact_digest": null,
+    "contract_version": "1"
+  },
+  "source_session": "synthetic-session-0001",
+  "t_mono_ns": 1013000000,
+  "clock_domain": "laptop_monotonic",
+  "t_wall_utc": "2026-01-01T00:00:00Z",
+  "reason_code": null,
+  "payload": {
+    "acknowledged_by": "synthetic-runtime",
+    "command_id": "synthetic-command-0002",
+    "latency_ns": 20000000
+  },
+  "provenance": null
+}

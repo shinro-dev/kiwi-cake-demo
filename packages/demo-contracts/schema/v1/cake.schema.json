@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CakeView",
+  "description": "The Cake view model of the console, in the public vocabulary of docs/autonomous-demo/cake-runtime-contract.md (resident, capsule, Plan, slot, generation, epoch, transaction, preview, rollback). View models only: this is not a Cake ABI and it mirrors, never defines, what the resident reports.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "synthetic",
+    "ladder",
+    "slots",
+    "transactions",
+    "update_preview",
+    "continuity"
+  ],
+  "properties": {
+    "synthetic": {
+      "description": "true when the object was not read from a resident. Everything Cake is synthetic today, and says so.",
+      "type": "boolean"
+    },
+    "ladder": {
+      "$ref": "#/$defs/ladder"
+    },
+    "slots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/slot"
+      }
+    },
+    "transactions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transaction"
+      }
+    },
+    "update_preview": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/update_preview"
+        }
+      ]
+    },
+    "continuity": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/continuity"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "ladder_rung": {
+      "title": "CakeLadderRung",
+      "description": "One rung: value null means not determined; evidence states what the value rests on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "evidence"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        }
+      }
+    },
+    "ladder": {
+      "title": "CakeLadder",
+      "description": "The integration ladder, lowest rung first. Each rung is claimed separately and a higher rung never implies a lower one was checked.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "artifacts_available",
+        "resident_reachable",
+        "admin_interface_compatible",
+        "modules_active",
+        "mission_participation"
+      ],
+      "properties": {
+        "synthetic": {
+          "description": "true when the object was not read from a resident. Everything Cake is synthetic today, and says so.",
+          "type": "boolean"
+        },
+        "artifacts_available": {
+          "$ref": "#/$defs/ladder_rung"
+        },
+        "resident_reachable": {
+          "$ref": "#/$defs/ladder_rung"
+        },
+        "admin_interface_compatible": {
+          "$ref": "#/$defs/ladder_rung"
+        },
+        "modules_active": {
+          "$ref": "#/$defs/ladder_rung"
+        },
+        "mission_participation": {
+          "$ref": "#/$defs/ladder_rung"
+        }
+      }
+    },
+    "slot": {
+      "title": "CakeSlot",
+      "description": "One named slot of the resident's graph.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "slot_id",
+        "generation",
+        "process_session",
+        "capsule_digest",
+        "config_digest",
+        "lifecycle_state"
+      ],
+      "properties": {
+        "synthetic": {
+          "description": "true when the object was not read from a resident. Everything Cake is synthetic today, and says so.",
+          "type": "boolean"
+        },
+        "slot_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "process_session": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "capsule_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "config_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "lifecycle_state": {
+          "description": "A token reported by the resident, passed through verbatim. Deliberately not an enum: the resident's own interface is authoritative and this contract does not invent its vocabulary.",
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+        }
+      }
+    },
+    "native_event": {
+      "title": "CakeNativeEvent",
+      "description": "One event as the resident reported it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "text"
+      ],
+      "properties": {
+        "code": {
+          "description": "A token reported by the resident, passed through verbatim. Deliberately not an enum: the resident's own interface is authoritative and this contract does not invent its vocabulary.",
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        }
+      }
+    },
+    "transaction": {
+      "title": "CakeTransaction",
+      "description": "One update or rollback transaction. A rollback is itself a forward transaction. committed and durable are separate facts. candidate_digest is an optional extension that ties a transaction to the candidate it carried.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "transaction_id",
+        "kind",
+        "phase",
+        "committed",
+        "durable",
+        "native_events"
+      ],
+      "properties": {
+        "synthetic": {
+          "description": "true when the object was not read from a resident. Everything Cake is synthetic today, and says so.",
+          "type": "boolean"
+        },
+        "transaction_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "update",
+            "rollback"
+          ]
+        },
+        "phase": {
+          "description": "A token reported by the resident, passed through verbatim. Deliberately not an enum: the resident's own interface is authoritative and this contract does not invent its vocabulary.",
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+        },
+        "committed": {
+          "type": "boolean"
+        },
+        "durable": {
+          "type": "boolean"
+        },
+        "native_events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/native_event"
+          }
+        },
+        "candidate_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        }
+      }
+    },
+    "update_preview": {
+      "title": "CakeUpdatePreview",
+      "description": "What an update would touch, computed before anything moves. A preview is bound to candidate_digest + plan_digest + epoch: it says nothing about any other candidate, Plan or epoch, and a console discards it when any of the three changes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "candidate_digest",
+        "plan_digest",
+        "epoch",
+        "affected_slots",
+        "resource_implications",
+        "expected_interruptions"
+      ],
+      "properties": {
+        "synthetic": {
+          "description": "true when the object was not read from a resident. Everything Cake is synthetic today, and says so.",
+          "type": "boolean"
+        },
+        "candidate_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "plan_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "affected_slots": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        },
+        "resource_implications": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/safe_text"
+          }
+        },
+        "expected_interruptions": {
+          "title": "CakeExpectedInterruptions",
+          "description": "Whether the update is expected to interrupt each protected resource. null means not determined.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "camera",
+            "connection",
+            "actuator"
+          ],
+          "properties": {
+            "camera": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "connection": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "actuator": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "continuity_source": {
+      "title": "CakeContinuitySource",
+      "description": "One source a continuity measurement rests on. It must sit OUTSIDE the replaced module: a module cannot testify to its own continuity. The emitter declares that explicitly.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "outside_replaced_module"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "outside_replaced_module": {
+          "const": true
+        }
+      }
+    },
+    "continuity": {
+      "title": "CakeContinuity",
+      "description": "What was measured across a transaction. Gaps are maxima in milliseconds, null when not measured. natural_dwell_ms is the pause the mission would have made anyway, so an interruption can be compared with it. sources names at least one source outside the replaced module. transaction_id is an optional extension.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "mission_restarted",
+        "motor_owner_restarted",
+        "update_induced_hold",
+        "max_command_gap_ms",
+        "max_observation_gap_ms",
+        "affected_module_interruption_ms",
+        "natural_dwell_ms",
+        "completed",
+        "sources"
+      ],
+      "properties": {
+        "synthetic": {
+          "description": "true when the object was not read from a resident. Everything Cake is synthetic today, and says so.",
+          "type": "boolean"
+        },
+        "mission_restarted": {
+          "type": "boolean"
+        },
+        "motor_owner_restarted": {
+          "type": "boolean"
+        },
+        "update_induced_hold": {
+          "type": "boolean"
+        },
+        "max_command_gap_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max_observation_gap_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "affected_module_interruption_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "natural_dwell_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/continuity_source"
+          },
+          "minItems": 1
+        },
+        "transaction_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        }
+      }
+    }
+  }
+}

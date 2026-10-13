@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MissionEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "seq",
+    "mission_id",
+    "state",
+    "timestamp_ns"
+  ],
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mission_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "target_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "state": {
+      "enum": [
+        "INIT",
+        "LOCATE_PAD",
+        "SEARCH_CUBE",
+        "SELECT_TARGET",
+        "ASSESS_REACHABILITY",
+        "WAITING_FOR_CAPABILITY",
+        "MOBILE_APPROACH",
+        "PICK",
+        "VERIFY_GRASP",
+        "PAD_APPROACH",
+        "PLACE",
+        "VERIFY_PLACE",
+        "COMPLETE",
+        "FAILED",
+        "STOPPED"
+      ]
+    },
+    "timestamp_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 256
+    }
+  }
+}

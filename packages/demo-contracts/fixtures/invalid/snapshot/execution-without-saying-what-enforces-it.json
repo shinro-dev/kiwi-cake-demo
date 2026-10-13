@@ -1,0 +1,149 @@
+{
+  "contract_version": "1",
+  "runtime_session": "synthetic-session-0001",
+  "seq_cursor": 0,
+  "retained_from_seq": 0,
+  "data_mode": "live",
+  "link": {
+    "state": "unknown",
+    "source_stamp": null,
+    "receive_age_ms": null
+  },
+  "owner": {
+    "kind": "free",
+    "run_id": null,
+    "lease": null
+  },
+  "active_run": null,
+  "last_outcome": null,
+  "capabilities": [
+    {
+      "id": "start_cycle",
+      "state": "enabled",
+      "reason_code": null,
+      "reason": null,
+      "dependency": null,
+      "planned": false
+    },
+    {
+      "id": "manual_base_pulse",
+      "state": "blocked",
+      "reason_code": "owner_not_free",
+      "reason": "an autonomous run holds the robot",
+      "dependency": "owner",
+      "planned": false
+    },
+    {
+      "id": "cake_update",
+      "state": "disabled",
+      "reason_code": "not_built",
+      "reason": "no resident is reachable from this console",
+      "dependency": "cake_resident",
+      "planned": true
+    },
+    {
+      "id": "observe",
+      "state": "unknown",
+      "reason_code": null,
+      "reason": null,
+      "dependency": "link",
+      "planned": false
+    }
+  ],
+  "components": [
+    {
+      "id": "cycle-controller",
+      "layer": "logical_python",
+      "role": "plans and sequences the single-cube cycle",
+      "health": "ok",
+      "active": true,
+      "version": "0.0.0",
+      "evidence": "synthetic: the last run.finished record"
+    },
+    {
+      "id": "robot-host",
+      "layer": "process",
+      "role": "the hardware host process on the robot",
+      "health": "unknown",
+      "active": null,
+      "version": null,
+      "evidence": "synthetic: no observation received yet",
+      "cake_slot": null
+    },
+    {
+      "id": "wrist-camera",
+      "layer": "device",
+      "role": "the wrist camera",
+      "health": "degraded",
+      "active": true,
+      "version": null,
+      "evidence": "synthetic: two of the last ten captures were missing"
+    },
+    {
+      "id": "mobile-approach",
+      "layer": "cake_module",
+      "role": "bounded desired base motion from fresh target observations",
+      "health": "unknown",
+      "active": false,
+      "version": null,
+      "evidence": "synthetic: no resident is reachable, nothing was read",
+      "cake_slot": {
+        "slot_id": "mobile_approach",
+        "generation": 0
+      }
+    }
+  ],
+  "cake": {
+    "synthetic": true,
+    "ladder": {
+      "synthetic": true,
+      "artifacts_available": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "resident_reachable": {
+        "value": false,
+        "evidence": "synthetic: nothing connects this console to a resident today, so none is reachable from it"
+      },
+      "admin_interface_compatible": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "modules_active": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "mission_participation": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      }
+    },
+    "slots": [],
+    "transactions": [],
+    "update_preview": null,
+    "continuity": null
+  },
+  "evidence": {
+    "complete": true,
+    "gaps": 0,
+    "dropped_telemetry": 0
+  },
+  "execution": {
+    "backend": "baseline_normal_host",
+    "ownership_basis": "host_command_lease",
+    "detail": "a runtime claiming that something on the robot enforces an ownership that only exists on this computer"
+  },
+  "lease": {
+    "held": false,
+    "generation": null,
+    "host_session": null,
+    "expires_in_ms": null,
+    "reason": "baseline_backend_takes_no_host_lease",
+    "required": false,
+    "attached": false,
+    "renew_failures": 0,
+    "run_id": null,
+    "adopted": null,
+    "last_reply_age_ms": null
+  }
+}

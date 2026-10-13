@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "transaction_id": "synthetic-transaction-0001",
+  "kind": "update",
+  "phase": "durable",
+  "committed": true,
+  "durable": true,
+  "native_events": [
+    {
+      "code": "plan_persisted",
+      "text": "synthetic: the new Plan is the durable Plan"
+    }
+  ],
+  "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020"
+}

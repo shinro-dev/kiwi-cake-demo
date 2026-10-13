@@ -1,0 +1,31 @@
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# kiwi-cake-lekiwi.service: a USER unit (systemctl --user) for the aarch64 Cake resident of the LeKiwi deployment.
+# Its supervisor slot launches and supervises the camera-less motor host (run-host.sh) and its mobile_approach
+# capability slot launches the capability process (run-capability.sh) once activated. Rendered on the robot
+# computer by bin/pi/lekiwi-deploy.sh install with the two absolute paths filled in, both through the link
+# ~/kc-lekiwi/current, which only ever names a VERIFIED release; no sudo, nothing system-wide.
+#
+# NEVER ENABLED, AND STARTED ONLY BY bin/pi/lekiwi-deploy.sh arm, with the operator present. Starting this unit starts
+# the motor host, which attaches to the arm and establishes the base zero-speed hold, and the host wrapper starts the
+# host only against the one-shot arm token that arm writes: a restart (Restart= below, or Cake restarting the child)
+# finds no token and holds the host. This file deliberately has NO [Install] section: with no WantedBy= there is no
+# target to enable it into, so linger can never start it at boot.
+#
+# The service fields are the ones kiwi-cake-demo.service.in states the reasons for, unchanged:
+# Restart=on-abnormal relaunches the resident after a crash as a fresh activation of the Plan its configuration
+# names; KillMode=mixed sends the stop signal to the resident only, and the resident stops each child with the
+# signal the Plan configured (SIGINT), then a bounded deadline, then force; TimeoutStopSec sits above that bounded
+# stop and below the manager's 90-second default. The default KillMode=control-group would SIGTERM the host at the
+# same instant, and the pinned LeRobot host has no SIGTERM handler.
+[Unit]
+Description=kiwi-cake-lekiwi: Cake resident supervising the LeKiwi host and the mobile_approach capability (user unit)
+
+[Service]
+Type=simple
+ExecStart=@@CAKE_RESIDENT@@ --config @@RESIDENT_CONF@@
+Restart=on-abnormal
+RestartSec=2
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60

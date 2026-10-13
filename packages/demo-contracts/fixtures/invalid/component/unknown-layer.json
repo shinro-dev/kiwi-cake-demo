@@ -1,0 +1,9 @@
+{
+  "id": "cycle-controller",
+  "layer": "microservice",
+  "role": "plans and sequences the single-cube cycle",
+  "health": "ok",
+  "active": true,
+  "version": "0.0.0",
+  "evidence": "synthetic: the last run.finished record"
+}

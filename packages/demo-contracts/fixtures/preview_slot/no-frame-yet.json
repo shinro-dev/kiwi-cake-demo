@@ -1,0 +1,28 @@
+{
+  "available": false,
+  "state": "connecting",
+  "reason": "no_frame_yet",
+  "role": "wrist",
+  "seq": null,
+  "source_seq": null,
+  "capture_clock": null,
+  "capture_semantics": null,
+  "capture_age_ms": null,
+  "capture_age_reason": "no_clock_relation_between_source_and_laptop",
+  "service_latency_ms": null,
+  "receive_mono_ns": null,
+  "receive_age_ms": null,
+  "measured_fps": null,
+  "frame": null,
+  "stream": {
+    "pixel_format": null,
+    "source_fps_reported": null,
+    "source_fps_measured": null,
+    "source_width": null,
+    "source_height": null
+  },
+  "gaps": null,
+  "session_changes": null,
+  "capture_time_stalls": null,
+  "malformed": null
+}

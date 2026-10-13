@@ -1,0 +1,10 @@
+
+/* Every camera, side by side. Plain on purpose: the presentation owns how this looks, and this owns that it is true. */
+.roletiles { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.roletiles--empty { color: var(--muted, #9aa3ad); font-size: 12px; }
+.roletile { flex: 1 1 200px; min-width: 180px; border: 1px solid var(--line, #2a3340); border-radius: 6px; padding: 8px; background: var(--panel, #131a22); }
+.roletile__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.roletile__role { font-family: var(--mono, monospace); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.roletile__image { width: 100%; height: auto; display: block; border-radius: 4px; background: #000; }
+.roletile__absent { font-size: 12px; color: var(--muted, #9aa3ad); padding: 18px 6px; text-align: center; }
+.roletile__facts { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted, #9aa3ad); margin-top: 6px; font-family: var(--mono, monospace); }

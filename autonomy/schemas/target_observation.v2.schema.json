@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TargetObservationV2",
+  "description": "kc.target_observation/2: the held cube's remaining bounded advance along the reach axis, as the proven executor computes it from a stationary pad observation. Both stamps are on the robot's monotonic clock. Everything else the relay knows about the observation is evidence it records, never on the wire.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "target_id",
+    "capture_ns",
+    "published_ns",
+    "motion_epoch",
+    "frame",
+    "x_m",
+    "y_m",
+    "max_age_ns",
+    "stationary",
+    "observation_id"
+  ],
+  "properties": {
+    "contract": {
+      "const": "kc.target_observation/2",
+      "description": "the version word; a v1 consumer drops a document carrying it (fail closed)"
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$",
+      "description": "the mission target"
+    },
+    "capture_ns": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "the robot's monotonic stamp read BEFORE the capture was asked for: the capture's identity and age"
+    },
+    "published_ns": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "the relay's monotonic now at THIS publication (same clock); the command must echo it as timestamp_ns and anchor its expiry to it"
+    },
+    "motion_epoch": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "the executor's count of ended motions when the capture was taken"
+    },
+    "frame": {
+      "const": "anchor_reach",
+      "description": "origin = the held cube's anchor in PAD_FRAME from the latest stationary pad observation; x = the unit reach/advance axis in PAD_FRAME; y = the left normal; metres"
+    },
+    "x_m": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.12,
+      "description": "the remaining bounded advance along x for the anchor to reach the placement admission: base_advance_needed_mm / 1000, the executor's own quantity"
+    },
+    "y_m": {
+      "const": 0.0,
+      "description": "the target lies on the axis by construction; lateral deviation is measured and bounded by the executor's pulse gates, never steered"
+    },
+    "max_age_ns": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "description": "THIS observation's freshness bound, derived by the source: the perception deadline plus the relay's bounded waits; scene invariance is carried by motion_epoch and stationary, not by this bound"
+    },
+    "stationary": {
+      "const": true,
+      "description": "the base read at rest at the capture: no wheel above one velocity count (autonomy/manipulation/base_rest.py; the stored record's base_velocity)"
+    },
+    "observation_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$",
+      "description": "the stored capture this observation came from"
+    }
+  }
+}

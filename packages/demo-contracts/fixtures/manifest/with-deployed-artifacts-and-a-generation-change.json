@@ -1,0 +1,57 @@
+{
+  "schema": "demo-runtime-run-manifest/1",
+  "run_id": "synthetic-run-0002",
+  "command_id": "synthetic-command-0002",
+  "command_type": "start_cycle",
+  "data_mode": "synthetic",
+  "bundle_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+  "bundle_file_count": 41,
+  "source": {
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "dirty": false
+  },
+  "contract_version": "1",
+  "config_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+  "input_digests": {
+    "saved_pose_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+    "pad_template_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+  },
+  "interpreter": {
+    "implementation": "cpython",
+    "version": "3.13.1"
+  },
+  "packages": {
+    "lerobot": "0.4.0",
+    "torch": "2.6.0",
+    "transformers": "4.49.0",
+    "opencv-python-headless": "4.11.0",
+    "numpy": "2.2.3",
+    "pyzmq": "26.2.1"
+  },
+  "model": {
+    "identity": null,
+    "revision": null,
+    "identity_withheld": true
+  },
+  "deployed": [
+    {
+      "role": "robot_host",
+      "version": "0.3.1",
+      "artifact_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000003"
+    },
+    {
+      "role": "camera_service",
+      "version": "0.2.0",
+      "artifact_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000004"
+    }
+  ],
+  "generation_changes": [
+    {
+      "transaction_id": "synthetic-transaction-0001",
+      "slot_id": "mobile_approach",
+      "from_generation": 3,
+      "to_generation": 4,
+      "at_seq": 118
+    }
+  ]
+}

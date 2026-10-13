@@ -1,0 +1,410 @@
+/* Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. */
+/*
+ * THE IMPORTED DESIGN'S OWN STYLE LAYER, and nothing else.
+ *
+ * `Cake Live Demo v2.dc.html` splits its styling in two, and this port keeps the same split rather than inventing a
+ * class taxonomy the design does not have:
+ *
+ *   ITS <style> BLOCK (design lines 16-25) holds the page background, two keyframes, the `.fixture` underline and the
+ *   scrollbar. Those are here, verbatim.
+ *   EVERYTHING ELSE IS INLINE, 211 times. Those stay inline in the JSX, as `style={{ ... }}`, so that a future sync can
+ *   be diffed rule against rule instead of against a set of class names somebody invented in between. See
+ *   `design/IMPORT.md`.
+ *
+ * The only thing added here that the design did not write is the button, which the design delegated to
+ * `ShinroStudio.Button`: see `Button.tsx` for what its geometry rests on. The tokens come from the pinned export and
+ * are imported, not restated.
+ */
+
+@import '../../design/imported/_ds/design-tokens.css';
+
+/* --- the design's own <style> block, lines 16-25 ---------------------------------------------------------------- */
+
+@keyframes softpulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.fixture {
+  border-bottom: 1px dashed #4b5563;
+}
+
+.dc a {
+  color: #00d4ff;
+  text-decoration: none;
+}
+
+.dc a:hover {
+  color: #67e8f9;
+}
+
+.dc ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dc ::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+/*
+ * The design sets `body { margin: 0; background: #0a0a0f; }`. The root element is given the same, because this console
+ * fills the viewport and a scroll past the end of the layout must not reveal a different colour underneath it.
+ */
+html,
+body,
+#root {
+  margin: 0;
+  background: #0a0a0f;
+}
+
+/* Motion is decoration here: one pulsing dot and one sweeping progress bar. Somebody who asked not to see it does not. */
+@media (prefers-reduced-motion: reduce) {
+  .dc *,
+  .dc *::before,
+  .dc *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- the one component the design imported, reproduced ---------------------------------------------------------- */
+
+/*
+ * 32 px high, which is what every `hint-size` in the design states for `size="sm"`. Colours are the design's own
+ * palette. Nothing here is a Tailwind utility: the utilities layer is the part of the design system's stylesheet the
+ * integration could not return whole, and this design uses none of it.
+ */
+/*
+ * A LONG LABEL WRAPS (round 7 item 7): no horizontal page scroll at 390 px (spec 2.2). A candidate's key or a tampered
+ * twin's name is longer than a phone is wide, and `nowrap` pushed the page to 518 px; the button now grows downwards
+ * and never past its container.
+ */
+.dsbutton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  max-width: 100%;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.dsbutton--sm {
+  min-height: 32px;
+  padding: 5px 12px;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+/*
+ * FOCUS IS VISIBLE IN EVERY VARIANT, including the one with no border of its own. The ring is drawn outside the box so
+ * it cannot change the button's size and reflow a row of them.
+ */
+.dsbutton:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+/*
+ * THE DISABLED LOOK. It is the companion of the `disabled` attribute and never a substitute for it: the attribute is
+ * what actually refuses the click, the keypress and the tab stop. `pointer-events` is deliberately NOT set to none,
+ * because that also removes the cursor that tells somebody the control is off before they press it.
+ */
+.dsbutton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.dsbutton--default {
+  background: #00d4ff;
+  color: #0a0a0f;
+  font-weight: 600;
+}
+
+.dsbutton--default:hover:not(:disabled) {
+  background: #67e8f9;
+}
+
+.dsbutton--secondary {
+  background: #1c1c26;
+  color: #e4e4e7;
+  border-color: var(--color-border);
+}
+
+.dsbutton--secondary:hover:not(:disabled) {
+  background: #24242f;
+}
+
+.dsbutton--outline {
+  background: transparent;
+  color: #e4e4e7;
+  border-color: var(--color-border);
+}
+
+.dsbutton--outline:hover:not(:disabled) {
+  background: #16161d;
+  border-color: #3a3a44;
+}
+
+.dsbutton--ghost {
+  background: transparent;
+  color: #a1a1aa;
+  border-color: transparent;
+}
+
+.dsbutton--ghost:hover:not(:disabled) {
+  background: #16161d;
+  color: #e4e4e7;
+}
+
+/*
+ * The design's plain `<button>` elements (the focus toggles, History, Hide, Close, the module operations and the scene
+ * and fixture chips) carry their own inline styling and are not this component. They still have to be reachable by
+ * keyboard, so the ring is given to every button inside the screen and the cursor to every disabled one.
+ */
+.dc button:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+.dc button:disabled {
+  cursor: not-allowed;
+}
+
+/* THE CONTROLS ROW. Observe and Return arm moved out of the Diagnostics drawer into the workspace, as the SAME
+   `Actions` panel with the same guards, the same holding question and the same scope sentences. Only its layout is
+   changed here: one row, each control's button beside its sentence, so the cameras keep the height they need. */
+.dc .controls-row .actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.dc .controls-row .action {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+}
+
+.dc .controls-row .action + .action {
+  border-top: none;
+  padding-top: 0;
+  border-left: 1px solid var(--color-border);
+  padding-left: 12px;
+}
+
+.dc .controls-row .action__button {
+  width: auto;
+  grid-row: 1 / span 3;
+  align-self: start;
+}
+
+.dc .controls-row .action > :not(.action__button) {
+  grid-column: 2;
+}
+
+.dc .controls-row .action__summary {
+  font-size: 12px;
+}
+
+.dc .controls-row .actions__pending {
+  flex-basis: 100%;
+}
+
+/* The holding question keeps its refusal line and its two answers in the row; the paragraph explaining why the
+   controller asks is left to the same panel's other placements, so the cameras keep their height. */
+.dc .controls-row .action__ask > span:first-child {
+  display: none;
+}
+
+/* The console's own small buttons on this screen (the Observe holding choice) wrap too, and their row wraps, so two of
+   them never run past the card they sit in (round 7 item 7). */
+.dc .action__ask-buttons {
+  flex-wrap: wrap;
+}
+
+.dc .button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* --- the demo screen's layout (docs/autonomous-demo/console-redesign-2026-09-27.md, section 2) -------------------- */
+
+.dc .demo-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  padding: 16px 20px 20px;
+  align-items: start;
+}
+
+/*
+ * STABLE POSITIONS (operator layout ruling 2026-09-28; spec 2.1). The mission card and Cake keep one fixed footprint
+ * whether a run is idle, running or ended, so the stages, the scene and the wrist camera under them never move when a
+ * run starts or ends. Each card keeps its head in view and draws the rest of its account, whole, in a bounded region
+ * that scrolls within the card (`BoundedAccount.tsx`). The heights are pinned by `design/stablePositions.test.ts` and
+ * measured in a browser by `tests/test-browser-layout.sh`.
+ */
+.dc .demo-grid__mission {
+  grid-column: span 7;
+  min-width: 0;
+  height: 300px;
+}
+
+.dc .demo-grid__cake {
+  grid-column: span 5;
+  min-width: 0;
+  height: 300px;
+}
+
+.dc .demo-grid__timeline {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/* The scene's own column: its natural height at desktop width, where it sits beside the wrist camera. */
+.dc .demo-strip__scene {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dc .demo-grid__strip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+/*
+ * THE READINESS SENTENCE KEEPS ITS LINES (stable positions, spec 2.1). The top bar wraps, and its sentence differs by
+ * state ("Robot motion is held: ..." idle, "Mission ... is being carried ..." running), so a sentence one line shorter
+ * lifted the whole screen under the bar by one line when a run started, 18 px at 390 px. The sentence keeps room for two
+ * lines at desktop width, three below 1100 px and four below 720 px, where the hold's sentence ("... is held for your
+ * decision after a failed attempt ...") takes four lines at 390 px and lifted the screen 18 px when a hold began
+ * (verify-r5 M1). Ready has no sentence: TopBar draws the sentence's place anyway, empty and on its own row, so a run
+ * started from Ready does not grow the bar (it grew 55 px at 1440). A longer sentence still grows the bar, and nothing
+ * is cut. Stop, its place in the bar and its stickiness are unchanged.
+ */
+.dc [data-readiness-sentence] {
+  min-height: calc(2 * 1.4em);
+}
+
+/* No label on the demo screen is transformed: headings are written in sentence case (section 1). The Diagnostics
+   drawer renders inside the same root, so the panels it borrows keep their labels as written too (browser D9). */
+.dc .panel__title,
+.dc .badge--strong,
+.dc .field__label,
+.dc .strip__label,
+.dc .tabs__button,
+.dc .table th,
+.dc .rail__title,
+.dc .steps__state,
+.dc .frame__watermark,
+.dc .frame__caption-lead,
+.dc .group__title {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+@media (max-width: 1099px) {
+  .dc .demo-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 16px 16px;
+  }
+
+  .dc .demo-grid__mission,
+  .dc .demo-grid__cake {
+    grid-column: auto;
+  }
+
+  .dc .demo-grid__mission {
+    height: 380px;
+  }
+
+  /* 400 px, not 300 (verify-r5 M2): below 1100 px a candidate's digest wraps under its button, so the pending choice,
+     drawn above Cake's bounded region while the mission waits, is 170 px at 390 px, and at 300 px it left the region
+     18 px, too little to show the newest activation's result. One height in every state, so nothing under it moves. */
+  .dc .demo-grid__cake {
+    height: 400px;
+  }
+
+  .dc [data-readiness-sentence] {
+    min-height: calc(3 * 1.4em);
+  }
+
+  /* Start, Stop and Diagnostics take the top bar's last row of their own (spec 2.2's third line). Left to wrap by width,
+     they sat on the first row at 1039 px from Ready and wrapped once the running Start label, 18 px wider, no longer fit:
+     the bar grew 40 px at Start and Stop moved 49 -> 130. */
+  .dc [data-topbar-controls] {
+    flex-basis: 100%;
+  }
+
+  .dc .demo-grid__strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* ONE HEIGHT FOR THE SCENE (verify-r5 browser must_fix 1): the strip stacks here and the wrist camera is under the
+     scene, whose caption ("Drawn from the records of run ...") and legend grow once a run is drawn (464, 525 and 571 px
+     idle, running and ended at 390 px). The map and legend scroll within this height, and say when more is below. */
+  .dc .demo-strip__scene {
+    height: 600px;
+  }
+
+  .dc .demo-timeline {
+    height: auto !important;
+    max-height: 70vh;
+  }
+}
+
+/* The Diagnostics drawer takes the whole width below 720 px (section 2.2). */
+@media (max-width: 719px) {
+  .dc [data-readiness-sentence] {
+    min-height: calc(4 * 1.4em);
+  }
+
+  .dc .dc-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}
