@@ -1,0 +1,19 @@
+{
+  "synthetic": true,
+  "transaction_id": "synthetic-transaction-0001",
+  "kind": "update",
+  "phase": "quiescing",
+  "committed": false,
+  "durable": false,
+  "native_events": [
+    {
+      "code": "preview_computed",
+      "text": "synthetic: affected closure is one slot"
+    },
+    {
+      "code": "drain_started",
+      "text": "synthetic: drain barrier raised at epoch 7"
+    }
+  ],
+  "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020"
+}

@@ -1,0 +1,18 @@
+{
+  "synthetic": true,
+  "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020",
+  "plan_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000021",
+  "epoch": 7,
+  "affected_slots": [
+    "mobile_approach"
+  ],
+  "resource_implications": [
+    "synthetic: no new resource grant",
+    "synthetic: the camera grant is unchanged"
+  ],
+  "expected_interruptions": {
+    "camera": false,
+    "connection": false,
+    "actuator": null
+  }
+}

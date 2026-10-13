@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TargetObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "target_id",
+    "timestamp_ns",
+    "frame",
+    "x_m",
+    "y_m",
+    "quality"
+  ],
+  "properties": {
+    "target_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "timestamp_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "frame": {
+      "const": "base"
+    },
+    "x_m": {
+      "type": "number"
+    },
+    "y_m": {
+      "type": "number"
+    },
+    "quality": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

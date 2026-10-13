@@ -1,0 +1,56 @@
+{
+  "available": true,
+  "state": "connected",
+  "reason": null,
+  "source_stamp": {
+    "session": "synthetic-host-session-0001",
+    "seq": 41,
+    "sample_mono_ns": 2000000000,
+    "clock_domain": "pi_monotonic"
+  },
+  "joints": {
+    "shoulder_pan": -15.0,
+    "shoulder_lift": -98.5,
+    "elbow_flex": 96.0,
+    "wrist_flex": 12.5,
+    "gripper": 2.0
+  },
+  "base_velocity": {
+    "x_mps": 0.0,
+    "y_mps": 0.0,
+    "theta_dps": 0.0
+  },
+  "receive_mono_ns": 1200000000,
+  "receive_age_ms": 35.0,
+  "clock_domains": {
+    "sample": "pi_monotonic",
+    "receive": "laptop_monotonic"
+  },
+  "measured_rate_hz": 9.8,
+  "subscriber_gap_count": 0,
+  "publisher_drop_count": 0,
+  "session_changes": 0,
+  "malformed_count": 0,
+  "transport_errors": 0,
+  "lease": {
+    "state": "held",
+    "host_session": "synthetic-host-session-0001",
+    "generation": 2,
+    "owner_label": "kiwi-console-runtime",
+    "ttl_s": 5.0,
+    "expires_in_ms": 450.0,
+    "acquisitions": 1,
+    "releases": 0,
+    "expiries": 0
+  },
+  "rejections": {
+    "not_leaseholder": 0
+  },
+  "commands": {
+    "accepted": 12,
+    "refused": 0
+  },
+  "ingestion": {
+    "observations": 4096
+  }
+}

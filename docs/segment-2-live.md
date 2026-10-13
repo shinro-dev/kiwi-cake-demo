@@ -48,10 +48,12 @@ entry point, the robot id, the serial port, the camera list and the
 connection time. Everything else stays as it is.
 
 `safe-stop.sh` runs once for every child exit the supervisor observes, with
-the log path the runner configured as its first argument. The template only
-appends a line to that log and has nothing to fill in. If you make it touch
-the robot, test it on a stand first, keep it short, and remember that the
-supervisor ends it after a bounded deadline.
+the log path the runner configured as its first argument. Copied as above,
+with its four wheel settings left empty, the template only appends a line
+to that log and has nothing to fill in. If you make it touch the robot,
+test it on a stand first, keep it short, and remember that the supervisor
+ends it after a bounded deadline (about half a second on the development
+build of the supervisor).
 
 `bin/templates/run-child.sh.example` is the same template with every
 placeholder filled with example values; copy its shape, not its values. Two

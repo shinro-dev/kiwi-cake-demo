@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorldObservation",
+  "description": "One camera observation tied to the measured robot state that produced it. Validation authority: autonomy/perception/world_observation.py validate_observation(). Every enum, const, pattern, required list and closed property set in this file is pinned to the Python constant by autonomy/tests/test_world_observation.py. The validator additionally enforces cross-field rules this file cannot state: camera.role equals the role named in observation_id; timestamp_utc is a real calendar time; cube_held 'yes' goes with gripper_state 'holding'; robot_state.source, state_image_association and joint_stability_max_delta_deg agree with the two stored joint reads; camera_pose.status and missing_calibration are bounded by calibration.items; a calibrated wrist pose needs STATIC_CONFIRMED; T_base_camera is null unless the status is calibrated and has bottom row 0,0,0,1; raw_frame_path is relative and present exactly when the capture produced a valid frame; no raw device path anywhere; no NaN or Infinity. Raw frames and records stay in ignored local directories.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "observation_id",
+    "schema_version",
+    "timestamp_utc",
+    "camera",
+    "raw_frame_path",
+    "robot_state",
+    "camera_pose",
+    "calibration",
+    "scan",
+    "gripper_state",
+    "cube_held",
+    "illumination",
+    "lifecycle",
+    "atlas_annotation",
+    "notes"
+  ],
+  "properties": {
+    "observation_id": { "type": "string", "pattern": "^obs-[0-9]{8}T[0-9]{6}Z-(wrist|front)-[0-9]{4}$", "description": "becomes the record and frame file name; the embedded time is UTC" },
+    "schema_version": { "const": "world-observation/1" },
+    "timestamp_utc": {
+      "type": "string",
+      "pattern": "^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(\\.[0-9]+)?(Z|\\+00:00)$",
+      "description": "ISO 8601 time the frame was kept, with an explicit UTC designator"
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "identity_fingerprint", "image_orientation", "width_px", "height_px"],
+      "properties": {
+        "role": { "enum": ["wrist", "front"] },
+        "identity_fingerprint": { "type": "string", "description": "hash prefix of the stable device identity; never the identity itself" },
+        "image_orientation": { "type": "string", "description": "which image this is, e.g. direct-v4l-unrotated; calibration applies per orientation and resolution" },
+        "width_px": { "type": ["integer", "null"] },
+        "height_px": { "type": ["integer", "null"] }
+      }
+    },
+    "raw_frame_path": { "type": ["string", "null"], "description": "relative path inside the observation directory; null only when the capture produced no valid frame" },
+    "robot_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "measured_joints_deg", "measured_joints_post_capture_deg", "joint_stability_max_delta_deg", "base_velocity", "state_image_association"],
+      "properties": {
+        "source": { "enum": ["MEASURED_PRESENT_POSITION", "UNAVAILABLE"] },
+        "measured_joints_deg": {
+          "type": ["object", "null"],
+          "description": "measured (never commanded) joints read immediately before the capture; degrees, motor-reading convention; gripper in gripper units",
+          "additionalProperties": false,
+          "required": ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"],
+          "properties": {
+            "shoulder_pan": { "type": "number" },
+            "shoulder_lift": { "type": "number" },
+            "elbow_flex": { "type": "number" },
+            "wrist_flex": { "type": "number" },
+            "wrist_roll": { "type": "number" },
+            "gripper": { "type": "number" }
+          }
+        },
+        "measured_joints_post_capture_deg": {
+          "type": ["object", "null"],
+          "description": "same joints read immediately after the capture; null when there was no second read",
+          "additionalProperties": false,
+          "required": ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"],
+          "properties": {
+            "shoulder_pan": { "type": "number" },
+            "shoulder_lift": { "type": "number" },
+            "elbow_flex": { "type": "number" },
+            "wrist_flex": { "type": "number" },
+            "wrist_roll": { "type": "number" },
+            "gripper": { "type": "number" }
+          }
+        },
+        "joint_stability_max_delta_deg": { "type": ["number", "null"], "minimum": 0, "description": "largest difference between the two joint reads; null when they cannot be compared" },
+        "base_velocity": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["x.vel", "y.vel", "theta.vel"],
+          "properties": {
+            "x.vel": { "type": "number" },
+            "y.vel": { "type": "number" },
+            "theta.vel": { "type": "number" }
+          }
+        },
+        "state_image_association": {
+          "enum": ["STATIC_CONFIRMED", "MOVED_DURING_CAPTURE", "STATIC_UNCONFIRMED", "NO_ROBOT_STATE"],
+          "description": "STATIC_CONFIRMED and MOVED_DURING_CAPTURE are measured facts from the two joint reads; STATIC_UNCONFIRMED means there was no comparable second read, so neither may be claimed"
+        }
+      }
+    },
+    "camera_pose": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "frame", "T_base_camera", "missing_calibration", "reason"],
+      "properties": {
+        "status": { "enum": ["CALIBRATED", "CALIBRATED_UNVERIFIED", "UNAVAILABLE"] },
+        "frame": { "const": "BASE_FRAME" },
+        "T_base_camera": {
+          "type": ["array", "null"],
+          "description": "4x4 homogeneous camera pose in BASE_FRAME (meters); null unless the calibration inventory supplies the extrinsics",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } }
+        },
+        "missing_calibration": {
+          "type": "array",
+          "description": "the required calibration items that calibration.items reports MISSING",
+          "items": {
+            "enum": ["wrist_intrinsics", "wrist_distortion", "wrist_hand_eye", "front_intrinsics", "front_distortion", "front_to_base_extrinsics", "arm_base_to_base_frame", "support_plane"]
+          }
+        },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "items"],
+      "properties": {
+        "version": { "type": "string" },
+        "items": {
+          "type": "object",
+          "description": "the status of EVERY required calibration item; the three statuses are never collapsed",
+          "required": ["wrist_intrinsics", "wrist_distortion", "wrist_hand_eye", "front_intrinsics", "front_distortion", "front_to_base_extrinsics", "arm_base_to_base_frame", "support_plane"],
+          "propertyNames": {
+            "enum": ["wrist_intrinsics", "wrist_distortion", "wrist_hand_eye", "front_intrinsics", "front_distortion", "front_to_base_extrinsics", "arm_base_to_base_frame", "support_plane"]
+          },
+          "additionalProperties": { "enum": ["VERIFIED", "AVAILABLE_UNVERIFIED", "MISSING"] }
+        }
+      }
+    },
+    "scan": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["scan_id", "pose_id", "band", "sector_index", "nominal_tool_depression_deg", "tool_azimuth_deg", "frame", "coverage_basis"],
+      "properties": {
+        "scan_id": { "type": "string" },
+        "pose_id": { "type": "string" },
+        "band": { "type": "string" },
+        "sector_index": { "type": "integer" },
+        "nominal_tool_depression_deg": { "type": "number" },
+        "tool_azimuth_deg": { "type": "number" },
+        "frame": { "type": "string" },
+        "coverage_basis": { "type": "string", "description": "how far the coverage label can be trusted, e.g. NOMINAL_TOOL_AXIS_UNCALIBRATED" }
+      }
+    },
+    "gripper_state": { "enum": ["open", "closed", "holding", "unknown"] },
+    "cube_held": { "enum": ["yes", "no", "unknown"] },
+    "illumination": { "type": "object" },
+    "lifecycle": { "type": "object", "description": "the camera open/settle/capture/close record for this observation" },
+    "atlas_annotation": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "operator-supplied ground truth for the observability atlas; every field is manual and optional",
+      "properties": {
+        "object": { "enum": ["yellow_cube", "collection_pad", "cube_and_pad", "none"] },
+        "lighting": { "enum": ["daylight", "artificial", "mixed", "unknown"] },
+        "range_m": { "type": "number" },
+        "bearing_deg": { "type": "number" },
+        "pad_yaw_deg": { "type": "number" },
+        "clipping": { "type": "string" },
+        "occlusion": { "type": "string" },
+        "staging": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

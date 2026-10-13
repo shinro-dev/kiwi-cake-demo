@@ -92,10 +92,12 @@ adapter are part of this bench workflow. The
 
 ## Boundaries that matter to an adopter
 
-The safe-stop template only writes a log line. If the host dies without
-completing its disconnect path, nothing here stops the wheels through an
-independent motor control path. Cake has no torque concept, and a
-successful LeRobot reconnect enables torque. The demo therefore requires
+As segment 2 copies it, the safe-stop template only writes a log line
+(its wheel stop is off until its wheel settings are filled in, see
+[Safety](../SAFETY.md)). If the host dies without completing its
+disconnect path, nothing here stops the wheels through an independent
+motor control path. Cake has no torque concept, and a successful LeRobot
+reconnect enables torque. The demo therefore requires
 the stand precautions in [Safety](../SAFETY.md). A successful software
 restart is not evidence of actuator-safe recovery.
 

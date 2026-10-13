@@ -1,0 +1,14 @@
+{
+  "contract_version": "1",
+  "command_id": "synthetic-command-0004",
+  "type": "manual_pan",
+  "args": {
+    "deg": 0,
+    "holding": false,
+    "plan_only": true
+  },
+  "client": {
+    "session_id": "synthetic-client-0001",
+    "contract_version": "1"
+  }
+}

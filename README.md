@@ -2,6 +2,88 @@
 
 # kiwi-cake-demo
 
+This repository holds two LeKiwi demos with Cake, Shinro's robot control
+layer, running on the robot: the four-click pick-and-place demo below, in
+which Cake holds the capability that mission 1 requires, and the
+host-supervision demo after it, in which Cake supervises the LeRobot host.
+
+## The four-click demo (2026-10-12)
+
+https://github.com/user-attachments/assets/43d92e2a-b014-4e7f-af05-cba4191ac90e
+
+A screen recording of this repository's operator console driving a LeKiwi
+through two pick-and-place missions with four buttons: Confirm this robot
+(it opens a dialog that also asks for a tick and a confirm), Start, Enable
+VLA, Start. It runs 9:52 in real time, uncut.
+
+**Mission 1, scripted.** One Start runs the scripted mission. The robot
+finds the yellow block in its wrist camera's images (a perception service
+on the desktop computer does the recognition), aligns over it and grasps
+it, and three short scripted lifts (15, 28 and 8 mm) check the grip. The
+mission then holds the block: the pad is in the wrist view, but with the
+block held the runtime cannot measure where it is, and the base never
+moves blind (the Carry row flashes "Failed here" at 3:05). The console's
+demo director, code in the browser tab that sends Activate, Stop and the
+carry on its own after the first Start, stops the mission and hands over
+to a scripted carry: two 5 cm base pulses, measured by the wheels, the
+block set on the pad, and two pulses back. The script is tuned for one
+spot, the block about 7 cm in front of the pad and centred: in tests on
+2026-10-08, with the block about 3 cm farther from the robot the arm ran
+out of reach (the sag check refused the grasp, or the arm stopped with its
+shoulder 5 degrees off target, once with the block already in the jaws),
+and about 4 cm nearer the search refused it.
+
+**Enable VLA.** One click loads a SmolVLA policy, already copied to the
+robot, from disk into a process on the robot while everything keeps
+running: the mission runtime (the release that ran is named in the demo
+record), Cake's resident process and the LeRobot host that drives the
+motors are not restarted, and the console stays connected. The policy is
+loaded beside Cake, not through it. While it loads, the block goes back by
+hand to about the spot mission 1 started from; once the module is
+enabled, the console asks for that. This recording does not try the
+policy from another spot.
+
+**Mission 2, learned.** The second Start gives the same task to the
+policy. The block starts in the wrist camera's view, between the open
+jaws: the screen's Find row and "Found the block" only count the policy's
+answers until the jaws first close, not a search. From the wrist camera
+and the arm's joint readings the policy drives the arm through a gate
+that smooths and bounds every action, and its gripper output decides when
+the jaws close. It reaches the block and grasps it, the same three lifts
+check the grip (score 0.94, where 0.5 passes), and the policy carries the
+block over the pad. None of the 30 recorded demonstrations contains a
+release, so once the arm settles where they ended, a rule tries to lower
+the block and opens the jaws. The policy cannot drive the wheels: it
+outputs only arm and gripper targets, and every command the runner sends
+during the episode carries base velocity zero (only mission 1's carry,
+which the runner also runs, moves the base). The policy was asked 20
+times in 319 s (each answer is at most 1.7 s of arm motion); most of that
+time is inference on the robot's CPU.
+
+**Where Cake is.** Cake runs on the robot and holds the mobile approach
+capability that mission 1 requires before it picks; the console's right
+column shows its live slot. In this scene that capability never moves the
+base: the rolling is the scripted carry, which runs beside Cake. In this
+recording the capability was already active before Start, so the mission
+did not wait for Cake and no activation is on screen. Earlier the same
+day the first mission 1 did wait for it: the demo director pressed
+Activate on the prepared Cake Plan marked for activation (one of two
+prepared Plans), Cake activated it, and the mission went on in the same
+runtime session with nothing restarted.
+
+The front camera tile stays black because that camera is off, and the
+amber "Steps first" with "Open the gripper by hand and take the block
+out." after each mission is a stale console message: the jaws are
+already empty. The
+[demo record](docs/autonomous-demo/four-click-demo-2026-10-12.md) has
+every run on record that day and the residuals: two of the six VLA runs on
+record that day ended with the block on the pad, and where the block
+lands is not measured. [vla/README.md](vla/README.md) describes the VLA
+runner. The rest of this page, [LIMITATIONS.md](LIMITATIONS.md) and
+[SAFETY.md](SAFETY.md) cover the host-supervision demo and its releases.
+
+## The host-supervision demo
+
 A hands-on demo for LeKiwi developers who want to reproduce Pi-side
 LeRobot host exits and inspect what restarts. It runs the host under
 Cake, Shinro's robot control layer, and exposes process lifecycle events
@@ -93,7 +175,7 @@ then run `bin/demo-stop.sh` on the Pi. Follow the
 [stopping and cleanup procedure](docs/stopping-and-cleanup.md) to check
 the result. Stopping a process is not proof that motors are disarmed.
 
-## What Cake adds, and what this demo leaves open
+## What Cake adds, and what the host-supervision demo leaves open
 
 A plain systemd service already provides host restarts and journal logs.
 This demo adds admission of a signed **supervisor capsule**, named
@@ -102,9 +184,10 @@ signature does not cover the external LeRobot code, Python dependencies
 or calibration files. See the [comparison with direct LeRobot and systemd](docs/why-cake-under-lerobot.md)
 and the [actual deployment architecture](docs/architecture.md).
 
-The demo has one supervisor module. It does not demonstrate independent
-camera or motion modules, live module replacement, durable application
-state recovery, or actuator-safe recovery. There is no automated support
+The host-supervision demo has one supervisor module. It does not
+demonstrate independent camera or motion modules, live module
+replacement, durable application state recovery, or actuator-safe
+recovery. There is no automated support
 bundle or diagnosis of camera, USB, calibration or network faults.
 [Limitations](LIMITATIONS.md) defines these boundaries. The latest
 [v0.1.3 board record](docs/demo-record.md#the-v013-run-on-the-tested-board-2026-09-13)

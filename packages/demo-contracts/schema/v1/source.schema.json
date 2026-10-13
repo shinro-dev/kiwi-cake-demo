@@ -1,0 +1,515 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DemoContractsSource",
+  "description": "The two read-only sources the runtime subscribes to, as the console reads them. This file is a definitions container: validate against source#/$defs/tap_slot or source#/$defs/preview_slot, never against this root. A slot is a LIVE surface, not a recorded record: it says what is known right now, and it is replaced whole. Only a connected source reports values; in every other state the measured fields are null and the slot carries the reason code, so a number is never shown because it happened to arrive a while ago.",
+  "$defs": {
+    "source_state": {
+      "title": "SourceState",
+      "description": "disconnected: nothing is attached. connecting: a subscriber exists and no sample has ever arrived. connected: a sample arrived inside the freshness window. stalled: samples arrived before, none inside the window. failed: the subscriber could not be opened, or the transport faulted since the last sample.",
+      "enum": [
+        "disconnected",
+        "connecting",
+        "connected",
+        "stalled",
+        "failed"
+      ]
+    },
+    "source_clock_domains": {
+      "title": "SourceClockDomains",
+      "description": "Which clock each half of a slot was read from. sample is the source's own; receive is this runtime's. Nothing subtracts one from the other.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample",
+        "receive"
+      ],
+      "properties": {
+        "sample": {
+          "$ref": "common.schema.json#/$defs/clock_domain"
+        },
+        "receive": {
+          "$ref": "common.schema.json#/$defs/clock_domain"
+        }
+      }
+    },
+    "source_counters": {
+      "title": "SourceCounters",
+      "description": "A bounded projection of a counter object the source sent: short plain names, finite numbers, nothing else. The names are the source's own and are not declared here, which makes this one of the two objects of this contract whose inside is open. null means the source sent no such object.",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "tap_lease": {
+      "title": "TapLease",
+      "description": "The host's own lease report as the tap passed it on. It is what the HOST says, which is not what the runtime holds: the snapshot's lease is the runtime's answer to that question. The request id an acquisition is adopted by is deliberately not here and never leaves the host process.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "host_session",
+        "generation",
+        "owner_label",
+        "ttl_s",
+        "expires_in_ms",
+        "acquisitions",
+        "releases",
+        "expiries"
+      ],
+      "properties": {
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "host_session": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "generation": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "owner_label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "ttl_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expires_in_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "acquisitions": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "releases": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expiries": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "tap_slot": {
+      "title": "TapSlot",
+      "description": "What the host observation tap is doing, and the last sample it delivered. source_stamp, joints and base_velocity are the host's own values, passed through with the host's session, sequence number and monotonic sample time; everything this runtime measured (receive_mono_ns, receive_age_ms, measured_rate_hz) is the laptop's clock and clock_domains names both. A stalled slot keeps the LAST stamp and how long ago it arrived, and reports no values.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "state",
+        "reason",
+        "source_stamp",
+        "joints",
+        "base_velocity",
+        "receive_mono_ns",
+        "receive_age_ms",
+        "clock_domains",
+        "measured_rate_hz",
+        "subscriber_gap_count",
+        "publisher_drop_count",
+        "session_changes",
+        "malformed_count",
+        "transport_errors",
+        "lease",
+        "rejections",
+        "commands",
+        "ingestion"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "state": {
+          "$ref": "#/$defs/source_state"
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "source_stamp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/source_stamp"
+            }
+          ]
+        },
+        "joints": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "event.schema.json#/$defs/measured_joints"
+            }
+          ]
+        },
+        "base_velocity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "event.schema.json#/$defs/measured_base_velocity"
+            }
+          ]
+        },
+        "receive_mono_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "receive_age_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "clock_domains": {
+          "$ref": "#/$defs/source_clock_domains"
+        },
+        "measured_rate_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "subscriber_gap_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "publisher_drop_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "session_changes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "malformed_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transport_errors": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "lease": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tap_lease"
+            }
+          ]
+        },
+        "rejections": {
+          "$ref": "#/$defs/source_counters"
+        },
+        "commands": {
+          "$ref": "#/$defs/source_counters"
+        },
+        "ingestion": {
+          "$ref": "#/$defs/source_counters"
+        }
+      }
+    },
+    "preview_stream": {
+      "title": "PreviewStream",
+      "description": "What the camera service said about the stream the preview is taken from. Every field is what the source reported, and null where it reported nothing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pixel_format",
+        "source_fps_reported",
+        "source_fps_measured",
+        "source_width",
+        "source_height"
+      ],
+      "properties": {
+        "pixel_format": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 32
+        },
+        "source_fps_reported": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_fps_measured": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_width": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_height": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "preview_frame_size": {
+      "title": "PreviewFrameSize",
+      "description": "The pixel size of the frame this slot carries. A consumer that draws over the picture needs it, and a slot without it draws nothing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width_px",
+        "height_px"
+      ],
+      "properties": {
+        "width_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "height_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "preview_slot": {
+      "title": "PreviewSlot",
+      "description": "What the camera preview is doing, and the last frame it delivered. THE AGE OF THE PICTURE CANNOT BE COMPUTED HERE: capture_clock is the source's monotonic clock and receive_mono_ns is the laptop's, so capture_age_ms is null and capture_age_reason says why. What can be measured inside ONE clock is measured: service_latency_ms is capture to dequeue on the source, and capture_time_stalls counts a capture clock that stopped moving. Optional extension: clock_relation is the only thing that would license a capture age, and is null until one is measured; skipped_for_mission counts the previews the camera service stood aside for while a decision capture was in flight, which is the source YIELDING and not a stall; bytes_b64 carries the latest picture on the transport that serves it and is stripped from the console's copy.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "state",
+        "reason",
+        "role",
+        "seq",
+        "source_seq",
+        "capture_clock",
+        "capture_semantics",
+        "capture_age_ms",
+        "capture_age_reason",
+        "service_latency_ms",
+        "receive_mono_ns",
+        "receive_age_ms",
+        "measured_fps",
+        "frame",
+        "stream",
+        "gaps",
+        "session_changes",
+        "capture_time_stalls",
+        "malformed"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "state": {
+          "$ref": "#/$defs/source_state"
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "role": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capture_clock": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/source_stamp"
+            }
+          ]
+        },
+        "capture_semantics": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "capture_age_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capture_age_reason": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "service_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "receive_mono_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "receive_age_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "measured_fps": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "frame": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/preview_frame_size"
+            }
+          ]
+        },
+        "stream": {
+          "$ref": "#/$defs/preview_stream"
+        },
+        "gaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "session_changes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capture_time_stalls": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "malformed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "skipped_for_mission": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "clock_relation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/clock_relation"
+            }
+          ]
+        },
+        "bytes_b64": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

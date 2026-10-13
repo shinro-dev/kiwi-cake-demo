@@ -1,0 +1,444 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Command",
+  "description": "A command from the console to the runtime. Discriminator: type. The args shape for each type is the oneOf branch whose type const matches, and carries the controller's numeric bounds so that an out-of-bounds request is refused before it reaches the controller. The controller still enforces its own bounds; this schema never widens them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "command_id",
+    "type",
+    "args",
+    "client"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/contract_version"
+    },
+    "command_id": {
+      "description": "Minted by the client, unique per command: the idempotency key and the handle of the command_result.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "type": {
+      "$ref": "common.schema.json#/$defs/command_type"
+    },
+    "args": {
+      "type": "object"
+    },
+    "client": {
+      "title": "CommandClient",
+      "description": "Who sent the command.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "contract_version"
+      ],
+      "properties": {
+        "session_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "contract_version": {
+          "$ref": "common.schema.json#/$defs/contract_version"
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "type": {
+          "const": "start_cycle"
+        },
+        "args": {
+          "$ref": "#/$defs/args_start_cycle"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "observe"
+        },
+        "args": {
+          "$ref": "#/$defs/args_observe"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "return_arm"
+        },
+        "args": {
+          "$ref": "#/$defs/args_return_arm"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "scan_scene"
+        },
+        "args": {
+          "$ref": "#/$defs/args_scan_scene"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "manual_pan"
+        },
+        "args": {
+          "$ref": "#/$defs/args_manual_pan"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "manual_move"
+        },
+        "args": {
+          "$ref": "#/$defs/args_manual_move"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "manual_grip"
+        },
+        "args": {
+          "$ref": "#/$defs/args_manual_grip"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "manual_base_pulse"
+        },
+        "args": {
+          "$ref": "#/$defs/args_manual_base_pulse"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "stop"
+        },
+        "args": {
+          "$ref": "#/$defs/args_stop"
+        }
+      },
+      "required": [
+        "type",
+        "args"
+      ]
+    }
+  ],
+  "$defs": {
+    "args_start_cycle": {
+      "title": "ArgsStartCycle",
+      "description": "One autonomous single-cube cycle. It starts with an empty gripper, so it takes no holding flag.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_only"
+      ],
+      "properties": {
+        "plan_only": {
+          "description": "true plans and reports without sending a motion command.",
+          "type": "boolean"
+        }
+      }
+    },
+    "args_observe": {
+      "title": "ArgsObserve",
+      "description": "Capture and perceive; commands no motion, so it takes no plan_only flag.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "holding"
+      ],
+      "properties": {
+        "holding": {
+          "description": "Explicit on every command whose behavior depends on it: true when the cube is held, so the gripper stays in the commands and the holding band is enforced. There is no default.",
+          "type": "boolean"
+        }
+      }
+    },
+    "args_return_arm": {
+      "title": "ArgsReturnArm",
+      "description": "Return the arm to the saved low scan pose.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_only"
+      ],
+      "properties": {
+        "plan_only": {
+          "description": "true plans and reports without sending a motion command.",
+          "type": "boolean"
+        }
+      }
+    },
+    "args_scan_scene": {
+      "title": "ArgsScanScene",
+      "description": "Scan the scene: pan-only views at the low-pose shape, starting from the saved low scan pose with the gripper open and nothing held, and ending back at that pose. A motion command, unlike observe, so it takes plan_only and no holding flag.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_only"
+      ],
+      "properties": {
+        "plan_only": {
+          "description": "true plans and reports without sending a motion command.",
+          "type": "boolean"
+        }
+      }
+    },
+    "args_manual_pan": {
+      "title": "ArgsManualPan",
+      "description": "One pan step: non-zero, at most 6 degrees either way (the controller's step bound).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deg",
+        "holding",
+        "plan_only"
+      ],
+      "properties": {
+        "deg": {
+          "type": "number",
+          "minimum": -6,
+          "maximum": 6,
+          "not": {
+            "description": "zero",
+            "const": 0
+          }
+        },
+        "holding": {
+          "description": "Explicit on every command whose behavior depends on it: true when the cube is held, so the gripper stays in the commands and the holding band is enforced. There is no default.",
+          "type": "boolean"
+        },
+        "plan_only": {
+          "description": "true plans and reports without sending a motion command.",
+          "type": "boolean"
+        }
+      }
+    },
+    "args_manual_move": {
+      "title": "ArgsManualMove",
+      "description": "One straight tool step: at most 60 mm forward or back and 30 mm up or down, not both zero (the controller's step bounds).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forward_mm",
+        "dz_mm",
+        "holding",
+        "plan_only"
+      ],
+      "properties": {
+        "forward_mm": {
+          "type": "number",
+          "minimum": -60,
+          "maximum": 60
+        },
+        "dz_mm": {
+          "type": "number",
+          "minimum": -30,
+          "maximum": 30
+        },
+        "holding": {
+          "description": "Explicit on every command whose behavior depends on it: true when the cube is held, so the gripper stays in the commands and the holding band is enforced. There is no default.",
+          "type": "boolean"
+        },
+        "plan_only": {
+          "description": "true plans and reports without sending a motion command.",
+          "type": "boolean"
+        }
+      },
+      "not": {
+        "description": "forward_mm and dz_mm both zero",
+        "properties": {
+          "forward_mm": {
+            "const": 0
+          },
+          "dz_mm": {
+            "const": 0
+          }
+        },
+        "required": [
+          "forward_mm",
+          "dz_mm"
+        ]
+      }
+    },
+    "args_manual_grip": {
+      "title": "ArgsManualGrip",
+      "description": "The gripper alone, to one of the two proven values.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "plan_only"
+      ],
+      "properties": {
+        "action": {
+          "enum": [
+            "latch",
+            "open"
+          ]
+        },
+        "plan_only": {
+          "description": "true plans and reports without sending a motion command.",
+          "type": "boolean"
+        }
+      }
+    },
+    "args_manual_base_pulse": {
+      "title": "ArgsManualBasePulse",
+      "description": "ONE bounded base pulse. seconds is signed (positive forward, negative reverse) with 0.2 <= |seconds| <= 0.8 (the controller's validated durations).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seconds",
+        "holding",
+        "plan_only"
+      ],
+      "properties": {
+        "seconds": {
+          "description": "signed seconds with 0.2 <= |seconds| <= 0.8",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.2,
+              "maximum": 0.8
+            },
+            {
+              "type": "number",
+              "minimum": -0.8,
+              "maximum": -0.2
+            }
+          ]
+        },
+        "holding": {
+          "description": "Explicit on every command whose behavior depends on it: true when the cube is held, so the gripper stays in the commands and the holding band is enforced. There is no default.",
+          "type": "boolean"
+        },
+        "plan_only": {
+          "description": "true plans and reports without sending a motion command.",
+          "type": "boolean"
+        }
+      }
+    },
+    "args_stop": {
+      "title": "ArgsStop",
+      "description": "Stop takes no argument: nothing may make a stop request invalid except a malformed envelope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {}
+    },
+    "command_result": {
+      "title": "CommandResult",
+      "description": "What became of a command. uncertain is an explicit outcome: the runtime died between accepting the command and recording the child, so whether anything ran is NOT known and the console must say so. rejected and uncertain always carry a reason_code. Optional extension, so that a receipt says WHICH request it is a receipt for: payload_digest is taken over the canonical command object, so a client that reuses an id with a different body can be told the two are not the same request instead of being answered for the first one; runtime_session names the runtime that admitted the id, so a receipt kept across a restart is not read as a receipt from the runtime now answering; first_seen_wall_utc is when that runtime first admitted it. A receipt from a runtime that records none of them carries none, and a consumer then knows exactly what it knew before.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "status",
+        "reason_code",
+        "run_id"
+      ],
+      "properties": {
+        "command_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "spawning",
+            "running",
+            "finished",
+            "uncertain",
+            "rejected"
+          ]
+        },
+        "reason_code": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "payload_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "runtime_session": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "first_seen_wall_utc": {
+          "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "rejected",
+              "uncertain"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reason_code": {
+            "description": "a reason_code, required when status is rejected or uncertain",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

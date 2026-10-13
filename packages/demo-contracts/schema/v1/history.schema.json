@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DemoContractsHistory",
+  "description": "The list of finished runs a runtime can still speak about. This file is a definitions container: validate against history#/$defs/history_entry, never against this root. An entry is a SUMMARY of a run, not the run: the ordered records, the manifest and the referenced frames live in the run's own directory, and this is what a console shows before it opens one.",
+  "$defs": {
+    "history_entry": {
+      "title": "HistoryEntry",
+      "description": "One finished run, as the command journal folded it. Every measured field is nullable because the run's completion record is what fills them and an older or a truncated one carries less: a field that was not recorded reads as not recorded, never as zero and never as false. Optional extension: data_mode says whether the run drove hardware, replayed a recording or was synthetic, which the run.started record and the run's manifest have always carried and this list did not, so a reader had to open a run to tell a synthetic pass from a physical one; bundle_digest names the pinned code bundle the run actually ran from. Both are absent from a journal written before they existed, and absent means not recorded: neither may be filled in from the mode the runtime happens to be in now.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "command_id",
+        "command_type",
+        "started_wall_utc",
+        "finished_wall_utc",
+        "outcome",
+        "exit_status",
+        "evidence_complete",
+        "evidence_gaps",
+        "artifact_digest",
+        "adopted"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "command_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "command_type": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/command_type"
+            }
+          ]
+        },
+        "started_wall_utc": {
+          "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+        },
+        "finished_wall_utc": {
+          "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+        },
+        "outcome": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "event.schema.json#/$defs/run_outcome"
+            }
+          ]
+        },
+        "exit_status": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "evidence_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence_gaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "artifact_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "adopted": {
+          "type": "boolean"
+        },
+        "data_mode": {
+          "$ref": "common.schema.json#/$defs/nullable_data_mode"
+        },
+        "bundle_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        }
+      }
+    }
+  }
+}

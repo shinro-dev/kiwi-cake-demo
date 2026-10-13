@@ -1,0 +1,486 @@
+/* Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+ *
+ * The operating screen: the step guide, the one workspace and the collapsed diagnostics.
+ *
+ * TWO THINGS ARE FIXED BY MEASUREMENT RATHER THAN BY TASTE. The workspace is a 2:1 grid, so the camera is about two
+ * thirds of the width at 1440 and the rail beside it is readable rather than cramped. And body text is 14px at the
+ * smallest: this is read at arm's length by somebody standing next to a robot.
+ */
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.steps__step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'number text' 'state state';
+  align-items: start;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.steps__step:hover {
+  border-color: var(--primary);
+}
+
+.steps__step--selected {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.steps__step--later {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.steps__number {
+  grid-area: number;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--muted);
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.steps__step--done .steps__number {
+  background: var(--success);
+  color: #06281c;
+}
+
+.steps__step--current .steps__number {
+  background: var(--primary);
+  color: #04222b;
+}
+
+.steps__step--blocked .steps__number {
+  background: var(--destructive);
+  color: #2b0707;
+}
+
+.steps__text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.steps__name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.steps__later {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.steps__instruction {
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
+.steps__state {
+  grid-area: state;
+  align-self: end;
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.steps__state--blocked {
+  color: var(--destructive);
+}
+
+.steps__state--current {
+  color: var(--primary);
+}
+
+/* ---- the workspace ---------------------------------------------------------------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.workspace__stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.stage__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.stage__title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.stage__badges {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+/* The video state, under the picture and never mixed into the words about the still. It is quiet because on this
+   baseline it says the ordinary thing: no live video source is attached and the stills are what the run rests on. */
+.stage__preview {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.stage__choices {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.stage__choice--on {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.stage__frame,
+.workspace__stage .frame {
+  /* MEASURED at 1440x900: the 4:3 frame would be 690 px tall at this column width, and the base rule already caps it
+     at 320. At 320 the measurements under it began at y=785 and were cut by the fold. 270 is what puts the whole
+     measurement card and the first two modules on the screen while the picture stays the biggest thing on it. */
+  max-height: min(17rem, 30vh);
+}
+
+/* The two read-only cards under the picture: measurements on the left, the software that is executing on the right. */
+.workspace__under {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+/* The module list scrolls inside its own card rather than pushing the page down: it is a list of everything the
+   runtime reports, and its length is the runtime's business, not the layout's. */
+.modules {
+  max-height: 168px;
+  overflow-y: auto;
+}
+
+/* ---- the rail beside the camera --------------------------------------------------------------------------------- */
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.rail__card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.rail__card--later {
+  opacity: 0.7;
+}
+
+.rail__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.rail__freshness {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.rail__freshness--stale {
+  color: var(--warning);
+}
+
+.rail__line,
+.rail__note,
+.rail__absent,
+.rail__blocker,
+.rail__previous {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.rail__note {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}
+
+.rail__absent {
+  color: var(--muted-foreground);
+}
+
+.rail__blocker {
+  color: var(--destructive);
+  font-weight: 500;
+}
+
+.rail__previous {
+  color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.now__phrase {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.now__detail {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+
+.now__state {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.readings {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.readings__row {
+  display: contents;
+}
+
+.readings__row dt {
+  color: var(--muted-foreground);
+}
+
+.readings__row dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.modules {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modules__item {
+  display: grid;
+  gap: 1px;
+  font-size: var(--text-sm);
+}
+
+.modules__name {
+  font-weight: 500;
+}
+
+.modules__state {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.modules__state--ok {
+  color: var(--success);
+}
+
+.modules__state--degraded {
+  color: var(--warning);
+}
+
+.modules__state--failed {
+  color: var(--destructive);
+}
+
+.modules__evidence {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  line-height: 1.35;
+}
+
+.result__outcome {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.result__outcome--confirmed {
+  color: var(--success);
+}
+
+/* ---- the actions ------------------------------------------------------------------------------------------------ */
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.actions__pending {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--warning);
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.action + .action {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-2);
+}
+
+.action__button {
+  width: 100%;
+  justify-content: center;
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.action__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+  line-height: 1.35;
+}
+
+.action__off {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--destructive);
+  line-height: 1.35;
+}
+
+.action__note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.action__ask {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.action__ask-buttons {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* ---- diagnostics ------------------------------------------------------------------------------------------------ */
+
+.diagnostics {
+  margin-top: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.diagnostics__summary {
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.diagnostics__body {
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+/* ---- narrower screens ------------------------------------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace__under {
+    grid-template-columns: 1fr;
+  }
+
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "artifacts_available": {
+    "value": false,
+    "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+  },
+  "resident_reachable": {
+    "value": false,
+    "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+  },
+  "admin_interface_compatible": {
+    "value": false,
+    "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+  },
+  "modules_active": {
+    "value": false,
+    "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+  },
+  "mission_participation": {
+    "value": null,
+    "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+  }
+}

@@ -1,0 +1,120 @@
+/* Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. */
+
+/* The engineering tab's own layout. Only `panels/EngineeringView.tsx` imports this.
+
+   The tab used to be seven panels in a flat two-column grid, in the order they happened to be written. Nothing said
+   which panels were about the same thing, so a reader looking for why a decision came out the way it did had to know
+   in advance which card held it. These are groups with names: telemetry, decisions, ownership and commands, timing,
+   Cake, and runs. Reading one subject means reading one band. */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  min-width: 0;
+}
+
+.group__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.group__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--foreground);
+  margin: 0;
+}
+
+/* What the group is for, in one plain sentence beside its name. */
+.group__subtitle {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  min-width: 0;
+}
+
+/* Cards inside a group fill the width and wrap; a group with one wide table gets the whole band to itself. */
+.group__body {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr));
+  align-items: start;
+}
+
+.group__body--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* A card that carries a wide table, or a control somebody drags, takes the whole band rather than a third of it. */
+.group__wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .group__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A table with more columns than the card is wide scrolls inside the card. It does not clip its own headings, which
+   is what a wide table in a narrow column did: the last column read REPRESENTATIO. */
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin-top: var(--space-3);
+}
+
+/* ---- replay transport ------------------------------------------------------------------------------------------ */
+
+/* Play, pause and the cursor on one line, with the recording's own time under them. The controls come first and keep
+   their place at every width, so the button does not move under the pointer as the caption beside it grows. */
+.replay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  margin-bottom: var(--space-3);
+}
+
+.replay__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.replay__slider {
+  flex: 1 1 12rem;
+  min-width: 8rem;
+}
+
+.replay__caption {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+/* ---- a group of runs --------------------------------------------------------------------------------------------- */
+
+/* One heading row inside the finished-run table for each implementation and mode. It is a heading and not a total:
+   nothing is ever computed across one of these boundaries. */
+.run-group td {
+  background: var(--muted);
+  font-family: var(--font-sans);
+  color: var(--foreground);
+  padding-top: var(--space-2);
+}
+
+.run-group__count {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}

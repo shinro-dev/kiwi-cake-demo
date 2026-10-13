@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "seq": 19,
+  "run_id": "synthetic-run-0001",
+  "action_id": null,
+  "observation_id": null,
+  "kind": "run.finished",
+  "producer": {
+    "name": "synthetic-fixture",
+    "version": "0.0.0",
+    "artifact_digest": null,
+    "contract_version": "1"
+  },
+  "source_session": "synthetic-session-0001",
+  "t_mono_ns": 1019000000,
+  "clock_domain": "laptop_monotonic",
+  "t_wall_utc": "2026-01-01T00:00:00Z",
+  "reason_code": null,
+  "payload": {
+    "outcome": "success",
+    "exit_status": 0,
+    "predicates": {
+      "object_secured": true,
+      "placed": true,
+      "clearance_target_met": true,
+      "base_returned": true
+    },
+    "automatic_retries": 0,
+    "task_control_interventions": 0,
+    "evidence_complete": true,
+    "evidence_gaps": 0
+  },
+  "provenance": null
+}

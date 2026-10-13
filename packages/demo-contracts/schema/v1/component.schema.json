@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Component",
+  "description": "One part of the system as the console shows it. layer says what kind of thing it is; a Python function is a logical_python component and is never a cake_module. Only a cake_module carries cake_slot, and a cake_module always does. evidence states what the health claim rests on.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "layer",
+    "role",
+    "health",
+    "active",
+    "version",
+    "evidence"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "layer": {
+      "enum": [
+        "logical_python",
+        "process",
+        "device",
+        "cake_module"
+      ]
+    },
+    "role": {
+      "$ref": "common.schema.json#/$defs/safe_text"
+    },
+    "health": {
+      "enum": [
+        "ok",
+        "degraded",
+        "failed",
+        "unknown"
+      ]
+    },
+    "active": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_.+-]{1,64}$"
+    },
+    "evidence": {
+      "$ref": "common.schema.json#/$defs/safe_text"
+    },
+    "cake_slot": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "title": "ComponentCakeSlot",
+          "description": "The resident slot that backs a cake_module component.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "slot_id",
+            "generation"
+          ],
+          "properties": {
+            "slot_id": {
+              "$ref": "common.schema.json#/$defs/id"
+            },
+            "generation": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    }
+  },
+  "if": {
+    "properties": {
+      "layer": {
+        "const": "cake_module"
+      }
+    },
+    "required": [
+      "layer"
+    ]
+  },
+  "then": {
+    "description": "a cake_module names its resident slot",
+    "properties": {
+      "cake_slot": {
+        "description": "the resident slot, required for a cake_module",
+        "type": "object"
+      }
+    },
+    "required": [
+      "cake_slot"
+    ]
+  },
+  "not": {
+    "description": "a component outside the cake_module layer that claims a resident slot",
+    "properties": {
+      "layer": {
+        "enum": [
+          "logical_python",
+          "process",
+          "device"
+        ]
+      },
+      "cake_slot": {
+        "type": "object"
+      }
+    },
+    "required": [
+      "layer",
+      "cake_slot"
+    ]
+  }
+}

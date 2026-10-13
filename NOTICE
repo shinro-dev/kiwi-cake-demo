@@ -51,7 +51,9 @@ examples/lekiwi/teleoperate.py (Copyright 2025 The HuggingFace Inc. team) and
 is licensed under the Apache License, Version 2.0, reproduced under
 THIRD_PARTY_LICENSES/lerobot/, not under the Business Source License;
 bin/pi/lekiwi_host_noninteractive.py imports the stock host and replaces one
-method at run time without copying its code; bin/pi/apply-lerobot-clamp-fix.sh
-applies one line of LeRobot's own later commit to a LeRobot checkout.
+method at run time without copying its code; bin/pi/apply-lerobot-patches.sh
+writes two single-line changes into a LeRobot checkout the user installed.
+One of them is LeRobot's own later commit; the other is written here and is
+not an upstream change. Neither copies LeRobot source into this project.
 Raspberry Pi is a trademark of Raspberry Pi Ltd. "Business Source License" is
 a trademark of MariaDB plc. Cake and Shinro are names of Shinro SAS.

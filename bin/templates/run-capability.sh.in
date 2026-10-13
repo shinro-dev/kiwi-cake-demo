@@ -1,0 +1,40 @@
+#!/bin/bash
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# run-capability.sh: the child command the Cake mobile_approach CAPABILITY slot launches once that slot is
+# activated onto the mobile build. It starts autonomy/motion/mobile_approach_service.py, which is pure compute:
+# it opens no camera, no servo bus and no host socket, and its only output is DesiredBaseMotion on a Unix-domain
+# ZeroMQ socket. Rendered ON THE ROBOT by bin/pi/lekiwi-deploy.sh install.
+#
+# How Cake runs it, measured: execve'd directly, argv [this file, 3, 0, 900, run_tag], environment exactly
+# PATH=/usr/bin:/bin, working directory <bundle>/child-cwd. So the interpreter is ABSOLUTE, the four positionals
+# are IGNORED, and the last line uses exec. Because of that exec, $$ below is the pid of the service itself,
+# which is the child pid Cake reports as get-health arg1 for this slot: every command the service publishes is
+# labelled mobile_approach.pid<that pid>. and a consumer can bind a command to the process Cake launched.
+#
+# PYTHONPATH is not set: the service puts its own application root (two directories above its file) on sys.path
+# before it imports autonomy.motion.mobile_approach, which imports the standard library only. pyzmq comes from
+# the interpreter's own site-packages.
+#
+# The contract is v2 (autonomy/schemas/target_observation.v2.schema.json): the service reads TargetObservationV2
+# only and drops a v1 document (contract_mismatch). The deployed capability becomes v2 at the next install; until
+# then the robot runs whatever this file said when it was last rendered.
+#
+# Placeholders, filled by the installer, each checked below:
+#   @@PYTHON@@    absolute path of the python on the robot computer (the one with pyzmq)
+#   @@APP_DIR@@   absolute path of the deployed application root, holding autonomy/motion/
+#   @@RUN_DIR@@   absolute path of the directory holding the two ipc endpoints
+PYTHON='@@PYTHON@@'
+APP_DIR='@@APP_DIR@@'
+RUN_DIR='@@RUN_DIR@@'
+for value in "$PYTHON" "$APP_DIR" "$RUN_DIR"; do
+  case "$value" in
+    '' | *@@*) echo "run-capability.sh: refusing to run: a placeholder was never filled in; render this file with bin/pi/lekiwi-deploy.sh install" >&2; exit 78 ;;
+  esac
+done
+case "$PYTHON:$APP_DIR:$RUN_DIR" in /*:/*:/*) ;; *) echo "run-capability.sh: refusing to run: the interpreter and both directories must be absolute paths" >&2; exit 78 ;; esac
+exec "$PYTHON" -u "$APP_DIR/autonomy/motion/mobile_approach_service.py" \
+  --observations "ipc://$RUN_DIR/approach-observations.ipc" \
+  --commands "ipc://$RUN_DIR/approach-commands.ipc" \
+  --contract v2 \
+  --identity "mobile_approach.pid$$"

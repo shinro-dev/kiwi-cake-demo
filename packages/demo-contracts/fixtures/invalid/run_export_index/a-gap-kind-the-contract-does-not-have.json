@@ -1,0 +1,83 @@
+{
+  "schema": "demo-runtime-run-export/1",
+  "contract_version": "1",
+  "run_id": "synthetic-run-0001",
+  "manifest": {
+    "schema": "demo-runtime-run-manifest/1",
+    "run_id": "synthetic-run-0001",
+    "command_id": "synthetic-command-0001",
+    "command_type": "start_cycle",
+    "data_mode": "synthetic",
+    "bundle_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+    "bundle_file_count": 41,
+    "source": {
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dirty": false
+    },
+    "contract_version": "1",
+    "config_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+    "input_digests": {
+      "saved_pose_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+      "pad_template_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+    },
+    "interpreter": {
+      "implementation": "cpython",
+      "version": "3.13.1"
+    },
+    "packages": {
+      "lerobot": "0.4.0",
+      "torch": "2.6.0",
+      "transformers": "4.49.0",
+      "opencv-python-headless": "4.11.0",
+      "numpy": "2.2.3",
+      "pyzmq": "26.2.1"
+    },
+    "model": {
+      "identity": "synthetic-org/synthetic-detector",
+      "revision": "refs/pr/7",
+      "identity_withheld": false
+    }
+  },
+  "records": {
+    "count": 214,
+    "first_seq": 1,
+    "last_seq": 219,
+    "source_sessions": [
+      "synthetic-session-0001",
+      "synthetic-controller-session-0001"
+    ]
+  },
+  "images": [
+    {
+      "observation_id": "synthetic-obs-0001",
+      "content_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+      "width_px": 640,
+      "height_px": 480,
+      "included": true,
+      "reason_code": null
+    },
+    {
+      "observation_id": "synthetic-obs-0002",
+      "content_digest": null,
+      "width_px": null,
+      "height_px": null,
+      "included": false,
+      "reason_code": "frame_not_in_the_store"
+    }
+  ],
+  "summaries": {
+    "evidence_complete": false,
+    "evidence_gaps": 1,
+    "dropped_telemetry": 0,
+    "cake_continuity": null
+  },
+  "gaps": [
+    {
+      "gap": "image_missing",
+      "detail": "a gap kind this contract does not have",
+      "observation_ids": []
+    }
+  ],
+  "size_bytes": 2411008,
+  "size_limit_bytes": 33554432
+}

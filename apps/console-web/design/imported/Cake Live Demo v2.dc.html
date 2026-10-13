@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/shinro-studio-2240e739-27fc-46c7-aa98-35e020eb4b81/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/shinro-studio-2240e739-27fc-46c7-aa98-35e020eb4b81/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/shinro-studio-2240e739-27fc-46c7-aa98-35e020eb4b81/styles.css">
+<script src="_ds/shinro-studio-2240e739-27fc-46c7-aa98-35e020eb4b81/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+  body { margin: 0; background: #0a0a0f; }
+  a { color: #00d4ff; text-decoration: none; }
+  a:hover { color: #67e8f9; }
+  @keyframes softpulse { 0%,100% { opacity: 1 } 50% { opacity: .4 } }
+  @keyframes sweep { 0% { transform: translateX(-100%) } 100% { transform: translateX(320%) } }
+  .fixture { border-bottom: 1px dashed #4b5563; }
+  ::-webkit-scrollbar { width: 8px; height: 8px }
+  ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px }
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 700px; display: flex; flex-direction: column; overflow: hidden; background: #0a0a0f; color: #e4e4e7; font-family: var(--font-sans), system-ui, sans-serif; -webkit-font-smoothing: antialiased;">
+
+  <header style="display: flex; align-items: center; gap: 20px; height: 58px; padding: 0 20px; border-bottom: 1px solid var(--color-border); flex: none;">
+    <div style="display: flex; align-items: center; gap: 11px; white-space: nowrap; flex: none;">
+      <span style="font-size: 18px; font-weight: 700; letter-spacing: -.02em;">shinro</span>
+      <span style="width: 4px; height: 4px; border-radius: 50%; background: #00d4ff;"></span>
+      <span style="font-size: 13px; color: #a1a1aa;">Live demonstration</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 9px; white-space: nowrap; flex: none;">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ link.dot }}; animation: softpulse 2.2s ease-in-out infinite;"></span>
+      <span style="font-size: 13px; font-weight: 500;">{{ link.label }}</span>
+      <span style="font-family: var(--font-mono), monospace; font-size: 12px; color: var(--color-muted-foreground);">{{ link.id }}</span>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; gap: 14px; flex: none;">
+      <span style="font-size: 12px; color: var(--color-muted-foreground); max-width: 210px; line-height: 1.35;">Stop ends the program in software; it is not an emergency stop.</span>
+      <div style="display: flex; gap: 8px; white-space: nowrap;">
+        <x-import component-from-global-scope="ShinroStudio.Button" size="sm" variant="{{ startVariant }}" disabled="{{ running }}" on-click="{{ start }}" hint-size="76px,32px">Start</x-import>
+        <x-import component-from-global-scope="ShinroStudio.Button" size="sm" variant="outline" disabled="{{ notRunning }}" on-click="{{ stop }}" hint-size="76px,32px">Stop</x-import>
+        <x-import component-from-global-scope="ShinroStudio.Button" size="sm" variant="ghost" on-click="{{ openDiagnostics }}" hint-size="96px,32px">Diagnostics</x-import>
+      </div>
+    </div>
+  </header>
+
+  <div style="display: flex; align-items: center; gap: 18px; height: 54px; padding: 0 20px; border-bottom: 1px solid var(--color-border); flex: none;">
+    <div style="display: flex; align-items: center; gap: 4px; flex: none;">
+      <sc-for list="{{ phases }}" as="p" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap; flex: none;">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 7px; border-radius: 8px; background: {{ p.bg }};">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 6px; font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 600; background: {{ p.numBg }}; color: {{ p.numFg }};">{{ p.n }}</span>
+            <span style="font-size: 13px; font-weight: 500; color: {{ p.fg }};">{{ p.label }}</span>
+          </div>
+          <sc-if value="{{ p.hasArrow }}" hint-placeholder-val="{{ true }}">
+            <span style="color: #3a3a44; font-size: 13px; padding: 0 2px;">›</span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="width: 1px; height: 24px; background: var(--color-border); flex: none;"></div>
+    <div style="display: flex; align-items: center; gap: 22px; flex: none;">
+      <div>
+        <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground);">Target</div>
+        <div style="font-size: 13px; font-weight: 600; margin-top: 2px; color: {{ target.fg }};">{{ target.label }}</div>
+      </div>
+      <div>
+        <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground);">Progress</div>
+        <div style="font-size: 13px; font-weight: 500; margin-top: 2px; color: #d4d4d8;">{{ progressLabel }}</div>
+      </div>
+      <div>
+        <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground);">Mission time</div>
+        <div class="fixture" style="font-family: var(--font-mono), monospace; font-size: 13px; margin-top: 2px; display: inline-block; color: #d4d4d8;">{{ elapsedText }}</div>
+      </div>
+    </div>
+    <div style="flex: 1;"></div>
+    <button onClick="{{ toggleDock }}" style="display: flex; align-items: center; gap: 8px; flex: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; background: {{ dockBg }}; border: 1px solid {{ dockBorder }};">
+      <span style="font: 600 11px var(--font-sans), sans-serif; letter-spacing: .09em; text-transform: uppercase; color: #a78bfa;">Prototype</span>
+      <span style="font: 400 12px var(--font-sans), sans-serif; color: var(--color-muted-foreground); white-space: nowrap;">sample media · illustrative values marked</span>
+      <span style="font-size: 10px; color: #a78bfa;">{{ dockCaret }}</span>
+    </button>
+  </div>
+
+  <main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(384px, 420px); gap: 16px; padding: 16px 20px 20px;">
+
+    <section style="min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 12px;">
+
+      <div style="min-height: 0; display: grid; grid-template-columns: {{ camCols }}; gap: 12px;">
+
+        <div style="min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; background: var(--color-card);">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; flex: none;">
+            <span style="font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 600; letter-spacing: .08em; white-space: nowrap;">WRIST</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; white-space: nowrap; background: {{ wrist.chipBg }};">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: {{ wrist.dot }};"></span>
+              <span style="font-size: 11px; font-weight: 600; letter-spacing: .07em; color: {{ wrist.dot }};">{{ wrist.state }}</span>
+            </span>
+            <span style="font-size: 12px; color: var(--color-muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ wrist.note }}</span>
+            <div style="flex: 1;"></div>
+            <button onClick="{{ focusWrist }}" style="font: 500 12px var(--font-sans), sans-serif; white-space: nowrap; flex: none; color: #a1a1aa; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; padding: 3px 9px; cursor: pointer;">{{ wristFocusLabel }}</button>
+          </div>
+          <div style="flex: 1; min-height: 0; position: relative; background: #07070b;">
+            <image-slot id="cake-wrist" shape="rect" fit="cover" placeholder="Wrist frame"></image-slot>
+            <sc-if value="{{ overlayOn }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: 34%; top: 32%; width: 32%; height: 36%; border: 1.5px solid #00d4ff; border-radius: 3px; pointer-events: none;">
+                <span style="position: absolute; top: -21px; left: -1px; font-family: var(--font-mono), monospace; font-size: 11px; color: #00d4ff; background: rgba(7,7,11,.8); padding: 1px 5px; border-radius: 3px;">{{ overlayLabel }}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ wrist.bad }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(8,8,12,.72); pointer-events: none;">
+                <div style="text-align: center;">
+                  <div style="font-size: 14px; font-weight: 600; color: {{ wrist.dot }};">{{ wrist.badTitle }}</div>
+                  <div style="font-size: 12px; color: #a1a1aa; margin-top: 3px;">{{ wrist.badNote }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; background: var(--color-card);">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; flex: none;">
+            <span style="font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 600; letter-spacing: .08em; white-space: nowrap;">FRONT</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; white-space: nowrap; background: {{ front.chipBg }};">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: {{ front.dot }};"></span>
+              <span style="font-size: 11px; font-weight: 600; letter-spacing: .07em; color: {{ front.dot }};">{{ front.state }}</span>
+            </span>
+            <span style="font-size: 12px; color: var(--color-muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ front.note }}</span>
+            <div style="flex: 1;"></div>
+            <button onClick="{{ focusFront }}" style="font: 500 12px var(--font-sans), sans-serif; white-space: nowrap; flex: none; color: #a1a1aa; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; padding: 3px 9px; cursor: pointer;">{{ frontFocusLabel }}</button>
+          </div>
+          <div style="flex: 1; min-height: 0; position: relative; background: #07070b;">
+            <image-slot id="cake-front" shape="rect" fit="cover" placeholder="Front frame"></image-slot>
+            <sc-if value="{{ front.bad }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(8,8,12,.72); pointer-events: none;">
+                <div style="text-align: center;">
+                  <div style="font-size: 14px; font-weight: 600; color: {{ front.dot }};">{{ front.badTitle }}</div>
+                  <div style="font-size: 12px; color: #a1a1aa; margin-top: 3px;">{{ front.badNote }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px solid var(--color-border); border-left: 3px solid {{ action.rule }}; border-radius: 12px; background: {{ action.bg }}; flex: none;">
+        <div style="min-width: 0; flex: 1;">
+          <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground);">{{ action.kicker }}</div>
+          <div style="font-size: 21px; font-weight: 600; letter-spacing: -.01em; margin-top: 4px; color: {{ action.fg }}; text-wrap: pretty;">{{ action.title }}</div>
+          <div style="font-size: 13px; color: #a1a1aa; margin-top: 5px; line-height: 1.4; text-wrap: pretty;">{{ action.sub }}</div>
+        </div>
+        <sc-if value="{{ action.hasQuality }}" hint-placeholder-val="{{ false }}">
+          <div style="flex: none; max-width: 260px; padding: 10px 14px; border-radius: 10px; background: rgba(251,191,36,.09); border: 1px solid rgba(251,191,36,.28);">
+            <div style="font-size: 13px; font-weight: 600; color: #fbbf24;">Clearance 17.6 mm</div>
+            <div style="font-size: 12px; color: #d4d4d8; margin-top: 3px; line-height: 1.35;">2.4 mm below the 20 mm target. Placement and return succeeded.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 0 4px; flex: none; min-height: 26px;">
+        <span style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground); flex: none;">Latest</span>
+        <span style="font-family: var(--font-mono), monospace; font-size: 12px; color: var(--color-muted-foreground); flex: none;">{{ latest.t }}</span>
+        <span style="width: 6px; height: 6px; border-radius: 50%; flex: none; background: {{ latest.dot }};"></span>
+        <span style="flex: 1; min-width: 0; font-size: 13px; color: {{ latest.fg }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ latest.text }}</span>
+        <button onClick="{{ openHistory }}" style="font: 500 12px var(--font-sans), sans-serif; white-space: nowrap; flex: none; color: #a1a1aa; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; padding: 3px 10px; cursor: pointer;">History · {{ eventCount }}</button>
+      </div>
+    </section>
+
+    <aside style="min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-card); overflow: hidden;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 14px 16px 12px; flex: none;">
+        <span style="font-size: 15px; font-weight: 600;">Cake</span>
+        <div style="flex: 1;"></div>
+        <span style="display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 7px; white-space: nowrap; background: {{ cake.chipBg }}; border: 1px solid {{ cake.chipBorder }};">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ cake.dot }};"></span>
+          <span style="font-size: 12px; font-weight: 600; color: {{ cake.fg }};">{{ cake.label }}</span>
+        </span>
+      </div>
+
+      <sc-if value="{{ cakeOff }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+          <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #a1a1aa; text-wrap: pretty;">The robot is running its baseline program. Capabilities can only change by stopping the mission and restarting the process.</p>
+          <x-import component-from-global-scope="ShinroStudio.Button" size="sm" on-click="{{ connectCake }}" hint-size="150px,32px">Connect Cake runtime</x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ cakeOn }}" hint-placeholder-val="{{ true }}">
+        <div style="flex: 1; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; padding: 0 16px 14px; display: flex; flex-direction: column; gap: 14px;">
+
+          <sc-if value="{{ req.open }}" hint-placeholder-val="{{ true }}">
+            <div style="border: 1px solid {{ req.border }}; border-radius: 11px; background: {{ req.bg }}; padding: 13px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: {{ req.accent }};">{{ req.kicker }}</span>
+                <div style="flex: 1;"></div>
+                <span style="font-size: 12px; color: var(--color-muted-foreground); white-space: nowrap;">{{ req.stepLabel }}</span>
+              </div>
+              <div style="font-size: 15px; font-weight: 600; line-height: 1.35; text-wrap: pretty;">{{ req.title }}</div>
+
+              <sc-if value="{{ req.showCandidates }}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; flex-direction: column; gap: 7px;">
+                  <sc-for list="{{ req.candidates }}" as="c" hint-placeholder-count="2">
+                    <button onClick="{{ c.pick }}" style="display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer; padding: 9px 11px; border-radius: 9px; border: 1px solid {{ c.border }}; background: {{ c.bg }};">
+                      <span style="width: 9px; height: 9px; border-radius: 50%; flex: none; border: 2px solid {{ c.ring }}; background: {{ c.fill }};"></span>
+                      <span style="min-width: 0; flex: 1;">
+                        <span style="display: block; font-family: var(--font-mono), monospace; font-size: 12px; color: #e4e4e7;">{{ c.version }}</span>
+                        <span style="display: block; font-size: 12px; color: var(--color-muted-foreground); margin-top: 2px;">{{ c.note }}</span>
+                      </span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ req.showVersions }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; align-items: stretch; gap: 10px;">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground);">{{ req.fromLabel }}</div>
+                    <div style="font-family: var(--font-mono), monospace; font-size: 13px; margin-top: 3px; color: #a1a1aa;">{{ req.fromVersion }}</div>
+                  </div>
+                  <span style="align-self: center; color: #52525b;">→</span>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground);">{{ req.toLabel }}</div>
+                    <div style="font-family: var(--font-mono), monospace; font-size: 13px; margin-top: 3px; color: {{ req.toColor }};">{{ req.toVersion }}</div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ req.validating }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="font-size: 13px; color: #d4d4d8;">Validating with the runtime — the mission keeps its target while this resolves.</div>
+                  <div style="height: 3px; border-radius: 2px; background: var(--color-border); overflow: hidden;">
+                    <div style="width: 30%; height: 100%; background: #00d4ff; animation: sweep 1.15s linear infinite;"></div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ req.rejected }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div style="font-size: 13px; font-weight: 600; color: #f87171;">Rejected · mobile_approach 0.1.0-dev</div>
+                  <div style="font-size: 13px; line-height: 1.45; color: #a1a1aa; text-wrap: pretty;">Unsigned build refused by the runtime. Nothing was swapped: the active system is unchanged and the mission still holds Cube B as its target.</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ req.activated }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div style="font-size: 13px; font-weight: 600; color: #34d399;">Activated · same mission, same target</div>
+                  <div style="font-size: 13px; line-height: 1.45; color: #d4d4d8; text-wrap: pretty;">Cube B is now approachable. The task resumed on the cube it was already holding as its target — no restart, no new run.</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ req.showActions }}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <x-import component-from-global-scope="ShinroStudio.Button" size="sm" disabled="{{ req.applyDisabled }}" on-click="{{ req.apply }}" hint-size="150px,32px">{{ req.applyLabel }}</x-import>
+                  <sc-if value="{{ req.showReceipt }}" hint-placeholder-val="{{ false }}">
+                    <x-import component-from-global-scope="ShinroStudio.Button" size="sm" variant="ghost" on-click="{{ openReceipt }}" hint-size="120px,32px">Activation receipt</x-import>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <div style="display: flex; flex-direction: column; min-width: 0;">
+            <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground); padding-bottom: 4px;">Modules</div>
+            <sc-for list="{{ modules }}" as="m" hint-placeholder-count="4">
+              <div style="border-top: 1px solid var(--color-border); padding: 11px 0 12px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                  <span style="font-size: 13px; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ m.name }}</span>
+                  <span style="font-family: var(--font-mono), monospace; font-size: 12px; color: var(--color-muted-foreground); white-space: nowrap; flex: none;">{{ m.version }}</span>
+                  <div style="flex: 1;"></div>
+                  <span style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: {{ m.dot }};"></span>
+                    <span style="font-size: 12px; font-weight: 500; color: {{ m.stateFg }};">{{ m.stateLabel }}</span>
+                  </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px; min-width: 0;">
+                  <sc-if value="{{ m.hasOp }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ m.op }}" disabled="{{ m.opDisabled }}" style="font: 500 12px var(--font-sans), sans-serif; white-space: nowrap; flex: none; padding: 5px 11px; border-radius: 7px; cursor: {{ m.opCursor }}; border: 1px solid {{ m.opBorder }}; background: {{ m.opBg }}; color: {{ m.opFg }};">{{ m.opLabel }}</button>
+                  </sc-if>
+                  <span style="font-size: 12px; color: var(--color-muted-foreground); line-height: 1.4; min-width: 0;">{{ m.reason }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--color-border);">
+            <span class="fixture" style="font-size: 12px; color: var(--color-muted-foreground);">Prototype inventory · module identities illustrative</span>
+            <div style="flex: 1;"></div>
+            <button onClick="{{ openBindings }}" style="font: 500 12px var(--font-sans), sans-serif; color: #00d4ff; background: transparent; border: none; cursor: pointer; padding: 0; white-space: nowrap;">Field bindings</button>
+          </div>
+        </div>
+      </sc-if>
+    </aside>
+  </main>
+
+  <div style="position: fixed; left: 20px; top: 118px; z-index: 40; display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
+    <sc-if value="{{ dockOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 344px; border: 1px solid #2b2b36; border-radius: 12px; background: rgba(14,14,20,.98); box-shadow: 0 20px 44px rgba(0,0,0,.55); padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 12px; font-weight: 600; color: #a78bfa;">Prototype controls</span>
+          <span style="font-size: 12px; color: var(--color-muted-foreground);">not part of the product</span>
+          <div style="flex: 1;"></div>
+          <button onClick="{{ toggleDock }}" style="font: 500 12px var(--font-sans), sans-serif; color: #a1a1aa; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; padding: 2px 8px; cursor: pointer;">Hide</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground);">Walkthrough</div>
+          <div style="font-size: 13px; font-weight: 600; line-height: 1.35;">{{ walk.title }}</div>
+          <div style="font-size: 12px; color: #a1a1aa; line-height: 1.45; text-wrap: pretty;">{{ walk.say }}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <x-import component-from-global-scope="ShinroStudio.Button" size="sm" variant="outline" on-click="{{ walk.prev }}" hint-size="70px,32px">Back</x-import>
+            <x-import component-from-global-scope="ShinroStudio.Button" size="sm" on-click="{{ walk.next }}" hint-size="70px,32px">Next</x-import>
+            <div style="flex: 1;"></div>
+            <span style="font-family: var(--font-mono), monospace; font-size: 12px; color: var(--color-muted-foreground);">{{ walk.counter }}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 7px; padding-top: 10px; border-top: 1px solid var(--color-border);">
+          <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground);">Scenes</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <sc-for list="{{ scenes }}" as="s" hint-placeholder-count="6">
+              <button onClick="{{ s.pick }}" style="font: 500 12px var(--font-sans), sans-serif; white-space: nowrap; padding: 4px 9px; border-radius: 7px; cursor: pointer; border: 1px solid {{ s.border }}; background: {{ s.bg }}; color: {{ s.fg }};">{{ s.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 7px; padding-top: 10px; border-top: 1px solid var(--color-border);">
+          <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground);">Fixtures</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <sc-for list="{{ fixtures }}" as="f" hint-placeholder-count="3">
+              <button onClick="{{ f.toggle }}" style="font: 500 12px var(--font-sans), sans-serif; white-space: nowrap; padding: 4px 9px; border-radius: 7px; cursor: pointer; border: 1px solid {{ f.border }}; background: {{ f.bg }}; color: {{ f.fg }};">{{ f.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 50; background: rgba(5,5,8,.62); display: flex; justify-content: flex-end;">
+      <div onClick="{{ closeDrawer }}" style="flex: 1;"></div>
+      <div style="width: {{ drawerWidth }}; max-width: 94vw; height: 100%; background: var(--color-card); border-left: 1px solid var(--color-border); display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--color-border); flex: none;">
+          <span style="font-size: 15px; font-weight: 600; white-space: nowrap;">{{ drawerTitle }}</span>
+          <div style="flex: 1;"></div>
+          <button onClick="{{ closeDrawer }}" style="font: 500 12px var(--font-sans), sans-serif; color: #a1a1aa; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; padding: 4px 10px; cursor: pointer;">Close</button>
+        </div>
+        <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 16px 20px 24px;">
+
+          <sc-if value="{{ showHistory }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{ allEvents }}" as="e" hint-placeholder-count="6">
+                <div style="display: flex; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--color-border);">
+                  <span style="font-family: var(--font-mono), monospace; font-size: 12px; color: var(--color-muted-foreground); width: 46px; flex: none;">{{ e.t }}</span>
+                  <span style="width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex: none; background: {{ e.dot }};"></span>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 13px; line-height: 1.45; color: {{ e.fg }};">{{ e.text }}</div>
+                    <div style="font-size: 12px; color: var(--color-muted-foreground); margin-top: 2px;">{{ e.source }}</div>
+                  </div>
+                  <sc-if value="{{ e.hasEvidence }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ e.openEvidence }}" style="font: 500 12px var(--font-sans), sans-serif; white-space: nowrap; flex: none; color: #a1a1aa; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; padding: 3px 9px; cursor: pointer; align-self: flex-start;">Evidence</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showEvidence }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: inline-flex; align-self: flex-start; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 7px; background: rgba(167,139,250,.12);">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #a78bfa;"></span>
+                <span style="font-family: var(--font-mono), monospace; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #c4b5fd;">RECORDED FRAME · NOT LIVE</span>
+              </div>
+              <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden;">
+                <image-slot id="cake-evidence" shape="rect" fit="cover" placeholder="Recorded frame"></image-slot>
+              </div>
+              <div style="font-size: 13px; color: #a1a1aa; line-height: 1.5; text-wrap: pretty;">The frame the controller acted on, kept in history as evidence. Live views continue in the workspace; this image is never presented as current.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showDiagnostics }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <div>
+                <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground); margin-bottom: 9px;">Mission identity</div>
+                <div style="display: flex; flex-direction: column; gap: 7px;">
+                  <sc-for list="{{ identity }}" as="d" hint-placeholder-count="4">
+                    <div style="display: flex; gap: 14px; font-size: 13px;">
+                      <span style="width: 150px; flex: none; color: var(--color-muted-foreground);">{{ d.k }}</span>
+                      <span style="font-family: var(--font-mono), monospace; color: #d4d4d8;">{{ d.v }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground); margin-bottom: 9px;">Runtime continuity</div>
+                <div style="font-size: 13px; color: #a1a1aa; line-height: 1.55; text-wrap: pretty;">Continuity is evidenced by the retained mission id, the unbroken controller session and the activation receipt below — not by a downtime counter.</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-foreground); margin-bottom: 9px;">Streams</div>
+                <div style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono), monospace; font-size: 13px; color: #a1a1aa;">
+                  <div>/camera/front · sample media in prototype</div>
+                  <div>/camera/wrist · sample media in prototype</div>
+                  <div>/cake/runtime · fixture, not a live session</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showReceipt }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="font-size: 13px; color: #a1a1aa; line-height: 1.5;">What the runtime returned when the capability was activated. Shown here rather than on the main screen.</div>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <sc-for list="{{ receipt }}" as="d" hint-placeholder-count="5">
+                  <div style="display: flex; gap: 14px; font-size: 13px;">
+                    <span style="width: 170px; flex: none; color: var(--color-muted-foreground);">{{ d.k }}</span>
+                    <span style="font-family: var(--font-mono), monospace; color: #d4d4d8;">{{ d.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showBindings }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="font-size: 13px; color: #a1a1aa; line-height: 1.5; text-wrap: pretty;">Every field visible on the screen, what it means, where it comes from, and what the UI shows when it is unavailable.</div>
+              <div style="display: grid; grid-template-columns: 136px minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.15fr); gap: 0;">
+                <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground); padding: 0 10px 7px 0;">Field</div>
+                <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground); padding: 0 10px 7px 0;">Meaning</div>
+                <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground); padding: 0 10px 7px 0;">Source</div>
+                <div style="font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-muted-foreground); padding: 0 0 7px 0;">If unavailable</div>
+                <sc-for list="{{ bindings }}" as="b" hint-placeholder-count="8">
+                  <div style="display: contents;">
+                    <div style="font-size: 13px; font-weight: 600; color: #e4e4e7; padding: 10px 10px 10px 0; border-top: 1px solid var(--color-border);">{{ b.field }}</div>
+                    <div style="font-size: 13px; color: #a1a1aa; line-height: 1.4; padding: 10px 10px 10px 0; border-top: 1px solid var(--color-border);">{{ b.meaning }}</div>
+                    <div style="font-family: var(--font-mono), monospace; font-size: 12px; color: var(--color-muted-foreground); line-height: 1.4; overflow-wrap: anywhere; padding: 10px 10px 10px 0; border-top: 1px solid var(--color-border);">{{ b.source }}</div>
+                    <div style="font-size: 13px; color: #a1a1aa; line-height: 1.4; padding: 10px 0; border-top: 1px solid var(--color-border);">{{ b.fallback }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}}">
+class Component extends DCLogic {
+  state = {
+    scene: 'baseline', walkIndex: 0, running: true, elapsed: 26,
+    phase: 1, placed: 0, target: 'Cube A', waiting: false, done: false,
+    cake: 'off', cand: null, reqStatus: 'idle', approachActive: false, monitorVersion: 'v0.3.1',
+    activatedAt: null, activatedTarget: null, activatedMission: null,
+    focus: 'wrist', frontState: 'sample', overlay: false, dock: false, drawer: null,
+    events: [
+      { t: '00:04', kind: 'sys', text: 'Baseline program started from browser', source: 'operator' },
+      { t: '00:11', kind: 'robot', text: 'Pad and two cubes detected', source: 'task controller', evidence: true }
+    ]
+  };
+
+  SCENES = [
+    { id: 'baseline', label: '1 Baseline' },
+    { id: 'monitoring', label: '2 Monitoring update' },
+    { id: 'waiting', label: '3 Cube B waiting' },
+    { id: 'rejected', label: '4 Rejected' },
+    { id: 'activated', label: '5 Activated' },
+    { id: 'complete', label: '6 Placed & returned' }
+  ];
+
+  WALK = [
+    { scene: 'baseline', title: 'Today’s proven baseline', say: 'One browser-triggered run: the robot finds the pad and cubes, picks, carries, places and returns. Cake is not involved.' },
+    { scene: 'monitoring', title: 'Cake connects, monitoring only', say: 'Cake attaches to the running program and we update a monitoring module. Behaviour does not change — that is stated on screen.' },
+    { scene: 'waiting', title: 'Cube B needs a capability we do not have', say: 'Cube A is placed. The mission keeps Cube B as its target and enters an explicit waiting state. The robot is not moving; the mission is alive.' },
+    { scene: 'rejected', title: 'An invalid candidate is refused', say: 'We submit an unsigned build. Cake rejects it and the active system stays exactly as it was — this is a rejected update, not a failed mission.' },
+    { scene: 'activated', title: 'mobile_approach activated mid-mission', say: 'The signed capability activates. The same mission resumes on the same Cube B — no restart, no new run.' },
+    { scene: 'complete', title: 'Both cubes placed, robot returned', say: 'Physical result and quality target stay separate: the placement succeeded and clearance came in 2.4 mm under target.' }
+  ];
+
+  componentDidMount() {
+    this._iv = setInterval(() => {
+      if (this.state.running && !this.state.done) this.setState(s => ({ elapsed: s.elapsed + 1 }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this._iv); }
+
+  ev(t, kind, text, source, evidence) { return { t, kind, text, source, evidence }; }
+  fmt(sec) { return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0'); }
+  push(kind, text, source, evidence) {
+    this.setState(s => ({ events: [...s.events, this.ev(this.fmt(s.elapsed), kind, text, source, evidence)] }));
+  }
+
+  scene(id) {
+    const E = (...a) => this.ev(...a);
+    const base = { scene: id, drawer: null, cand: null, reqStatus: 'idle', running: true, done: false, waiting: false, overlay: false, frontState: 'sample', activatedAt: null, activatedTarget: null, activatedMission: null };
+    const walkIndex = Math.max(0, this.WALK.findIndex(w => w.scene === id));
+    if (id === 'baseline') {
+      this.setState({ ...base, walkIndex, cake: 'off', phase: 2, placed: 0, target: 'Cube A', approachActive: false, elapsed: 26, monitorVersion: 'v0.3.1',
+        events: [E('00:04', 'sys', 'Baseline program started from browser', 'operator'), E('00:11', 'robot', 'Pad and two cubes detected', 'task controller', true)] });
+    } else if (id === 'monitoring') {
+      this.setState({ ...base, walkIndex, cake: 'monitoring', phase: 3, placed: 0, target: 'Cube A', approachActive: false, elapsed: 48, monitorVersion: 'v0.3.1', reqStatus: 'monitor-validating',
+        events: [E('00:11', 'robot', 'Pad and two cubes detected', 'task controller', true), E('00:33', 'cake', 'Cake runtime attached to the running program', 'cake'), E('00:46', 'cake', 'Update requested · Run monitoring v0.4.0 (monitoring only)', 'operator')] });
+    } else if (id === 'waiting') {
+      this.setState({ ...base, walkIndex, cake: 'monitoring', phase: 1, placed: 1, target: 'Cube B', waiting: true, approachActive: false, elapsed: 79, monitorVersion: 'v0.4.0',
+        events: [E('00:46', 'cake', 'Update requested · Run monitoring v0.4.0 (monitoring only)', 'operator'), E('00:52', 'ok', 'Monitoring update active · v0.3.1 → v0.4.0 · robot behaviour unchanged', 'cake runtime'), E('01:08', 'ok', 'Cube A placed · robot returned', 'task controller', true), E('01:16', 'wait', 'Cube B selected · approach capability unavailable, mission held', 'task controller')] });
+    } else if (id === 'rejected') {
+      this.setState({ ...base, walkIndex, cake: 'monitoring', phase: 1, placed: 1, target: 'Cube B', waiting: true, approachActive: false, elapsed: 94, monitorVersion: 'v0.4.0', cand: 'dev', reqStatus: 'rejected',
+        events: [E('01:16', 'wait', 'Cube B selected · approach capability unavailable, mission held', 'task controller'), E('01:29', 'cake', 'Activation requested · mobile_approach 0.1.0-dev', 'operator'), E('01:33', 'bad', 'Rejected · unsigned build · active system unchanged', 'cake runtime')] });
+    } else if (id === 'activated') {
+      this.setState({ ...base, walkIndex, cake: 'participating', phase: 2, placed: 1, target: 'Cube B', approachActive: true, elapsed: 112, monitorVersion: 'v0.4.0', cand: 'rel', reqStatus: 'activated', activatedAt: '01:46', activatedTarget: 'Cube B', activatedMission: 'm-4471',
+        events: [E('01:33', 'bad', 'Rejected · unsigned build · active system unchanged', 'cake runtime'), E('01:41', 'cake', 'Activation requested · mobile_approach 0.4.0', 'operator'), E('01:46', 'ok', 'mobile_approach 0.4.0 active · mission m-4471 retained', 'cake runtime'), E('01:47', 'ok', 'Mission resumed on Cube B · approaching', 'task controller')] });
+    } else if (id === 'complete') {
+      this.setState({ ...base, walkIndex, cake: 'participating', phase: 5, placed: 2, target: 'Cube B', approachActive: true, elapsed: 168, running: false, done: true, monitorVersion: 'v0.4.0', cand: 'rel', reqStatus: 'activated', activatedAt: '01:46', activatedTarget: 'Cube B', activatedMission: 'm-4471',
+        events: [E('01:47', 'ok', 'Mission resumed on Cube B · approaching', 'task controller'), E('02:31', 'ok', 'Cube B secured · retention confirmed by controller', 'task controller', true), E('02:44', 'ok', 'Cube placed · robot returned', 'task controller', true), E('02:45', 'warn', 'Clearance 17.6 mm · 2.4 mm below 20 mm target', 'placement verifier')] });
+    }
+  }
+
+  apply() {
+    const cand = this.state.cand;
+    if (!cand) return;
+    this.setState({ reqStatus: 'validating' });
+    this.push('cake', 'Activation requested · mobile_approach ' + (cand === 'dev' ? '0.1.0-dev' : '0.4.0'), 'operator');
+    clearTimeout(this._t);
+    this._t = setTimeout(() => {
+      if (cand === 'dev') {
+        this.setState({ reqStatus: 'rejected', scene: 'rejected' });
+        this.push('bad', 'Rejected · unsigned build · active system unchanged', 'cake runtime');
+      } else {
+        this.setState(p => ({ reqStatus: 'activated', approachActive: true, cake: 'participating', waiting: false, phase: 2, scene: 'activated', activatedAt: this.fmt(p.elapsed), activatedTarget: p.target, activatedMission: 'm-4471' }));
+        this.push('ok', 'mobile_approach 0.4.0 active · mission m-4471 retained', 'cake runtime');
+        this.push('ok', 'Mission resumed on ' + this.state.target + ' · approaching', 'task controller');
+      }
+    }, 1700);
+  }
+
+  monitorUpdate() {
+    this.setState({ reqStatus: 'monitor-validating' });
+    this.push('cake', 'Update requested · Run monitoring v0.4.0 (monitoring only)', 'operator');
+    clearTimeout(this._t2);
+    this._t2 = setTimeout(() => {
+      this.setState({ reqStatus: 'monitor-active', monitorVersion: 'v0.4.0' });
+      this.push('ok', 'Monitoring update active · v0.3.1 → v0.4.0 · robot behaviour unchanged', 'cake runtime');
+    }, 1700);
+  }
+
+  renderVals() {
+    const s = this.state;
+    const C = { accent: '#00d4ff', wait: '#a78bfa', warn: '#fbbf24', bad: '#f87171', ok: '#34d399', mute: '#8b8b96' };
+    const dot = { sys: '#8b8b96', robot: '#8b8b96', cake: C.accent, ok: C.ok, wait: C.wait, warn: C.warn, bad: C.bad };
+    const efg = { sys: '#a1a1aa', robot: '#a1a1aa', cake: '#d4d4d8', ok: '#d4d4d8', wait: C.wait, warn: C.warn, bad: C.bad };
+
+    const phaseLabels = ['Find', 'Pick', 'Carry', 'Place', 'Return'];
+    const phases = phaseLabels.map((label, i) => {
+      const n = i + 1;
+      const current = n === s.phase && !s.done;
+      const waiting = current && s.waiting;
+      const past = s.done || n < s.phase;
+      return {
+        n, label, hasArrow: n < 5,
+        bg: waiting ? 'rgba(167,139,250,.12)' : current ? 'rgba(0,212,255,.10)' : 'transparent',
+        numBg: waiting ? C.wait : current ? C.accent : past ? 'rgba(52,211,153,.16)' : 'var(--color-border)',
+        numFg: waiting || current ? '#0a0a0f' : past ? C.ok : '#5b5b66',
+        fg: waiting ? '#ddd6fe' : current ? '#f4f4f5' : past ? '#a1a1aa' : '#5b5b66'
+      };
+    });
+
+    const actions = {
+      baseline: { kicker: 'Current action', title: 'Picking Cube A', sub: 'Baseline program · Cake is not involved in this behaviour.' },
+      monitoring: { kicker: 'Current action', title: 'Carrying Cube A to the pad', sub: 'Cake attached and monitoring · robot behaviour unchanged.' },
+      waiting: { kicker: 'Waiting for capability', title: 'Cube B needs approach capability', sub: 'The robot is holding at the pad. Mission m-4471 and the Cube B target are retained — this wait is a task state, not motion.', wait: true },
+      rejected: { kicker: 'Waiting for capability', title: 'Cube B needs approach capability', sub: 'Update rejected; the mission still holds Cube B. Nothing about the running system changed.', wait: true },
+      activated: { kicker: 'Current action', title: 'Approaching Cube B', sub: 'Same mission, same target — resumed with mobile_approach 0.4.0.' },
+      complete: { kicker: 'Result', title: 'Cube placed · Robot returned', sub: 'Both cubes placed. Mission m-4471 completed without a restart.', quality: true }
+    };
+    let a = actions[s.scene] || actions.baseline;
+    if (!s.done && s.phase === 5) a = { kicker: 'Current action', title: 'Returning to start', sub: 'Cube placed — the robot is driving back to the start position.' };
+    if (s.done) a = actions.complete;
+    const action = {
+      kicker: a.kicker, title: a.title, sub: a.sub,
+      fg: a.wait ? '#ede9fe' : '#f4f4f5',
+      rule: a.wait ? C.wait : a.quality ? C.ok : C.accent,
+      bg: a.wait ? 'rgba(167,139,250,.06)' : '#0d0d13',
+      hasQuality: !!a.quality
+    };
+
+    const camState = (kind) => ({
+      sample: { state: 'SAMPLE', dot: C.wait, chipBg: 'rgba(167,139,250,.12)', note: 'sample media · prototype', bad: false },
+      live: { state: 'LIVE', dot: C.ok, chipBg: 'rgba(52,211,153,.12)', note: 'stream advancing', bad: false },
+      stale: { state: 'STALE', dot: C.warn, chipBg: 'rgba(251,191,36,.12)', note: 'frame held', bad: true, badTitle: 'Stream stale', badNote: 'Last frame older than 2 s — not live' },
+      off: { state: 'DISCONNECTED', dot: C.bad, chipBg: 'rgba(248,113,113,.12)', note: 'no stream', bad: true, badTitle: 'Camera disconnected', badNote: 'No frames received from this camera' }
+    }[kind]);
+
+    const cakeChip = {
+      off: { label: 'Cake off', dot: '#5b5b66', fg: '#a1a1aa', chipBg: '#13131a', chipBorder: 'var(--color-border)' },
+      monitoring: { label: 'Connected · monitoring', dot: C.accent, fg: '#a5f3fc', chipBg: 'rgba(0,212,255,.08)', chipBorder: 'rgba(0,212,255,.3)' },
+      participating: { label: 'Participating in this task', dot: C.ok, fg: '#a7f3d0', chipBg: 'rgba(52,211,153,.10)', chipBorder: 'rgba(52,211,153,.32)' }
+    }[s.cake];
+
+    /* --- module inventory --- */
+    const mods = [];
+    mods.push({
+      name: 'Pad & cube detection', version: 'v1.2.0', dot: C.ok, stateFg: '#d4d4d8', stateLabel: 'Active · running',
+      hasOp: true, opLabel: 'Disable', opDisabled: true, reason: 'In use by the current Find action'
+    });
+    mods.push({
+      name: 'Pick & place', version: 'v0.9.3', dot: s.phase === 2 || s.phase === 4 ? C.ok : '#8b8b96',
+      stateFg: '#d4d4d8', stateLabel: s.phase === 2 || s.phase === 4 ? 'Active · running' : 'Enabled · idle',
+      hasOp: false, reason: 'Runs during Pick and Place. Idle between actions — no action needed.'
+    });
+    const appActive = s.approachActive;
+    const appPending = s.reqStatus === 'validating';
+    mods.push({
+      name: 'Mobile approach', version: appActive ? 'v0.4.0' : '—',
+      dot: appActive ? C.ok : appPending ? C.accent : s.waiting ? C.wait : '#5b5b66',
+      stateFg: appActive ? '#d4d4d8' : s.waiting ? '#ddd6fe' : '#a1a1aa',
+      stateLabel: appActive ? 'Active · running' : appPending ? 'Requested…' : 'Not installed',
+      hasOp: !appActive, opLabel: appPending ? 'Requested…' : 'Activate capability', opDisabled: appPending,
+      reason: appActive ? 'mobile_approach · required by the Cube B approach' : s.waiting ? 'Required by the current mission target' : 'Planned capability · not in the runtime inventory'
+    });
+    const monPending = s.reqStatus === 'monitor-validating';
+    mods.push({
+      name: 'Run monitoring', version: s.monitorVersion, dot: C.accent, stateFg: '#d4d4d8', stateLabel: monPending ? 'Requested…' : 'Active · monitoring only',
+      hasOp: s.monitorVersion === 'v0.3.1', opLabel: monPending ? 'Requested…' : 'Update v0.4.0', opDisabled: monPending,
+      op: () => this.monitorUpdate(), reason: 'Observes the run. Does not affect robot behaviour.'
+    });
+    const modules = mods.map(m => ({
+      ...m,
+      op: m.op || (() => { if (m.name === 'Mobile approach') this.setState({ cand: 'dev' }); }),
+      opCursor: m.opDisabled ? 'not-allowed' : 'pointer',
+      opBorder: m.opDisabled ? 'var(--color-border)' : m.name === 'Mobile approach' ? 'rgba(167,139,250,.45)' : 'rgba(0,212,255,.35)',
+      opBg: m.opDisabled ? '#13131a' : m.name === 'Mobile approach' ? 'rgba(167,139,250,.12)' : 'rgba(0,212,255,.08)',
+      opFg: m.opDisabled ? '#52525b' : m.name === 'Mobile approach' ? '#c4b5fd' : '#67e8f9'
+    }));
+
+    /* --- decisive interaction --- */
+    const monitorFlow = s.reqStatus === 'monitor-validating' || s.reqStatus === 'monitor-active';
+    const candidates = [
+      { id: 'dev', version: 'mobile_approach 0.1.0-dev', note: 'Unsigned developer build · fails validation' },
+      { id: 'rel', version: 'mobile_approach 0.4.0', note: 'Signed release · adds base motion to the approach' }
+    ].map(c => {
+      const on = s.cand === c.id;
+      return {
+        version: c.version, note: c.note, pick: () => this.setState({ cand: c.id, reqStatus: 'idle' }),
+        border: on ? 'rgba(167,139,250,.5)' : 'var(--color-border)', bg: on ? 'rgba(167,139,250,.10)' : '#101017',
+        ring: on ? C.wait : '#3f3f46', fill: on ? C.wait : 'transparent'
+      };
+    });
+
+    let req = { open: false };
+    if (s.cake !== 'off') {
+      if (monitorFlow) {
+        const active = s.reqStatus === 'monitor-active';
+        req = {
+          open: true, kicker: 'Update · monitoring only', accent: C.accent,
+          border: 'rgba(0,212,255,.28)', bg: 'rgba(0,212,255,.05)',
+          stepLabel: active ? 'confirmed' : 'validating',
+          title: active ? 'Run monitoring updated while the task continued' : 'Updating Run monitoring during the task',
+          showCandidates: false, showVersions: true,
+          fromLabel: 'Previous', fromVersion: 'v0.3.1', toLabel: active ? 'Active' : 'Proposed', toVersion: 'v0.4.0',
+          toColor: active ? C.ok : C.accent,
+          validating: !active, rejected: false, activated: false,
+          showActions: active, applyLabel: 'Dismiss', applyDisabled: false, apply: () => this.setState({ reqStatus: 'idle' }),
+          showReceipt: false
+        };
+      } else if (s.waiting || s.reqStatus === 'validating' || s.reqStatus === 'rejected' || s.reqStatus === 'activated') {
+        const st = s.reqStatus;
+        const done = st === 'activated';
+        req = {
+          open: true,
+          kicker: done ? 'Capability activated' : st === 'rejected' ? 'Activation rejected' : 'Capability needed now',
+          accent: done ? C.ok : st === 'rejected' ? C.bad : C.wait,
+          border: done ? 'rgba(52,211,153,.32)' : st === 'rejected' ? 'rgba(248,113,113,.32)' : 'rgba(167,139,250,.38)',
+          bg: done ? 'rgba(52,211,153,.06)' : st === 'rejected' ? 'rgba(248,113,113,.06)' : 'rgba(167,139,250,.08)',
+          stepLabel: done ? 'resumed' : st === 'rejected' ? 'rejected' : st === 'validating' ? 'validating' : s.cand ? 'candidate selected' : 'select a candidate',
+          title: done ? 'Cube B approachable · mission resumed' : 'Cube B needs approach capability',
+          showCandidates: !done && st !== 'validating' && st !== 'rejected',
+          showVersions: done || st === 'rejected' || st === 'validating',
+          fromLabel: done ? 'Previous' : 'Active', fromVersion: 'Unavailable',
+          toLabel: done ? 'Active' : 'Proposed',
+          toVersion: st === 'rejected' ? 'mobile_approach 0.1.0-dev' : 'mobile_approach 0.4.0',
+          toColor: done ? C.ok : st === 'rejected' ? C.bad : C.wait,
+          validating: st === 'validating', rejected: st === 'rejected', activated: done,
+          candidates,
+          showActions: !done || true,
+          applyLabel: done ? 'Activated' : st === 'rejected' ? 'Try the signed release' : st === 'validating' ? 'Validating…' : 'Validate & activate',
+          applyDisabled: done || st === 'validating' || (!s.cand && st !== 'rejected'),
+          apply: () => { if (s.reqStatus === 'rejected') { this.setState({ cand: 'rel', reqStatus: 'idle' }); } else { this.apply(); } },
+          showReceipt: done
+        };
+      }
+    }
+
+    const events = s.events.map(e => ({
+      t: e.t, text: e.text, source: e.source || '', dot: dot[e.kind], fg: efg[e.kind],
+      hasEvidence: !!e.evidence, openEvidence: () => this.setState({ drawer: 'evidence' })
+    }));
+    const latest = events[events.length - 1] || { t: '--:--', text: 'No events', dot: '#5b5b66', fg: '#a1a1aa' };
+
+    return {
+      link: { dot: C.ok, label: 'Robot connected', id: 'LeKiwi-01' },
+      running: s.running, notRunning: !s.running, startVariant: s.running ? 'secondary' : 'default',
+      start: () => this.setState({ running: true, done: false }), stop: () => this.setState({ running: false }),
+      openDiagnostics: () => this.setState({ drawer: 'diagnostics' }),
+
+      phases, target: { label: s.target, fg: s.waiting ? '#ddd6fe' : '#f4f4f5' },
+      progressLabel: s.placed + ' of 2 cubes placed', elapsedText: this.fmt(s.elapsed),
+
+      camCols: s.focus === 'front' ? '1fr 1.55fr' : '1.55fr 1fr',
+      focusWrist: () => this.setState({ focus: 'wrist' }), focusFront: () => this.setState({ focus: 'front' }),
+      wristFocusLabel: s.focus === 'wrist' ? 'Enlarged' : 'Enlarge',
+      frontFocusLabel: s.focus === 'front' ? 'Enlarged' : 'Enlarge',
+      wrist: camState('sample'), front: camState(s.frontState),
+      overlayOn: s.overlay, overlayLabel: 'overlay · sample frame',
+
+      action, latest, eventCount: events.length, allEvents: [...events].reverse(),
+      openHistory: () => this.setState({ drawer: 'history' }),
+
+      cake: cakeChip, cakeOff: s.cake === 'off', cakeOn: s.cake !== 'off',
+      connectCake: () => { this.setState({ cake: 'monitoring' }); this.push('cake', 'Cake runtime attached to the running program', 'cake'); },
+      modules, req,
+      openReceipt: () => this.setState({ drawer: 'receipt' }),
+      openBindings: () => this.setState({ drawer: 'bindings' }),
+
+      scenes: this.SCENES.map(sc => ({
+        label: sc.label, pick: () => this.scene(sc.id),
+        border: s.scene === sc.id ? 'rgba(167,139,250,.5)' : '#2b2b36',
+        bg: s.scene === sc.id ? 'rgba(167,139,250,.14)' : 'transparent',
+        fg: s.scene === sc.id ? '#ddd6fe' : '#a1a1aa'
+      })),
+      fixtures: [
+        { label: 'Front: ' + s.frontState, on: s.frontState !== 'sample', toggle: () => this.setState(p => ({ frontState: p.frontState === 'sample' ? 'stale' : p.frontState === 'stale' ? 'off' : 'sample' })) },
+        { label: s.overlay ? 'Overlay on' : 'Overlay off', on: s.overlay, toggle: () => this.setState(p => ({ overlay: !p.overlay })) },
+        { label: s.running ? 'Clock running' : 'Clock stopped', on: !s.running, toggle: () => this.setState(p => ({ running: !p.running })) }
+      ].map(f => ({
+        label: f.label, toggle: f.toggle,
+        border: f.on ? 'rgba(167,139,250,.5)' : '#2b2b36',
+        bg: f.on ? 'rgba(167,139,250,.14)' : 'transparent',
+        fg: f.on ? '#ddd6fe' : '#a1a1aa'
+      })),
+      dockOpen: s.dock, dockCaret: s.dock ? '▲' : '▼',
+      dockBg: s.dock ? 'rgba(167,139,250,.14)' : '#13131a',
+      dockBorder: s.dock ? 'rgba(167,139,250,.45)' : 'var(--color-border)',
+      toggleDock: () => this.setState(p => ({ dock: !p.dock })),
+      walk: {
+        title: this.WALK[s.walkIndex].title, say: this.WALK[s.walkIndex].say,
+        counter: (s.walkIndex + 1) + ' / ' + this.WALK.length,
+        next: () => { const i = Math.min(this.WALK.length - 1, s.walkIndex + 1); this.scene(this.WALK[i].scene); },
+        prev: () => { const i = Math.max(0, s.walkIndex - 1); this.scene(this.WALK[i].scene); }
+      },
+
+      drawerOpen: !!s.drawer,
+      drawerWidth: s.drawer === 'bindings' ? '880px' : '520px',
+      drawerTitle: { history: 'Run history', evidence: 'Recorded evidence', diagnostics: 'Diagnostics', receipt: 'Activation receipt', bindings: 'Field bindings' }[s.drawer] || '',
+      showHistory: s.drawer === 'history', showEvidence: s.drawer === 'evidence',
+      showDiagnostics: s.drawer === 'diagnostics', showReceipt: s.drawer === 'receipt',
+      showBindings: s.drawer === 'bindings',
+      closeDrawer: () => this.setState({ drawer: null }),
+
+      identity: [
+        { k: 'Mission id', v: 'm-4471' }, { k: 'Robot', v: 'LeKiwi-01' },
+        { k: 'Task', v: 'pad_pick_place · 2 cubes' }, { k: 'Current target', v: s.target.toLowerCase().replace(' ', '_') },
+        { k: 'Controller session', v: 'unbroken since 00:04' }
+      ],
+      receipt: [
+        { k: 'Capability', v: 'mobile_approach' }, { k: 'Version', v: '0.4.0' },
+        { k: 'Previous state', v: 'not installed' },
+        { k: 'Confirmed at', v: s.activatedAt || '—' },
+        { k: 'Mission id at activation', v: s.activatedMission || '—' },
+        { k: 'Target at activation', v: s.activatedTarget ? s.activatedTarget.toLowerCase().replace(' ', '_') : '—' },
+        { k: 'Controller restart', v: 'none' }
+      ],
+      bindings: [
+        { field: 'Robot connected', meaning: 'Bridge session to the robot is alive', source: 'bridge heartbeat', fallback: 'Reads “Robot disconnected”; Start disabled' },
+        { field: 'Camera frame', meaning: 'Most recent decoded frame', source: 'front / wrist stream', fallback: 'Last frame held with STALE, then DISCONNECTED' },
+        { field: 'LIVE / SAMPLE', meaning: 'Whether pixels are actually advancing', source: 'frame timestamps', fallback: 'SAMPLE for prototype or recorded media' },
+        { field: 'Perception overlay', meaning: 'Detection computed on the frame shown', source: 'detector result + frame id', fallback: 'Overlay hidden — never drawn on a newer frame' },
+        { field: 'Phase 1–5', meaning: 'Mission phase the controller is executing', source: 'task controller state', fallback: 'Phases dimmed; action reads “Phase unknown”' },
+        { field: 'Target', meaning: 'Cube currently assigned to the mission', source: 'controller target id', fallback: 'Reads “No target”' },
+        { field: 'Progress', meaning: 'Placements confirmed by the controller', source: 'placement results', fallback: 'Reads “— of 2 cubes placed”' },
+        { field: 'Waiting for capability', meaning: 'Mission held, target retained, no motion', source: 'controller blocked-reason', fallback: 'Not shown unless the controller reports a block' },
+        { field: 'Cube secured', meaning: 'Retention evidence after grasp', source: 'controller retention check', fallback: 'Omitted — never inferred from jaw position' },
+        { field: 'Clearance', meaning: 'Measured footprint clearance vs 20 mm target', source: 'placement verifier report', fallback: 'Quality note hidden; physical result still shown' },
+        { field: 'Mission time', meaning: 'Elapsed since Start', source: 'controller run clock', fallback: 'Reads “—”' },
+        { field: 'Cake state', meaning: 'Off / connected-monitoring / participating in this task', source: 'runtime session + whether a module is bound to the active action', fallback: 'Reads “Cake off”' },
+        { field: 'Module version', meaning: 'Version the runtime reports as active', source: 'Cake inventory', fallback: 'Shows “—” with “version unknown”' },
+        { field: 'Module state', meaning: 'Active / enabled-idle / disabled / not installed', source: 'Cake inventory', fallback: 'Row shows “state unknown”; controls disabled' },
+        { field: 'Controls', meaning: 'Whether the operator may enable, disable or update', source: 'Cake capability permissions', fallback: 'Control disabled with the backend’s reason' },
+        { field: 'Request status', meaning: 'Pending until the runtime confirms', source: 'activation receipt', fallback: 'Stays pending; no optimistic state change' },
+        { field: 'History', meaning: 'Ordered controller and runtime events', source: 'event log', fallback: 'Strip reads “No events”' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "id": "cake_update",
+  "state": "disabled",
+  "reason_code": "not_built",
+  "reason": "no resident is reachable from this console",
+  "dependency": "cake_resident",
+  "planned": true
+}

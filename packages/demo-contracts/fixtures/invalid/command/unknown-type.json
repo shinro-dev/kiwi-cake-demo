@@ -1,0 +1,10 @@
+{
+  "contract_version": "1",
+  "command_id": "synthetic-command-0008",
+  "type": "self_destruct",
+  "args": {},
+  "client": {
+    "session_id": "synthetic-client-0001",
+    "contract_version": "1"
+  }
+}

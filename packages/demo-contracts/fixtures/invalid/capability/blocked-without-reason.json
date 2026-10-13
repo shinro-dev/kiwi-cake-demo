@@ -1,0 +1,8 @@
+{
+  "id": "manual_base_pulse",
+  "state": "blocked",
+  "reason_code": null,
+  "reason": "an autonomous run holds the robot",
+  "dependency": "owner",
+  "planned": false
+}

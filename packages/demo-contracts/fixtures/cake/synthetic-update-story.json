@@ -1,0 +1,113 @@
+{
+  "synthetic": true,
+  "ladder": {
+    "synthetic": true,
+    "artifacts_available": {
+      "value": true,
+      "evidence": "synthetic: a scripted story for interface development, read from no resident"
+    },
+    "resident_reachable": {
+      "value": true,
+      "evidence": "synthetic: a scripted story for interface development, read from no resident"
+    },
+    "admin_interface_compatible": {
+      "value": true,
+      "evidence": "synthetic: a scripted story for interface development, read from no resident"
+    },
+    "modules_active": {
+      "value": true,
+      "evidence": "synthetic: a scripted story for interface development, read from no resident"
+    },
+    "mission_participation": {
+      "value": true,
+      "evidence": "synthetic: a scripted story for interface development, read from no resident"
+    }
+  },
+  "slots": [
+    {
+      "synthetic": true,
+      "slot_id": "mobile_approach",
+      "generation": 1,
+      "process_session": "synthetic-process-0001",
+      "capsule_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000010",
+      "config_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000011",
+      "lifecycle_state": "ACTIVE"
+    }
+  ],
+  "transactions": [
+    {
+      "synthetic": true,
+      "transaction_id": "synthetic-transaction-0001",
+      "kind": "update",
+      "phase": "durable",
+      "committed": true,
+      "durable": true,
+      "native_events": [
+        {
+          "code": "plan_persisted",
+          "text": "synthetic: the new Plan is the durable Plan"
+        }
+      ],
+      "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020"
+    },
+    {
+      "synthetic": true,
+      "transaction_id": "synthetic-transaction-0003",
+      "kind": "update",
+      "phase": "rejected",
+      "committed": false,
+      "durable": false,
+      "native_events": [
+        {
+          "code": "candidate_incompatible",
+          "text": "candidate names an unadmitted capsule"
+        },
+        {
+          "code": "active_state_unchanged",
+          "text": "synthetic: Plan digest and epoch are unchanged"
+        }
+      ],
+      "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000030"
+    }
+  ],
+  "update_preview": {
+    "synthetic": true,
+    "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020",
+    "plan_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000021",
+    "epoch": 7,
+    "affected_slots": [
+      "mobile_approach"
+    ],
+    "resource_implications": [
+      "synthetic: no new resource grant",
+      "synthetic: the camera grant is unchanged"
+    ],
+    "expected_interruptions": {
+      "camera": false,
+      "connection": false,
+      "actuator": null
+    }
+  },
+  "continuity": {
+    "synthetic": true,
+    "mission_restarted": false,
+    "motor_owner_restarted": false,
+    "update_induced_hold": true,
+    "max_command_gap_ms": 120.0,
+    "max_observation_gap_ms": 80.0,
+    "affected_module_interruption_ms": 400.0,
+    "natural_dwell_ms": 1500.0,
+    "completed": true,
+    "sources": [
+      {
+        "name": "stable-motion-gateway",
+        "outside_replaced_module": true
+      },
+      {
+        "name": "host-observation-stream",
+        "outside_replaced_module": true
+      }
+    ],
+    "transaction_id": "synthetic-transaction-0001"
+  }
+}
