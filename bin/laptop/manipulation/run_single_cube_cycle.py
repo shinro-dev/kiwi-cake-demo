@@ -342,10 +342,13 @@ MAX_PATH_DEVIATION_M = 0.006  # the joint-linear path may leave the straight Car
 GRIPPER_OPEN_TOLERANCE = 3.0
 GRIPPER_HOLDING_BAND = (66.0, 72.0)  # latch command 66.8; a held 25.4 mm cube stalls the jaw near 68
 # A jaw that reaches the latch value within this closed on NOTHING. The readback moves in whole steps of 100/1449
-# (0.069); the recorded latch readbacks (2026-09-19..27, 11 empty, 14 held) are 969..976 steps empty and 984..991 held,
-# so 66.8 + 0.87 = 67.67 sits half a step above 980, the class midpoint: no readback falls on it, 4 steps above the
-# worst empty and 3 below the lowest hold (0.6 sat 0.043 above the worst empty, less than one step).
-GRIPPER_EMPTY_LATCH_MARGIN = 0.87
+# (0.069); the recorded latch readbacks (2026-09-19..27, 11 empty, 14 held) are 969..976 steps empty and 984..991 held.
+# On 2026-10-09 a hold read 980, four steps below every earlier hold, with the block squeezed between both jaws on the
+# wrist camera, while empty closes read 969..971; 0.87 (operator ruling 2026-09-27, the threshold half a step above 980)
+# read that hold as empty three times. So 66.8 + 0.73 = 67.53 sits half a step above 978, the midpoint of the worst empty
+# (976) and the lowest hold (980): no readback falls on it, 2.5 steps above the worst empty and 1.5 below the lowest hold.
+# Operator ruling 2026-10-09.
+GRIPPER_EMPTY_LATCH_MARGIN = 0.73
 GRIPPER_MOVE_S, GRIPPER_HOLD_S = 0.5, 0.75  # the proven values
 SLOW_FACTOR = 2.0
 HOME_FILE = ROOT / ".local-dev" / "calibration" / "scan-home-current.json"

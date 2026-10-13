@@ -529,11 +529,12 @@ class TheLatchMidpoint(unittest.TestCase):
         self.assertEqual(cycle.GRIPPER_LATCH + cycle.GRIPPER_EMPTY_LATCH_MARGIN, policy_grasp.latch_threshold(ctl))
 
     def test_the_close_is_classed_and_stated_at_the_words_threshold(self):
-        # 67.65 lies between the word's threshold (67.633) and the controller's (67.67), a value no readback takes (the
-        # readback moves in steps of 100/1449: 67.633 and 67.702 are the grid values either side).
-        for words, retried in (((), 1), (("latch_midpoint",), 0)):
+        # 67.60 lies between the controller's threshold (67.53, operator ruling 2026-10-09) and the word's (67.633, its
+        # recorded classes predate that ruling), a value no readback takes (the readback moves in steps of 100/1449: 67.564
+        # and 67.633 are the grid values either side). Before the ruling the controller's sat above the word's.
+        for words, retried in (((), 0), (("latch_midpoint",), 1)):
             with self.subTest(words=words):
-                ctx = harness.HarnessCycle({"grip:latch": [67.65, 68.4], "frame": lambda _ctx: _still_frame()}, pose=harness.DESCENDED_POSE)
+                ctx = harness.HarnessCycle({"grip:latch": [67.60, 68.4], "frame": lambda _ctx: _still_frame()}, pose=harness.DESCENDED_POSE)
                 with contextlib.redirect_stdout(io.StringIO()):
                     policy_grasp.run_grasp(ctx, harness.controller_view(PLACEMENT_ENVELOPE=words), {"object_secured": False}, harness.view(harness.DESCENDED_POSE),
                                            {"radial_mm": 0.0, "lateral_mm": 3.0, "aligned": True})
@@ -549,6 +550,11 @@ class TheLatchMidpoint(unittest.TestCase):
 READBACK_STEP = 100.0 / 1449.0
 LATCH_READBACKS_EMPTY = (67.012, 67.012, 66.874, 67.081, 67.012, 67.012, 67.012, 67.081, 67.288, 67.150, 67.357)
 LATCH_READBACKS_HELD = (68.392, 68.392, 68.323, 68.323, 68.323, 67.909, 67.909, 67.909, 67.909, 67.909, 67.909, 67.909, 68.185, 67.909)
+# 2026-10-09 (operator ruling): latch closes to 66.8 in free air at the mission start pose, and one at the grasp pose of run
+# console-20261009T075942Z-m769b8e5 with the block squeezed between both jaws on the wrist camera. That run's own three
+# closes read the same 67.633 and were classed empty by the 0.87 margin; they are not counted here.
+LATCH_READBACKS_EMPTY_20261009 = (67.012, 66.874, 67.012)
+LATCH_READBACKS_HELD_20261009 = (67.633,)
 
 
 class TheEmptyLatchClass(unittest.TestCase):
@@ -556,13 +562,13 @@ class TheEmptyLatchClass(unittest.TestCase):
 
     def test_every_recorded_close_is_classed_as_the_run_established_it(self):
         self.assertEqual((11, 14), (len(LATCH_READBACKS_EMPTY), len(LATCH_READBACKS_HELD)))
-        for reading in LATCH_READBACKS_EMPTY:
+        for reading in LATCH_READBACKS_EMPTY + LATCH_READBACKS_EMPTY_20261009:
             self.assertFalse(cycle.closed_on_something(reading), reading)
-        for reading in LATCH_READBACKS_HELD:
+        for reading in LATCH_READBACKS_HELD + LATCH_READBACKS_HELD_20261009:
             self.assertTrue(cycle.closed_on_something(reading), reading)
 
     def test_the_recorded_readbacks_are_whole_readback_steps(self):
-        for reading in LATCH_READBACKS_EMPTY + LATCH_READBACKS_HELD:
+        for reading in LATCH_READBACKS_EMPTY + LATCH_READBACKS_HELD + LATCH_READBACKS_EMPTY_20261009 + LATCH_READBACKS_HELD_20261009:
             steps = reading / READBACK_STEP
             self.assertAlmostEqual(round(steps), steps, delta=0.02, msg=reading)
 
@@ -570,17 +576,23 @@ class TheEmptyLatchClass(unittest.TestCase):
         threshold = cycle.GRIPPER_LATCH + cycle.GRIPPER_EMPTY_LATCH_MARGIN
         steps = threshold / READBACK_STEP
         self.assertGreaterEqual(abs(steps - round(steps)), 0.4, "no readback may fall on the threshold")
-        worst_empty, lowest_hold = max(LATCH_READBACKS_EMPTY) / READBACK_STEP, min(LATCH_READBACKS_HELD) / READBACK_STEP
-        self.assertGreaterEqual(steps - worst_empty, 4.0, "an empty close must drift four steps before it reads as held")
-        self.assertGreaterEqual(lowest_hold - steps, 3.0, "a hold must read three steps lower before it reads as empty")
+        empties, holds = LATCH_READBACKS_EMPTY + LATCH_READBACKS_EMPTY_20261009, LATCH_READBACKS_HELD + LATCH_READBACKS_HELD_20261009
+        worst_empty, lowest_hold = max(empties) / READBACK_STEP, min(holds) / READBACK_STEP
+        # operator ruling 2026-10-09: the 2026-10-09 hold at step 980 leaves four steps between the classes (976..980); the
+        # threshold sits at their midpoint, half a step off the grid (it was four above the worst empty and three below the
+        # lowest hold while the lowest hold was 984).
+        self.assertGreaterEqual(steps - worst_empty, 2.0, "an empty close must drift two steps before it reads as held")
+        self.assertGreaterEqual(lowest_hold - steps, 1.0, "a hold must read one step lower before it reads as empty")
 
     def test_the_grid_values_either_side_of_the_threshold_are_classed_apart(self):
-        below = 980 * READBACK_STEP  # 67.633, four steps above the worst empty
-        above = 981 * READBACK_STEP  # 67.702, three steps below the lowest hold
+        below = 978 * READBACK_STEP  # 67.495, two steps above the worst empty
+        above = 979 * READBACK_STEP  # 67.564, one step below the lowest hold
         self.assertFalse(cycle.closed_on_something(below))
         self.assertTrue(cycle.closed_on_something(above))
-        self.assertEqual(policy_grasp.close_held(harness.controller_view(), below, ("latch_midpoint",)), cycle.closed_on_something(below))
-        self.assertEqual(policy_grasp.close_held(harness.controller_view(), above, ("latch_midpoint",)), cycle.closed_on_something(above))
+        # operator ruling 2026-10-09: the word's threshold (67.633) now sits above the controller's, so under the word
+        # both grid values either side of the controller's threshold read empty (they agreed while both sat at 980..981).
+        self.assertFalse(policy_grasp.close_held(harness.controller_view(), below, ("latch_midpoint",)))
+        self.assertFalse(policy_grasp.close_held(harness.controller_view(), above, ("latch_midpoint",)))
 
 
 def _changed_frame():

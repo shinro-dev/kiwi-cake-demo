@@ -196,7 +196,14 @@ class TheProvenCodeIsTheInstalledCode(BaselineCase):
         self.assertEqual(inspect.getsource(current.placement_plan), now["placement_plan"] + "\n", "the source read here is the source the running module was built from")
 
     def test_run_config_states_the_same_constants_and_stage_policies_with_no_new_word(self):
-        self.assertEqual(self.baseline.effective_constants(), current.effective_constants())
+        # operator ruling 2026-10-09: GRIPPER_EMPTY_LATCH_MARGIN moved 0.87 -> 0.73 on the default path (a hold read 67.633,
+        # step 980, with the block squeezed between both jaws on the wrist camera, and 0.87 classed it empty). That one
+        # constant is the ruled difference from the proven baseline; every other constant still matches it.
+        ruled = "constant.gripper_empty_latch_margin"
+        baseline, now = self.baseline.effective_constants(), current.effective_constants()
+        self.assertEqual([0.87], [item["value"] for item in baseline if item["name"] == ruled])
+        self.assertEqual([0.73], [item["value"] for item in now if item["name"] == ruled])
+        self.assertEqual([item for item in baseline if item["name"] != ruled], [item for item in now if item["name"] != ruled])
         for environ in ({}, {current.PLACEMENT_ENVELOPE_ENV: "projected"}, {current.PLACEMENT_ENVELOPE_ENV: "scene_scan,search_sweep"}):
             with self.subTest(environ=environ):
                 self.assertEqual(self.baseline.stage_policy_summary(environ), current.stage_policy_summary(environ))

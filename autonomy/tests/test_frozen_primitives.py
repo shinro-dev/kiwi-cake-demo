@@ -53,7 +53,11 @@ FROZEN_CONSTANTS = (
 # docs/autonomous-demo/overnight-plan-2026-09-26.md, option A (docs/autonomous-demo/decision-log.md): the empty-latch
 # class at the midpoint of the recorded classes. The operator decided this pin; it has NOT been physically passed, and
 # its hardware check is the first attended qualification runs.
-FROZEN_CONSTANTS_DIGEST = "50dc4f66d85462a7a8e4a1fb431489d7bf344adec791eec4adbdea5453c4f6f7"
+# GRIPPER_EMPTY_LATCH_MARGIN 0.87 -> 0.73, changed by operator ruling 2026-10-09: a hold read 67.633 (step 980, the block
+# squeezed between both jaws on the wrist camera) and 0.87 classed it empty; 0.73 puts the threshold half a step above 978,
+# the midpoint of the worst empty (976) and that hold. Only this constant moved (0.87 reproduces the previous digest
+# 50dc4f66...). It has NOT been physically passed; its hardware check is the next attended mission 1.
+FROZEN_CONSTANTS_DIGEST = "7028a8bab67ffe3cad51fd7747d09b9dcbce3aab01f41f5ddeccc17a670a74e5"
 
 # THE BASE-AT-REST RULE, changed by operator ruling 2026-09-27 (docs/autonomous-demo/decision-log.md) after run
 # console-20260927T142146Z-m6ed2dd9 stopped holding the block on one velocity count on two wheels at once. base_pulse and
