@@ -63,6 +63,8 @@ def main(argv=None) -> int:
     parser.add_argument("--runtime-socket", required=True, help="path of the runtime daemon's socket (<its data directory>/runtime.sock)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"loopback port to bind (default {DEFAULT_PORT})")
     parser.add_argument("--web-build", default=None, help="directory of the built console to serve at / (without it, only the API is served)")
+    parser.add_argument("--vla-endpoint", default=None,
+                        help="tcp://127.0.0.1:PORT of the ssh forward to the robot's VLA runner (tools/vla/vla-up.sh); the /api/vla routes answer not configured without it")
     parser.add_argument("--credential-file", default=None, help="where to write this launch's credential (default: a 0600 file in the private per-user runtime directory)")
     args = parser.parse_args(argv)
     if not 1 <= args.port <= 65535:
@@ -84,11 +86,13 @@ def main(argv=None) -> int:
         return 2
 
     from demo_runtime.rpc import RuntimeClient
+    from console_api.vla import VlaForward
 
     client = RuntimeClient(socket_path, client_session=f"console-api-{os.getpid()}", timeout_s=RUNTIME_TIMEOUT_S)
     app = build_app(client=client, credential=credential, web_build=web_build, host=LOOPBACK, port=args.port,
                     private_tokens=[socket_path, os.path.dirname(socket_path), str(credential_path), web_build or ""],
-                    credential_store=store, runtime_session=runtime_session)
+                    credential_store=store, runtime_session=runtime_session,
+                    vla=VlaForward(args.vla_endpoint) if args.vla_endpoint else None)
 
     async def forget_credential(_app):
         try:

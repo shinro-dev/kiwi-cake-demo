@@ -474,6 +474,89 @@ alone on that controller, and the FRONT camera is on `usb1` (`xhci-hcd.0`), whic
 adapter. That makes a shared-controller story physically plausible for the front camera, and the A/B/A above is
 evidence AGAINST it being what these windows are measuring. Plausibility is not a finding.
 
+## 2026-10-11: both cameras enabled for the recorded demo: both workers FAILED, front off
+
+Times are UTC. For the recorded demo the operator asked for the front camera in the middle of the console screen, in
+place of the scene pad there ("use this space to showcase the front camera", operator statement, 15:26Z); the show
+screen of commit 1cf0fd8 put it there. At 16:37Z the camera service was restarted with both cameras,
+`bin/pi/start-camera-service.sh start --enable-front --front-source-fps 5`, service session
+`cs-20261011T163658Z-d1b3e412`. The launcher refused `--front-source-fps` with its usage line until commit d69f1d1,
+which passes it through to the service like `--source-fps`. The robot's runtime configuration gained a `preview`
+section naming both preview ports (wrist 5571, front 5572), and the runtime was restarted (session
+`rt-20261011T163728Z-72d183c6`). Both streams ran: at 16:54Z the runtime reported both previews `connected`. At 17:00Z
+a console page decoded the wrist stream while its front tile read `Connecting`, `Opening the camera stream`
+(`apps/console-web/src/design/cameras.ts:339-346`): that page had not decoded a front picture, and the record does not
+say why.
+
+**Against this document's rule.** The front camera "may be enabled, and may stream, **only after** qualification shows
+that an open front stream is independent of wrist capture and of the servo bus on that hub" (the section "The front
+camera is OFF"), and step 4, which says to "repeat steps 2 and 3 with `--enable-front`, watching wrist capture health
+and servo read health with BOTH streams open", is "the step that decides whether the front camera may stream at all".
+Step 4 has not passed (the 2026-09-22 sections above), so this was an unqualified configuration chosen for the
+recording, not a qualification run. The launcher said so when it started the service: "WARNING: --enable-front: the
+front camera is NOT QUALIFIED (docs/autonomous-demo/camera-service.md step 4)." (`bin/pi/start-camera-service.sh:250`).
+Its header also says not to pass `--enable-front` "in a session that also moves the robot"
+(`start-camera-service.sh:17-19`), and this session moved the arm.
+
+**What happened.** The first run of the four-click demo (Confirm, Start, Enable VLA, Start; commit a1b8fa8) started
+mission `mission-aede4435c4bb` at 17:18:26Z. The runtime took its mission captures from the camera service
+(`capture_provider` `camera_service` in its configuration, which the supervisor passes to the controller:
+`packages/demo-runtime/demo_runtime/supervisor.py:1482`), and the mission's SEARCH failed with `search_no_cube`:
+"SEARCH: no cube with a usable contact point in the low-pose wrist frame"
+(`autonomy/manipulation/policy_search.py:485`). The operator reported that the start "failed in locating" (operator
+statement, 17:19Z). The service's `status` at 17:22Z:
+
+| | Wrist | Front |
+|---|---|---|
+| `state` | `failed` | `failed` |
+| `error` | `no frame in 60 consecutive reads` | `no frame in 60 consecutive reads` |
+| `frames_seen` | 49424 | 44119 |
+| `source_fps_measured` | 19.905 | 19.931 |
+
+The error is the capture thread's own (`bin/pi/camera_service.py:632-633`, with `MAX_CONSECUTIVE_EMPTY_READS = 60` at
+`camera_service.py:555`): 60 reads in a row returned no frame, and a read is empty when OpenCV's `read()` returns no
+frame (`autonomy/perception/camera_lifecycle.py:281-283`). The service session counted `captures_ok` 0 and
+`requests_refused` 3, and two test captures asked of it at 17:21Z and 17:22Z, after the mission had failed, returned
+no frame either. No capture was served with both cameras open, so the mission's SEARCH frame, the first mission
+capture of the session, was never delivered. When either worker failed is not recorded.
+
+**The previews stopped with the captures, by the code.** A worker that fails ends its capture thread
+(`camera_service.py:632-634`), that thread is the only feed of its preview (`camera_service.py:658`), and a preview
+worker with no new frame publishes nothing (`camera_service.py:476`). From the failure on, neither preview had a
+picture to send, and the runtime calls a preview that had samples and then none inside its 2 s window `stalled`
+(`packages/demo-runtime/demo_runtime/sources.py:82` and `sources.py:431`). The runtime's preview state was not read
+between the failure and the restart below.
+
+**A FINDING ABOUT `--front-source-fps`.** The front camera's `source_fps_measured`, 19.931, is the rate over the last
+60 frames it delivered (`camera_service.py:333-346`), against the 5 fps requested. As this document says of
+`--source-fps`, the flag REQUESTS a rate and whether a camera honors it is unknown until measured: over those frames
+the front camera did not run at the requested rate. The 17:22Z status reading did not include the rate the driver
+reported for the request (`source_fps_reported`).
+
+**Back to the wrist alone.** A camera that FAILED inside the service stays locked and is not reopened (the handoff
+rule above), so at 17:23Z the service was stopped and started again without `--enable-front`
+(`bin/pi/start-camera-service.sh stop`, then `bin/pi/start-camera-service.sh start`). A test capture of the wrist
+camera through the service returned a 1280x720 frame, and the next mission, `mission-695d0571a3d3`, started at
+17:26:12Z and passed SEARCH; its record goes on to `OBJECT_SECURED` true. The front camera stayed off from then on,
+through the recorded demo of 2026-10-12, and at the operator's request the wrist view took the middle of the show
+screen (operator statement, 17:36Z; commit 0c9bd91).
+
+**What the console showed after.** The robot's runtime configuration kept the front preview port (5572), so the
+runtime kept a subscriber for the front role, and with the service running wrist only nothing published on that port
+(`camera_service.py:972-973` and `:987-999`). In a runtime session started after the change the front tile draws no
+picture: its chip reads `Connecting`, the runtime's state for a subscriber that has received no frame (`sources.py:11`
+and `sources.py:377`), and its line reads `No picture from this camera: no_frame_yet.`
+(`apps/console-web/src/design/cameras.ts:49`, `apps/console-web/src/design/DemoScreen.tsx:160-163` and
+`DemoScreen.tsx:175`, drawn by `apps/console-web/src/design/ShowScreen.tsx:68-69`). The show screen read exactly that
+on 2026-10-12, in the recorded demo as well. `Connecting` there does not mean that the front camera is starting: it is
+off.
+
+**WHAT THIS DOES AND DOES NOT ESTABLISH.** With both cameras open the wrist worker failed as well as the front one, and
+wrist capture health with BOTH streams open is what step 4 watches; in step 4's non-motion windows of 2026-09-22 both
+cameras stayed healthy (`reads_without_frame` 0 on each). This is one occurrence, with no baseline window and no
+controlled comparison. It does not show that the second stream caused the failure, nothing recorded says why the reads
+returned no frame, and no cause is claimed here. Step 4 has still not passed, and the front camera stays OFF.
+
 ## Degraded mode: mission stills at their true cadence
 
 When the service is not qualified, or is stopped, the console can still show the mission stills: each frame the controller

@@ -24,6 +24,7 @@ import './design/design.css';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ShowScreen } from './design/ShowScreen';
 import { DemoScreen } from './design/DemoScreen';
 import { Screen } from './design/Screen';
 import { screenChoiceFrom } from './design/screenChoice';
@@ -49,8 +50,9 @@ const container = document.getElementById('root');
 if (container === null) throw new Error('the page has no root element');
 
 const store = new ConsoleStore(chooseSource());
-// The simplified demo screen by default; the classic screen behind `?screen=classic` (`design/screenChoice.ts`).
-const ChosenScreen = screenChoiceFrom(window.location.search) === 'classic' ? Screen : DemoScreen;
+// The show screen by default; the earlier demo screen behind `?screen=demo`, the classic one behind `?screen=classic`.
+const choice = screenChoiceFrom(window.location.search);
+const ChosenScreen = choice === 'classic' ? Screen : choice === 'demo' ? DemoScreen : ShowScreen;
 
 createRoot(container).render(
   <StrictMode>

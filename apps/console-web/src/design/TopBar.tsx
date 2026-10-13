@@ -36,6 +36,8 @@ export interface TopBarProps {
   onStop: () => void;
   onReload?: () => void;
   onDiagnostics: () => void;
+  /** A control of the screen's own, drawn between Stop and Diagnostics (the show screen's Enable VLA). */
+  extra?: ReactNode;
   /**
    * The bar's rendered height in whole px, now and whenever it changes (it wraps to about 250 px at 390 px, and grows
    * when its detail opens). The Diagnostics drawer starts below it, so the only Stop is never covered (verify-r7 M1).
@@ -214,6 +216,7 @@ export function TopBar(props: TopBarProps): ReactNode {
         >
           {reload !== null ? 'Reload to stop' : props.stop.busy ? 'Stopping' : 'Stop'}
         </Button>
+        {props.extra ?? null}
         <Button variant="ghost" data-control="diagnostics" onClick={props.onDiagnostics}>
           Diagnostics
         </Button>

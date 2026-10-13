@@ -11,8 +11,8 @@
 #   bin/pi/start-camera-service.sh stop          SIGTERM, wait for it to close every device and release every lock
 #   bin/pi/start-camera-service.sh lock-status   who holds each camera lock (opens no camera, needs no service)
 #
-# Options for 'start': --source-fps N (REQUEST this source rate from the wrist camera), --preview-fps N, --no-preview,
-# --enable-front.
+# Options for 'start': --source-fps N (REQUEST this source rate from the wrist camera), --front-source-fps N (the same
+# for the front camera: the source rate is what the shared USB hub carries), --preview-fps N, --no-preview, --enable-front.
 #
 # --enable-front IS NOT QUALIFIED. The front camera shares a USB hub with the servo adapter, two concurrent streams were
 # reported unstable on this rig, and step 4 of docs/autonomous-demo/camera-service.md (the step that decides whether the
@@ -43,7 +43,7 @@ case "${1:-}" in
   start | status | stop | lock-status) ACTION="$1"; shift ;;
   -*) ;;
   '') ;;
-  *) echo "usage: $0 [start|status|stop|lock-status] [--source-fps N] [--preview-fps N] [--no-preview] [--enable-front]" >&2; exit 5 ;;
+  *) echo "usage: $0 [start|status|stop|lock-status] [--source-fps N] [--front-source-fps N] [--preview-fps N] [--no-preview] [--enable-front]" >&2; exit 5 ;;
 esac
 
 FRONT=0
@@ -53,10 +53,10 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --enable-front) FRONT=1; shift ;;
     --no-preview) SERVICE_OPTS="$SERVICE_OPTS --no-preview"; shift ;;
-    --source-fps | --preview-fps)
+    --source-fps | --preview-fps | --front-source-fps)
       number "${2:-}" || { echo "REFUSE: $1 takes a number" >&2; exit 5; }
       SERVICE_OPTS="$SERVICE_OPTS $1 $2"; shift 2 ;;
-    *) echo "usage: $0 [start|status|stop|lock-status] [--source-fps N] [--preview-fps N] [--no-preview] [--enable-front]" >&2; exit 5 ;;
+    *) echo "usage: $0 [start|status|stop|lock-status] [--source-fps N] [--front-source-fps N] [--preview-fps N] [--no-preview] [--enable-front]" >&2; exit 5 ;;
   esac
 done
 [ "$ACTION" = "start" ] || [ -z "$SERVICE_OPTS" ] || { echo "REFUSE: the service options apply to 'start' only" >&2; exit 5; }

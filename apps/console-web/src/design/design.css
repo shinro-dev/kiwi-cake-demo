@@ -408,3 +408,19 @@ body,
     max-width: 100vw !important;
   }
 }
+
+/* THE SHOW SCREEN (operator ruling 2026-10-11): mission and stages on the left, the front camera in the middle, the wrist
+   camera and Cake on the right; one column below 1100 px. Document order is screen order: no order, grid-row or grid-area. */
+.dc .show-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(0, 3fr);
+  gap: 16px;
+  padding: 16px 20px 20px;
+  align-items: start;
+}
+@media (max-width: 1099px) {
+  .dc .show-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 16px 16px;
+  }
+}

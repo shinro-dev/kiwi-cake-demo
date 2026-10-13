@@ -281,6 +281,7 @@ BUILD: web.AppKey = web.AppKey("kc_build", WebBuild)
 SANITIZER: web.AppKey = web.AppKey("kc_sanitizer", OutgoingSanitizer)
 STATE: web.AppKey = web.AppKey("kc_state", ApiState)
 OPTIONS: web.AppKey = web.AppKey("kc_options", Options)
+VLA: web.AppKey = web.AppKey("kc_vla", object)  # the VLA beat's forward (console_api/vla.py); absent unless --vla-endpoint
 
 
 # ---- plumbing ---------------------------------------------------------------------------------------------------------------
@@ -948,6 +949,32 @@ async def _mission_post(request: web.Request):
     return body, None
 
 
+# ---- the VLA beat: forwards to the robot-side runner, decides nothing ------------------------------------------------------------
+
+async def handle_vla_status(request: web.Request) -> web.Response:
+    forward = request.app.get(VLA)
+    if forward is None:
+        return _refused(request, "vla_not_configured", 404)
+    answer = await forward.call("status")
+    if answer is None:
+        return _json(request, {"state": "unreachable", "reason_code": "vla_runner_unreachable"})
+    return _json(request, answer)
+
+
+async def handle_post_vla(request: web.Request) -> web.Response:
+    """swap, unswap, run, stop: the guard, then the runner's own answer. Nothing is decided here."""
+    _body, refusal = await _command_body(request)
+    if refusal is not None:
+        return refusal
+    forward = request.app.get(VLA)
+    if forward is None:
+        return _refused(request, "vla_not_configured", 404)
+    answer = await forward.call(request.match_info["op"])
+    if answer is None:
+        return _refused(request, "vla_runner_unreachable", 503)
+    return _json(request, answer)
+
+
 async def handle_post_mission_start(request: web.Request) -> web.Response:
     body, refusal = await _mission_post(request)
     if refusal is not None:
@@ -1169,7 +1196,7 @@ def make_middleware(guard: Guard):
 
 def build_app(*, client, credential: str, web_build: Optional[str] = None, host: str = LOOPBACK, port: int = 0,
               private_tokens=(), options: Optional[Options] = None, credential_store: Optional[CredentialStore] = None,
-              runtime_session: Optional[str] = None) -> web.Application:
+              runtime_session: Optional[str] = None, vla=None) -> web.Application:
     """The application. client is a RuntimeClient or anything with its surface; nothing else reaches the runtime.
 
     credential_store and runtime_session are what make the credential outlive this process: with both, `credential` is
@@ -1186,6 +1213,8 @@ def build_app(*, client, credential: str, web_build: Optional[str] = None, host:
     app[SANITIZER] = sanitizer
     app[STATE] = ApiState(guard, store=credential_store, runtime_session=runtime_session, sanitizer=sanitizer)
     app[OPTIONS] = options or Options()
+    if vla is not None:
+        app[VLA] = vla
 
     async def close_bridge(_app) -> None:
         bridge.close()  # the dedicated stop worker; nothing else holds a thread of its own
@@ -1219,6 +1248,9 @@ def build_app(*, client, credential: str, web_build: Optional[str] = None, host:
     app.router.add_post("/api/mission/stop", handle_post_mission_stop)
     app.router.add_post("/api/mission/activate", handle_post_mission_activate)
     app.router.add_post("/api/mission/retry", handle_post_mission_retry)
+    # The VLA beat, before the catch-all like the mission routes: a forward to the robot-side runner, nothing more.
+    app.router.add_get("/api/vla/status", handle_vla_status)
+    app.router.add_post("/api/vla/{op:swap|unswap|run|stop|to_mission_pose|carry}", handle_post_vla)
     app.router.add_get("/", handle_index)
     app.router.add_get("/{path:.*}", handle_asset)
     return app

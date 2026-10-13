@@ -26,6 +26,7 @@ import { parseSignatureCheckState } from '../model/signatureCheck';
 import { parseCandidates, parseMission } from '../model/missionRecord';
 import { hostInstance, parseRobotStatus } from '../model/robotStatus';
 import type { HostInstance } from '../model/robotStatus';
+import type { VlaStatus } from '../model/vla';
 import type {
   ActivationOutcome,
   Attestation,
@@ -43,6 +44,7 @@ import type {
   MissionResult,
   MissionStartOutcome,
   MissionStopOutcome,
+  VlaOp,
   ObservationRead,
   RecordOrigin,
   RobotConfirmOutcome,
@@ -92,6 +94,12 @@ const REFUSED_BEFORE_THE_RUNTIME: ReadonlySet<number> = new Set([400, 403, 404, 
  * request is abandoned, it is NOT sent again, and the receipt says whether it reached the runtime is not known.
  */
 export const STOP_ANSWER_TIMEOUT_MS = 15_000;
+/**
+ * A VLA press is answered by the robot-side runner only after it read the runtime (twice when a read times out:
+ * vla/runner.py RUNTIME_READ_TIMEOUT_S x RUNTIME_READ_ATTEMPTS), behind the console door's 12 s forward. Giving up
+ * earlier read a press the runner was still deciding as "no answer".
+ */
+export const VLA_ANSWER_TIMEOUT_MS = 15_000;
 
 /** How long a Stop refused `credential_superseded` waits for the page it reads for the current credential. */
 const SERVED_PAGE_TIMEOUT_MS = 5_000;
@@ -857,6 +865,20 @@ export class HttpSource implements ConsoleSource {
    * land. Anything else that cannot be read is UNKNOWN, and nothing is sent again on it: the runtime's own mission
    * record is what says whether an activation happened, and it is read back rather than guessed at here.
    */
+  async vlaStatus(): Promise<VlaStatus> {
+    const answer = await this.attempt('/vla/status', undefined, 4000);
+    // A console started without --vla-endpoint has no VLA door: that is not a runner that is down.
+    if (answer.kind === 'body' && answer.status === 404 && isRecord(answer.body) && answer.body['reason_code'] === 'vla_not_configured') return { state: 'absent' };
+    if (answer.kind === 'unknown' || !answer.ok || !isRecord(answer.body)) return { state: 'unreachable' };
+    return answer.body as unknown as VlaStatus;
+  }
+
+  async vlaCommand(op: VlaOp): Promise<{ ok: boolean; answer: unknown }> {
+    const answer = await this.attempt(`/vla/${op}`, { method: 'POST', headers: this.headers(), body: '{}' }, VLA_ANSWER_TIMEOUT_MS);
+    if (answer.kind === 'unknown') return { ok: false, answer: answer.detail };
+    return { ok: answer.ok, answer: answer.body };
+  }
+
   async activateCandidate(candidateKey: string): Promise<ActivationOutcome> {
     const answer = await this.attempt('/mission/activate', {
       method: 'POST',

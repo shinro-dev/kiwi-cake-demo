@@ -1,0 +1,56 @@
+{
+ "joints": [
+  "shoulder_pan",
+  "shoulder_lift",
+  "elbow_flex",
+  "wrist_flex",
+  "wrist_roll",
+  "gripper"
+ ],
+ "joint_min_deg": [
+  -46.08,
+  -82.43,
+  -68.98,
+  -45.77,
+  -99.75,
+  63.18
+ ],
+ "joint_max_deg": [
+  19.62,
+  96.85,
+  89.64,
+  77.59,
+  -93.31,
+  82.5
+ ],
+ "floor_tool_z_m": -0.1345,
+ "start_pose_deg": [
+  -9.27,
+  -78.68,
+  34.51,
+  67.03,
+  -96.75,
+  79.16
+ ],
+ "wrist_roll_deg": -96.75,
+ "end_pose_min_deg": [
+  -35.51,
+  64.41,
+  -70.98,
+  -14.8
+ ],
+ "end_pose_max_deg": [
+  11.59,
+  98.85,
+  -15.26,
+  52.6
+ ],
+ "grasp_lift_max_deg": 61.14,
+ "takes": 30,
+ "frames": 15412,
+ "model_sha256": "a8e140720bf3cdfa276fcc28c9b4cb118abc6664f3e21fb98e6c3266b0444cd6",
+ "dataset": "vla_pickplace_v2_train30",
+ "joint_margin_deg": 3.0,
+ "floor_margin_m": 0.005,
+ "end_margin_deg": 5.0
+}

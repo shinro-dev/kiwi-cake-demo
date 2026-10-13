@@ -591,11 +591,11 @@ def serve_fixture_directory(directory, *, web_build=None, port: int = 8792) -> N
 
 # ---- the application under test ---------------------------------------------------------------------------------------------
 
-def make_app(stub, *, web_build=None, options=None, credential=CREDENTIAL, credential_store=None, runtime_session=None):
+def make_app(stub, *, web_build=None, options=None, credential=CREDENTIAL, credential_store=None, runtime_session=None, vla=None):
     """The application over a stub runtime. credential_store and runtime_session are what a launch against a real
     runtime passes: with them the credential belongs to that runtime session and outlives this process."""
     return build_app(client=stub, credential=credential, web_build=web_build, host="127.0.0.1", port=0,
-                     options=options or Options(), credential_store=credential_store, runtime_session=runtime_session)
+                     options=options or Options(), credential_store=credential_store, runtime_session=runtime_session, vla=vla)
 
 
 def post_headers(port: int, *, origin=None, host=None, content_type="application/json", header=CONSOLE_HEADER_VALUE, credential=CREDENTIAL) -> dict:

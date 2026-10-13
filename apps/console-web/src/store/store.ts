@@ -18,6 +18,7 @@ import type {
   HelloResult,
   HistoryResult,
   MissionStartOutcome,
+  VlaOp,
   PreviewSample,
   RecordOrigin,
   ResolutionOutcome,
@@ -31,6 +32,7 @@ import type {
 import type { CapabilityCheckState } from '../model/capabilityCheck';
 import type { SignatureCheckState } from '../model/signatureCheck';
 import type { MissionCandidate, MissionRecord } from '../model/missionRecord';
+import type { VlaStatus } from '../model/vla';
 import type { HostInstance, RobotStatus } from '../model/robotStatus';
 import type { ServedCredential } from '../api/boot';
 import { mintCommandId } from '../api/commandId';
@@ -55,7 +57,9 @@ import type { ViewState } from '../model/types';
 import { activeRunOnRecord, selectedRun, viewForSelectedRun } from '../model/selectedRun';
 import { missionEnded } from '../model/verdict';
 import type { ResultDetail } from '../model/acceptance';
-import { resultForCurrentRun, TELEMETRY_SILENT_AFTER_MS } from '../model/steps';
+import { resultForCurrentRun, runIsActive, TELEMETRY_SILENT_AFTER_MS } from '../model/steps';
+import { directorStep } from '../model/director';
+import type { DirectorStep } from '../model/director';
 import { arrivalSince, SNAPSHOT_CURRENT_WITHIN_MS } from '../model/arrivalSince';
 import { checkOffWords } from '../model/capabilityCheck';
 import { signatureOffWords } from '../model/signatureCheck';
@@ -81,6 +85,11 @@ import type { PressControl, PressEntry } from './presses';
 
 /** How often this page reads the snapshot, the robot, the mission and the checks. Stated on the Connections tab. */
 export const SNAPSHOT_POLL_MS = 5000;
+/** The director derives its next step from the next read; this is the one re-read it asks for itself after acting. */
+const DIRECTOR_SETTLE_MS = 1500;
+/** The demo Start waits this long, in these turns, for the runner's move to the mission start pose. */
+const POSE_WAIT_MS = 500;
+const POSE_WAIT_TURNS = 40;
 
 /** How long after a run's end the mission is read once more while its record still says RUNNING with no run in progress. */
 const MISSION_REREAD_AFTER_RUN_END_MS = 1000;
@@ -414,6 +423,25 @@ export interface StoreSnapshot {
   /** The receipt for the LAST Try again this tab sent. Whether an attempt started is read back from the mission record. */
   lastMissionRetry: MissionStartOutcome | null;
   /**
+   * THE VLA BEAT: the robot-side runner's state as /api/vla/status last answered it (null before the first read, or on a
+   * source with no VLA door). The runner decides every swap, run and stop; this is what it said.
+   */
+  vla: VlaStatus | null;
+  /** True while a VLA command from this tab is in flight, so a second press is refused rather than queued. */
+  vlaBusy: boolean;
+  /** Why the robot runner (or the console API) did not take this tab's last VLA press; null once a press is taken. */
+  vlaRefusal: string | null;
+  /** True while the runner loads or runs, AND while a runner last seen doing so does not answer: it may still drive the arm. */
+  vlaMaybeDriving: boolean;
+  /**
+   * THE DEMO DIRECTOR (model/director.ts, operator ruling 2026-10-11): the mission this tab armed with its Start, the step
+   * it last derived from the records, and whether a demo Start is in flight (the arm goes to the mission start pose
+   * first). Armed per tab, kept in sessionStorage so a reload of the same tab carries on; never armed by a read.
+   */
+  demoArmed: string | null;
+  directorStep: DirectorStep | null;
+  demoStarting: boolean;
+  /**
    * The receipt for the LAST mission start this tab requested. A statement about the request: whether a mission is
    * running is read back from the mission record, which is what survives a reload. Null until this tab has asked.
    */
@@ -532,6 +560,34 @@ export interface KeyValueStorage {
 export interface StoreOptions {
   /** Where acknowledgements are kept; the browser's localStorage when absent, none when there is no browser. */
   storage?: KeyValueStorage | null;
+  /** Where the demo director's armed mission is kept; the tab's sessionStorage when absent, none when there is no browser. */
+  sessionStorage?: KeyValueStorage | null;
+}
+
+export const DEMO_ARMED_KEY = 'kiwi-console.demo-armed.v1';
+
+function defaultSessionStorage(): KeyValueStorage | null {
+  try {
+    const storage = (globalThis as { sessionStorage?: KeyValueStorage }).sessionStorage;
+    return storage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The armed mission of this tab, as the last Start left it: `{ mission_id, runtime_session }`, or null. */
+function readArmed(storage: KeyValueStorage | null): { mission_id: string; runtime_session: string | null } | null {
+  try {
+    const raw = storage?.getItem(DEMO_ARMED_KEY);
+    if (typeof raw !== 'string' || raw === '') return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const record = parsed as { mission_id?: unknown; runtime_session?: unknown };
+    if (typeof record.mission_id !== 'string' || record.mission_id === '') return null;
+    return { mission_id: record.mission_id, runtime_session: typeof record.runtime_session === 'string' ? record.runtime_session : null };
+  } catch {
+    return null;
+  }
 }
 
 function defaultStorage(): KeyValueStorage | null {
@@ -578,6 +634,8 @@ export class ConsoleStore {
   private unsubscribeEvents: Unsubscribe | null = null;
   private unsubscribeTelemetry: Unsubscribe | null = null;
   private poll: ReturnType<typeof setInterval> | null = null;
+  /** The VLA runner's one-second read while it loads or runs; null otherwise. */
+  private vlaPoll: ReturnType<typeof setInterval> | null = null;
   /** The runs `foldRuns` is reading now, so a run is asked for once while a read is in flight. */
   private foldingRuns = new Set<string>();
   /** Guards hydrateRun: only the newest request may publish its answer. */
@@ -646,10 +704,20 @@ export class ConsoleStore {
   private activeRunAskedAt: { run_id: string; snapshot_at_ms: number | null } | null = null;
 
   private readonly storage: KeyValueStorage | null;
+  private readonly sessionStore: KeyValueStorage | null;
+  /** The runtime session the armed mission belongs to; another session disarms it. */
+  private armedSession: string | null = null;
+  private directing = false;
+  private directorStopping = false;
+  /** Set when the director is disarmed while this tab's demo Start is in flight: that Start then starts nothing. */
+  private demoStartCancelled = false;
 
   constructor(source: ConsoleSource, options: StoreOptions = {}) {
     this.source = source;
     this.storage = options.storage === undefined ? defaultStorage() : options.storage;
+    this.sessionStore = options.sessionStorage === undefined ? defaultSessionStorage() : options.sessionStorage;
+    const armed = readArmed(this.sessionStore);
+    this.armedSession = armed?.runtime_session ?? null;
     this.snapshot = {
       view: this.liveView,
       telemetry: {
@@ -688,6 +756,11 @@ export class ConsoleStore {
       lastMissionStart: null,
       retryingMission: false,
       lastMissionRetry: null,
+      vla: null,
+      vlaBusy: false,
+      vlaRefusal: null,
+      vlaMaybeDriving: false,
+      demoArmed: armed?.mission_id ?? null, directorStep: null, demoStarting: false,
       missionCandidates: null,
       missionCandidatesError: null,
       activating: false,
@@ -1138,6 +1211,8 @@ export class ConsoleStore {
   private stopFollowing(): void {
     if (this.poll !== null) clearInterval(this.poll);
     this.poll = null;
+    if (this.vlaPoll !== null) clearInterval(this.vlaPoll);
+    this.vlaPoll = null;
     this.unsubscribeEvents?.();
     this.unsubscribeEvents = null;
     this.unsubscribeTelemetry?.();
@@ -1163,6 +1238,8 @@ export class ConsoleStore {
     // A READ, on the way in. It is what a reloaded tab recovers the mission from, and it is the reason nothing about a
     // mission has to be kept in this browser. Nothing is started and nothing is activated here or anywhere on mount.
     await this.refreshMission();
+    // A READ, on the way in: a tab reloaded while the VLA policy drives the arm must know it before its first tick.
+    await this.refreshVla();
     this.poll = setInterval(() => {
       void this.refreshSnapshot();
       // The SAME tick, not a timer of its own. The runtime holds its resident reading for a poll interval and answers
@@ -1173,6 +1250,7 @@ export class ConsoleStore {
       void this.refreshCapabilityCheck();
       void this.refreshSignatureCheck();
       void this.refreshMission();
+      void this.refreshVla();
       if (this.watchedScanMissingFromHistory()) void this.refreshHistory();
     }, SNAPSHOT_POLL_MS);
 
@@ -1332,6 +1410,8 @@ export class ConsoleStore {
     this.unsubscribeEvents?.();
     this.unsubscribeTelemetry?.();
     if (this.poll !== null) clearInterval(this.poll);
+    if (this.vlaPoll !== null) clearInterval(this.vlaPoll);
+    this.vlaPoll = null;
     if (this.telemetryFlush !== null) clearTimeout(this.telemetryFlush);
     this.telemetryFlush = null;
     // The sample that was waiting for the window to close is published now. Dropping it would leave the screen on the
@@ -1450,6 +1530,161 @@ export class ConsoleStore {
     }
   }
 
+  /** True when the source this page talks to has the VLA door at all. */
+  get vlaOffered(): boolean {
+    return typeof this.source.vlaStatus === 'function';
+  }
+
+  /**
+   * A READ of the robot-side VLA runner. While it loads or runs, the read repeats every second (its own timer, cleared
+   * as soon as it leaves those states), because a chunk-then-pause episode changes phase faster than the 5 s tick.
+   */
+  /**
+   * ARM THE DEMO DIRECTOR for the mission this tab just started, or disarm it (null). The one way the director ever
+   * starts acting: a read never arms it, and a reload of another tab finds nothing armed. Disarming while this tab's
+   * demo Start is still in flight cancels that Start too: it starts no mission, or stops the one its start opened.
+   */
+  armDemo(missionId: string | null): void {
+    if (missionId === null && this.snapshot.demoStarting) this.demoStartCancelled = true;
+    this.armedSession = missionId === null ? null : this.snapshot.view.runtime_session;
+    this.emit({ demoArmed: missionId, directorStep: null });
+    try {
+      this.sessionStore?.setItem(DEMO_ARMED_KEY, missionId === null ? '' : JSON.stringify({ mission_id: missionId, runtime_session: this.armedSession }));
+    } catch {
+      // a tab whose storage refuses keeps the arming in memory only
+    }
+  }
+
+  /**
+   * ONE PASS OF THE DIRECTOR: derive the step from the records on hand and send it, at most one at a time. Called after
+   * every mission and runner read; a step whose record is already there (an activation submitted, a stop requested, a
+   * carry recorded) is never derived again, so nothing is sent twice.
+   */
+  async directDemo(): Promise<void> {
+    const armed = this.snapshot.demoArmed;
+    if (armed === null) {
+      if (this.snapshot.directorStep !== null) this.emit({ directorStep: null });
+      return;
+    }
+    const session = this.snapshot.view.runtime_session;
+    if (this.armedSession !== null && session !== null && session !== this.armedSession) {
+      this.armDemo(null);
+      return;
+    }
+    const step = directorStep({
+      armedMissionId: armed, mission: this.snapshot.mission, candidates: this.snapshot.missionCandidates, vla: this.snapshot.vla,
+      busy: { activating: this.snapshot.activating, stopping: this.directorStopping, vlaBusy: this.snapshot.vlaBusy, commandInFlight: this.snapshot.commandInFlight },
+      runActive: runIsActive(this.snapshot.view),
+    });
+    if (JSON.stringify(step) !== JSON.stringify(this.snapshot.directorStep)) this.emit({ directorStep: step });
+    if (this.directing || step === null || step.kind === 'wait' || step.kind === 'finished' || step.kind === 'failed') return;
+    this.directing = true;
+    try {
+      if (step.kind === 'activate') await this.activateCandidate(step.candidate_key);
+      else if (step.kind === 'stop') {
+        this.directorStopping = true;
+        try {
+          await this.requestStop();
+        } finally {
+          this.directorStopping = false;
+        }
+        await this.refreshMission();
+      } else await this.vlaCommand('carry');
+    } finally {
+      this.directing = false;
+    }
+    // THE NEXT STEP FOLLOWS THE NEXT READ, never this one: a step that is refused and derived again would otherwise spin.
+    setTimeout(() => void this.directDemo(), DIRECTOR_SETTLE_MS);
+  }
+
+  /**
+   * THE DEMO'S START (click 2 of four): the arm goes to the mission's start pose first (the runner's own move, when the
+   * runner is in standby), then the mission starts and the director is armed for it.
+   *
+   * A STOP CANCELS IT (independent review 2026-10-12): a disarm while this Start is in flight, as the show screen's Stop
+   * sends, ends the wait for the pose move and starts no mission; if the start was already on its way, the mission it
+   * opened is stopped and never directed.
+   */
+  async startDemo(): Promise<MissionStartOutcome> {
+    if (this.snapshot.demoStarting) return { kind: 'refused', reason_code: 'a demo start is already in flight in this tab; nothing was sent a second time', detail: null };
+    this.demoStartCancelled = false;
+    this.emit({ demoStarting: true });
+    try {
+      if (this.vlaOffered && this.snapshot.vla?.state === 'standby') {
+        const moved = await this.vlaCommand('to_mission_pose');
+        if (moved.ok) {
+          const runnerState = (): string | undefined => this.snapshot.vla?.state;
+          for (let turn = 0; turn < POSE_WAIT_TURNS && !this.demoStartCancelled; turn += 1) {
+            await this.refreshVla();
+            if (runnerState() !== 'moving') break;
+            await new Promise((resolve) => setTimeout(resolve, POSE_WAIT_MS));
+          }
+        }
+      }
+      if (this.demoStartCancelled) return { kind: 'refused', reason_code: 'the operator stopped this demo start before its mission started; no mission was started', detail: null };
+      const outcome = await this.startMission([]);
+      if (outcome.kind === 'started' && outcome.mission_id !== null) {
+        if (this.demoStartCancelled) {
+          await this.requestStop();
+          return outcome;
+        }
+        this.armDemo(outcome.mission_id);
+        void this.directDemo();
+      }
+      return outcome;
+    } finally {
+      this.emit({ demoStarting: false });
+    }
+  }
+
+  /**
+   * THE SHOW SCREEN'S STOP: disarms the director, which also cancels a demo Start still in flight; stops the robot
+   * runner while it may be driving the arm or moving it for that Start (also before the runner was read moving); then
+   * sends the runtime's Stop.
+   */
+  async stopDemo(): Promise<StopAck> {
+    const startPending = this.snapshot.demoStarting;
+    this.armDemo(null);
+    if (this.snapshot.vlaMaybeDriving || startPending) void this.vlaCommand('stop');
+    return this.requestStop();
+  }
+
+  async refreshVla(): Promise<void> {
+    if (typeof this.source.vlaStatus !== 'function') return;
+    const vla = await this.source.vlaStatus();
+    const active = vla.state === 'running' || vla.state === 'loading' || vla.state === 'moving';
+    this.emit({ vla, vlaMaybeDriving: active || (vla.state === 'unreachable' && this.snapshot.vlaMaybeDriving) });
+    void this.directDemo();
+    const fast = active;
+    if (fast && this.vlaPoll === null) {
+      this.vlaPoll = setInterval(() => void this.refreshVla(), 1000);
+    } else if (!fast && this.vlaPoll !== null) {
+      clearInterval(this.vlaPoll);
+      this.vlaPoll = null;
+    }
+  }
+
+  /** ONE VLA command, never queued: a second press while one is in flight is refused here. The status is read again after. */
+  async vlaCommand(op: VlaOp): Promise<{ ok: boolean; answer: unknown }> {
+    if (typeof this.source.vlaCommand !== 'function') return { ok: false, answer: 'this console has no VLA door' };
+    // STOP IS NEVER QUEUED BEHIND ANOTHER PRESS: it goes out at once, whatever else is in flight.
+    if (op === 'stop') {
+      const result = await this.source.vlaCommand('stop');
+      await this.refreshVla();
+      return result;
+    }
+    if (this.snapshot.vlaBusy) return { ok: false, answer: 'a VLA command is already in flight in this tab; nothing was sent a second time' };
+    this.emit({ vlaBusy: true });
+    try {
+      const result = await this.source.vlaCommand(op);
+      this.emit({ vlaRefusal: vlaRefusalOf(result) });
+      return result;
+    } finally {
+      this.emit({ vlaBusy: false });
+      await this.refreshVla();
+    }
+  }
+
   /**
    * Read the mission once. A READ: it starts nothing, stops nothing and activates nothing.
    *
@@ -1475,6 +1710,7 @@ export class ConsoleStore {
       const missionsRead = known ? read.map((item) => (item.mission_id === answer.mission.mission_id ? answer.mission : item)) : [...read, answer.mission];
       this.emit({ mission: answer.mission, missionError: null, missionErrorDetail: null, missionReadAtMs: Date.now(), missionsSeenOpen: seenOpen, missionsRead });
       void this.readMissionRuns();
+      void this.directDemo();
       // AN END THIS DISPLAY SAW: the mission it held as carried is read as ended. What was read while it was carried is
       // read again now (verify-r3 must_fix 1), not left to the next poll.
       const ended = before !== null && before.mission_id === answer.mission.mission_id && !missionEnded(before.state) && missionEnded(answer.mission.state);
@@ -2182,4 +2418,15 @@ export class ConsoleStore {
     this.emit({ replay: null, replayError: null });
     this.publishView();
   }
+}
+
+/** The reason a VLA press was not taken, from the forwarded answer: the API's reason_code, or the runner's reason and detail. */
+function vlaRefusalOf(result: { ok: boolean; answer: unknown }): string | null {
+  const body = typeof result.answer === 'object' && result.answer !== null ? (result.answer as Record<string, unknown>) : null;
+  if (!result.ok) return typeof body?.['reason_code'] === 'string' ? body['reason_code'] : String(result.answer ?? 'the press did not reach the runner');
+  if (body?.['accepted'] === false) {
+    const reason = typeof body['reason'] === 'string' ? body['reason'] : 'refused';
+    return typeof body['detail'] === 'string' && body['detail'] !== '' ? `${reason}: ${body['detail']}` : reason;
+  }
+  return null;
 }

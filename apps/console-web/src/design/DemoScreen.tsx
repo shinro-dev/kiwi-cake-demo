@@ -25,7 +25,9 @@ import { BoundedAccount } from './BoundedAccount';
 import type { ReactNode, UIEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { stopOffReason, streamRunOpen } from '../model/failureBanner';
-import { activationOffReason, missionStartLabel, missionStartOff } from '../model/missionView';
+import { activationOffReason, missionExecution, missionStartLabel, missionStartOff } from '../model/missionView';
+import { missionHold, vlaStartBlock, vlaView } from '../model/vla';
+import { VlaPanel } from './VlaPanel';
 import { activeTarget, targetOfRun } from '../model/missionView';
 import type { MissionTargetRecord } from '../model/missionRecord';
 import { cakeStory } from '../model/cakeStory';
@@ -374,6 +376,8 @@ export function DemoScreen(props: { opening?: ScreenOpening }): ReactNode {
     ? readOnlyReason
     : runtimeOff ??
       (snapshot.commandInFlight ? COMMAND_NOT_SETTLED : null) ??
+      // THE VLA BEAT drives the same arm from its own process on the robot: Start never competes with it.
+      vlaStartBlock(snapshot.vla, snapshot.vlaMaybeDriving) ??
       missionStartOff(startReading) ??
       // A HOLD NOTHING ON THIS PAGE CAN LIFT, in the motion hold's own words, before the capability's reason: that reason
       // may ask for a confirmation the page does not offer.
@@ -548,6 +552,8 @@ export function DemoScreen(props: { opening?: ScreenOpening }): ReactNode {
   };
   const onStop = (): void => {
     setStopBusy(true);
+    // THE ONE STOP STOPS EVERY DRIVER: while the VLA policy may be driving the arm, its runner is told to stop too.
+    if (snapshot.vlaMaybeDriving) void store.vlaCommand('stop');
     void store.requestStop().finally(() => setStopBusy(false));
   };
   const onRetry = (): void => {
@@ -577,13 +583,16 @@ export function DemoScreen(props: { opening?: ScreenOpening }): ReactNode {
               robotReadBlock(snapshot, nowMs),
         });
   const missionStaleAt = missionStale ? readTime(snapshot.missionReadAtMs, day) : null;
-  const activationOff = readOnly ? readOnlyReason : runtimeOff ?? missionReadBlock(snapshot, nowMs) ?? activationOffReason(mission);
+  const vlaBlock = vlaStartBlock(snapshot.vla, snapshot.vlaMaybeDriving);
+  const activationOff = readOnly ? readOnlyReason : runtimeOff ?? vlaBlock ?? missionReadBlock(snapshot, nowMs) ?? activationOffReason(mission);
   // A SOURCE WITH NO RETRY DOOR offers no Try again (spec 9: no change to what a control admits).
   const retryOff = readOnly
     ? readOnlyReason
     : runtimeOff !== null
       ? runtimeOff
-      : !store.retryOffered
+      : vlaBlock !== null
+        ? vlaBlock
+        : !store.retryOffered
         ? 'this runtime does not offer a mission retry'
         : retryRefusal(snapshot, nowMs);
 
@@ -616,6 +625,22 @@ export function DemoScreen(props: { opening?: ScreenOpening }): ReactNode {
           <UncertainPanel snapshot={snapshot} store={store} />
           <MotionHold permission={permission} link={link} snapshot={snapshot} store={store} readOnlyReason={readOnly ? readOnlyReason : runtimeOff} />
         </div>
+
+        {store.vlaOffered ? (
+          // THE VLA BEAT, above the demo grid and outside it (its four children are pinned), so it is on screen without scrolling:
+          // the mission start pose before the mission; the scripted carry once the stopped mission holds the block; the swap once
+          // mission 1 is finished (by that carry, or by a mission that placed its block for real); kept while the robot-side
+          // runner loads, is ready or runs. The carry reads the mission ON THIS SCREEN: one of an earlier runtime session is
+          // History's, and after a restart its record of holding the block is no longer where the arm is. Every press is
+          // forwarded; the runner decides.
+          <div className="console__vla" style={{ flex: 'none', padding: '0 20px 16px' }}>
+            <VlaPanel
+              view={vlaView(snapshot.vla, mission !== null && mission.state === 'COMPLETE' && missionExecution(mission) === 'physical', !running && !snapshot.commandInFlight, snapshot.vlaRefusal, missionHold(shownMission))}
+              onAction={(action) => void store.vlaCommand(action)}
+              busy={snapshot.vlaBusy}
+            />
+          </div>
+        ) : null}
 
         <main className="demo-grid">
           <div className="demo-grid__mission">

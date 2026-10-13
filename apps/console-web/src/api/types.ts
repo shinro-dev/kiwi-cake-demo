@@ -34,9 +34,13 @@ import type { ServedCredential } from './boot';
 import type { CapabilityCheckState } from '../model/capabilityCheck';
 import type { SignatureCheckState } from '../model/signatureCheck';
 import type { MissionCandidate, MissionRecord } from '../model/missionRecord';
+import type { VlaStatus } from '../model/vla';
 import type { ObservationRecordDto, PerceptionDto } from '../model/observation';
 
 /** A read of a stored observation: its data, or why this page holds none (redesign r4 round 7 item 1). */
+/** The operations the console's VLA door forwards (console_api/vla.py OPS, minus status). */
+export type VlaOp = 'swap' | 'unswap' | 'run' | 'stop' | 'to_mission_pose' | 'carry';
+
 export type ObservationRead<T> = { data: T; reason: null } | { data: null; reason: string };
 import type { HostInstance, RobotStatus } from '../model/robotStatus';
 
@@ -438,6 +442,10 @@ export interface ConsoleSource {
    * never retry another. The answer is a receipt; the mission record says whether an attempt started.
    */
   missionRetry?(missionId: string): Promise<MissionStartOutcome>;
+  /** GET /api/vla/status: the robot-side VLA runner's state, or unreachable. Absent on sources with no VLA door. */
+  vlaStatus?(): Promise<VlaStatus>;
+  /** POST /api/vla/{op}: forwarded to the robot-side runner, which decides. The answer is a receipt; the status says what happened. */
+  vlaCommand?(op: VlaOp): Promise<{ ok: boolean; answer: unknown }>;
   /**
    * STOP THE MISSION THROUGH ITS OWN DOOR: POST /api/mission/stop. The runtime stops the controller run first through
    * its guarded path and then the mission, exactly as the unified POST /api/stop does; the header's Stop uses that one,

@@ -7,6 +7,8 @@ binding brief is `.local-dev/ui-audit-20260927/audit.md` (items C1-C13, the API-
 10). The builder implements it test first; the verifier checks the build against every numbered rule here and every
 row of section 8.
 
+Since 2026-10-11 the default view at `/` is the show screen (section 13); the demo screen is at `?screen=demo`.
+
 The operator's verdict it answers: "not intended for humans, shows updates too fast, no consistent history,
 components in different places and inconsistent, contradicting information in many places; the error was short-lived
 and quiet."
@@ -1305,3 +1307,262 @@ runtime restarted today that serves yesterday's FAILED mission draws no failure 
 word of it, and History carries it dated with its session; an orphaned hold of yesterday's mission stays on the main
 screen; a mission of this session stays through its hold and its end on the watching page, and a reload draws the same
 card; a past mission's card has no document title or acknowledgement; the whole main screen, top bar included, carries no step of a past mission and keeps Return arm; a saved frame of an earlier session is not drawn.
+
+## 13. The show screen: the default view since 2026-10-11
+
+The operator's ruling of 2026-10-11: the recorded demo is four clicks, Confirm this robot, Start, Enable VLA and Start;
+the screen shows the controls, the live wrist camera feed, the stages and Cake's status, with the front camera in the
+centre where the scene map was (13.7), and it simplifies the UI, the mission details and the logs, dropping the
+information the operator called irrelevant. `design/ShowScreen.tsx` draws it. `model/show.ts` gives its stage rows and
+its words. The demo director (`model/director.ts`, run by the store's `startDemo`, `armDemo` and `directDemo`) sends
+what mission 1 needs between the first Start and Enable VLA. The commits: a1b8fa8 (the director and the show model),
+1cf0fd8 (the screen, made the default), 994b45e (only a run of this runtime session), 0c9bd91 (the wrist camera in the
+centre; a driving VLA reads as running).
+
+The screen carries two missions. Mission 1, "scripted pick and place", is the runtime's mission up to the pick, then
+the robot runner's scripted carry to the pad. Mission 2, "VLA pick and place (SmolVLA, on the robot)", is one episode
+of the robot runner (`vla/runner.py`); no runtime run and no mission record exist for it (`model/show.ts` line 86).
+
+The operator's screen recording of the four clicks, made on 2026-10-12 (its stage times read 16:10Z to 16:12Z), shows
+this layout. What it shows beyond the code is said where it bears on the screen (13.4 to 13.8).
+
+### 13.1 Where it opens
+
+`/` opens the show screen. The demo screen this page specifies is at `?screen=demo` and the classic screen at
+`?screen=classic`. Any other value of `screen` opens the show screen (`design/screenChoice.ts`, `main.tsx` lines
+53-55, pinned by `design/screenChoice.test.ts`).
+
+### 13.2 Regions
+
+```
++---------------------------------------------------------------------------------------------------+
+| TOP BAR  shinro [Live]  robot: connected  Motion permitted  VERDICT  sentence                     |
+|                                                 Start  Stop  Enable VLA  Diagnostics              |
++---------------------------------------------------------------------------------------------------+
+| motion-hold banner with Confirm this robot, drawn only while robot motion is held                 |
++-------------------------+-----------------------------------------------+-------------------------+
+| MISSION                 | WRIST CAMERA, large, 16:9                     | FRONT CAMERA, 16:9      |
+|  title                  |                                               |  word and one line      |
+|  one status line        |                                               |                         |
+| STAGES                  |                                               |                         |
+|  Find    <word>         |                                               +-------------------------+
+|  Pick    <word>         |                                               | CAKE ON THE ROBOT       |
+|  Carry   <word>         |                                               |  320 px high            |
+|  Place   <word>         |                                               |  activation cards       |
+|  Return  <word>         |                                               |  signature check card   |
+|                         | state word and one line                       |  live slot footer       |
++-------------------------+-----------------------------------------------+-------------------------+
+```
+
+| Region | What it shows |
+|---|---|
+| Top bar | The demo screen's top bar (`TopBar.tsx`; 3.1, 4.2): the mode mark, the robot and its connection, the motion permission, the readiness verdict with its sentence and "What this rests on", then Start, Stop, Enable VLA and Diagnostics. Start's off-reasons are the demo screen's (4.2; `DemoScreen.tsx` lines 375-389) with three differences (`ShowScreen.tsx` lines 142-153): a mission start, a retry or a demo Start in flight from this tab also counts as a command not settled, the runtime's own `start_cycle` capability reason (`capabilityOffReason`) is not among them, and once the VLA module is enabled `vlaStartOff` (the runner's state, a VLA command in flight, the runtime holding the arm) takes the place of every reason after the unsettled command, the motion hold's included. Enable VLA sits between Stop and Diagnostics (`TopBar.tsx` line 219) and is drawn only when the console has the VLA door (`store.vlaOffered`). Under the bar, when they apply: the strip's alerts, the uncertain-command panel and the motion-hold banner, which carries Confirm this robot. |
+| Left: Mission | "Mission", the mission's title (22 px) and one status line (13.6), with a 4 px left rule and a 6 percent wash in the tone of the words: neutral `INK.bright`, busy `C.accent`, good `C.ok`, bad `C.bad`. |
+| Left: Stages | The five rows Find, Pick, Carry, Place and Return (`StageTimeline`), each with its word (13.6). The region's `title` attribute names what the rows are read from: "the runtime's mission record and the runner's carry events" for mission 1, "the robot runner's episode events" for mission 2. |
+| Centre: Wrist camera | The wrist camera, large. |
+| Right: Front camera | The front camera, the same tile, smaller. |
+| Right: Cake | "Cake on the robot", 320 px high: the demo screen's Cake region (3.3), with the activation cards of the mission on the screen, the signature check card and the live slot footer. While the director is armed the prepared Plans' buttons are not drawn: the director presses the Plan. |
+
+Each camera tile draws the stream while it shows, the last picture this page decoded through a gap, and otherwise the
+newest saved frame of this runtime session. Under it are one state word and one line, as on the demo screen's wrist
+panel (3.7), for example "Live" with "The stream is showing on this page.", or "Connecting" with "No picture from this
+camera: <reason>." (the front tile in the recording, 13.7).
+
+The grid (`design.css`, `.show-grid`) has three columns, 3 : 6 : 3, at 1100 px and wider, with 16 px gaps and 20 px of
+side padding. Below 1100 px it is one column in the same order: mission and stages, wrist camera, front camera, Cake.
+Document order is screen order (no `order`, `grid-row` or `grid-area`), and `design/showScreen.test.ts` pins the
+mission before the wrist camera and the wrist camera before the front camera.
+
+The screen keeps the rule of section 12. The mission is drawn only when it is current, and the stages draw a run only
+when it belongs to this runtime session (994b45e). After a runtime restart the snapshot's last outcome still names an
+earlier session's run; before 994b45e the screen drew that run's stages, a carry failed at the hold of a mission that
+was History's.
+
+### 13.3 What it leaves out
+
+No scene map; no run account (the outcome card of 3.2, with its cause, its measurement, where the robot was left and
+the runtime's steps); no Timeline region (3.4) and no log; no Scan scene, Observe, Return arm or Try again; no VLA
+panel (the demo screen's `VlaPanel.tsx`). `design/showScreen.test.ts` pins the scene, the timeline, Scan scene, Return
+arm and the VLA panel as absent. The scene map and all four of those controls are on the demo screen (`?screen=demo`);
+the classic screen (`?screen=classic`) has Observe and Return arm, and no scene map, Scan scene or Try again.
+Diagnostics, opened from the top bar, keeps History, Logs, Evidence, Connections and the Cake tab, as on the demo
+screen.
+
+### 13.4 The four clicks
+
+1. **Confirm this robot.** The motion-hold banner's button, drawn only while robot motion is held (`RobotParts.tsx`,
+   `MotionHold`). It opens "Confirm the connected robot"; with the dialog's box ticked, its own confirm button confirms
+   the resident session and host instance the dialog shows. Before it the verdict is Not ready, "Robot motion is held:
+   <why>"; after it, in the recording, the verdict is Ready and Start is the primary control.
+2. **Start.** `store.startDemo`. While the runner is in standby it first sends the runner's `to_mission_pose` (the arm
+   goes past the mission's start pose, then onto it) and, when the runner takes it, reads the runner up to 40 times,
+   500 ms apart, until the runner no longer reports `moving`. It then starts the runtime's mission (POST
+   /api/mission/start), whether or not the runner took the move, and when the runtime answers with a mission id it
+   arms the director for that mission (13.5). Start reads "Starting" until then.
+3. **Enable VLA.** The runner's `swap` (POST /api/vla/swap). The runner loads the checkpoint, whose sha256 must match
+   the one in `vla/envelope.json`, warms it up and, when the runtime leaves the arm free, brings the arm to the VLA
+   start pose. The runner is a process on the robot that runs beside, never inside, the installed runtime, the Cake
+   resident and the supervised host, and changes none of them (`vla/runner.py`). The policy is loaded by that process,
+   not by Cake, and no text on the screen says Cake loaded it (`model/vla.ts`). The button is on in standby while no
+   mission runs and no run is active. It reads "Enabling VLA" while the module loads and "VLA enabled", off, once it is
+   ready (`enableVla`). The block is then put back at its start by hand, as the mission card says.
+4. **Start**, again. Once the module is enabled, Start goes to the runner (`startRoute`): its `run` (POST
+   /api/vla/run), which the runner refuses unless the runtime is idle and the last inference has finished. One episode
+   runs, arm only: the runner's client sends base velocity 0 on every command (`vla/runner.py`). The arm goes to the
+   start pose; each chunk is inferred while the arm holds, then played through the gate at 30 Hz; the grip is measured
+   the runtime's way at the first chunk boundary after the jaws latch, and once it is confirmed the jaws' reading is
+   checked again at every chunk boundary (a block that left the jaws is said, the jaws reopen and the policy may grasp
+   again; 06de776). The recorded takes contain no release, so once the arm rests in the end region with the grip
+   confirmed, the runner lowers the tool straight down in 8 mm steps, at most five, until the runtime's gate refuses
+   one (cd72c96), and opens the jaws by rule; the policy may also open them once the grip is confirmed
+   (`vla/episode.py`). While the episode runs the verdict reads Running (0c9bd91), Start reads "Running" and
+   is off with "the VLA policy is driving the arm; Stop ends it", and Stop is on. Stop disarms the director, sends the
+   runner's `stop` while the runner may be driving (at once, never queued behind another press) and sends the
+   runtime's Stop.
+
+### 13.5 What the director sends after the first Start
+
+The director acts only for the one mission this tab armed with its Start: for any other mission it derives nothing
+(`directorStep`). A read never arms it, so a page opened on a waiting mission activates nothing and a display that did
+not start the mission directs nothing. The armed mission and its runtime session are kept in the tab's
+`sessionStorage` (`kiwi-console.demo-armed.v1`), so a reload of the same tab carries on. A snapshot of another runtime
+session disarms it, and so does the operator's Stop, also during the first Start's pose move (5e972c9). Activate,
+Stop and the carry are then sent with no press of their own. This follows the operator's ruling of 2026-10-11 and is an
+exception to the console's rule that a command is only ever sent by somebody pressing a button (`main.tsx` lines 7-9).
+
+A pass runs after every mission read and every runner read, and it sends one step at a time; after it sends a step, one
+more pass runs 1.5 s later (`DIRECTOR_SETTLE_MS`). Each pass derives the step from the records, so a step already on
+the record (an activation submitted, a stop requested, a carry recorded for this mission) is not sent again.
+
+| The records say | The director |
+|---|---|
+| The mission waits for Cake (`WAITING_FOR_CAPABILITY`, `capability_unavailable`) and its newest activation is neither `SUBMITTED` nor `OBSERVED` | Activate (POST /api/mission/activate) the Plan served with the role `activate`, else the only Plan. With no Plan, or several and none so marked, it hands back to the operator: "no single Plan to activate (N prepared)". |
+| The mission is held for another reason and its newest attempt records the block held (`stop_state.holding` true), as mission 1 is at HOLD_OBSERVE | Stop (POST /api/stop). Held without the block, it hands back: "the mission is held without the block (<reason>)". |
+| The mission ended (STOPPED or FAILED) holding the block, and the runner is idle in standby | The runner's carry (POST /api/vla/carry). The runner records the carry with the id of the mission the runtime has on record. |
+| The runner's carry names this mission with the result `done`, or the mission is COMPLETE | Finished. |
+| The carry names this mission with another result, the mission ended without the block, or the runner is loading, ready, running or in error | It hands back, with the carry's message or its own reason, for example "the VLA module was enabled before the carry (runner ready)". |
+| Anything else | It waits, and the mission card says what for. |
+
+The carry (`vla/carry.py`) refuses before any motion unless the jaws read closed on something (the runtime's own
+held-or-empty rule) and the arm is at the mission's start pose. It then drives two forward base pulses of 0.05 m, each
+measured on the base's own velocity reading, eases the arm to the release pose, opens the jaws, eases the arm back and
+drives two backward pulses. A forward pulse that measured less than 70 percent of 0.05 m ends it refused, with the
+block still held at the start pose.
+
+In the recording the live slot footer read `mobile_approach` active at generation 2 before Start, and the Cake region
+read "No Cake activation in this mission." through mission 1: no activation is on that mission's record.
+
+### 13.6 The words on the screen
+
+The mission card (`showWords`). Mission 2 has the card from the moment the module starts loading until it is dropped
+(`showPhase`: the runner loading, ready or running).
+
+| Moment | Title | Status line |
+|---|---|---|
+| No current mission | Mission 1: scripted pick and place | "Press Start." |
+| Mission 1 running | Mission 1: scripted pick and place | "The mission is running." |
+| Activate due | Mission 1: scripted pick and place | "Activating the mobile approach capability on Cake." |
+| Cake's answer awaited | Mission 1: scripted pick and place | "The activation is in flight.", "Cake is activating the capability.", then "The capability is active; the mission resumes." |
+| Stop due at the hold | Mission 1: scripted pick and place | "Picked. Handing over to the carry." |
+| The carry | Mission 1: scripted pick and place | "Carrying the block to the pad." |
+| The carry of this mission done | Mission 1 complete | "The block is on the pad and the robot is back at its start. Next: Enable VLA." |
+| The director handed back | Mission 1 stopped | its reason, as a sentence |
+| A held mission this tab did not start | Mission 1: scripted pick and place | "The mission is held; it was not started from this display, so it is not directed here." |
+| A mission this tab did not start, ended | Mission 1 complete, when it completed; else the mission 1 title | "The block is on the pad." when it completed; else "The last mission was stopped. Press Start for a new one." or "The last mission failed. Press Start for a new one." |
+| The module loading | Mission 2: VLA pick and place (SmolVLA, on the robot) | "Loading the VLA module on the robot." |
+| The module enabled | Mission 2: VLA pick and place (SmolVLA, on the robot) | "VLA module enabled. Put the block back at its start, then press Start." |
+| The episode running | Mission 2: VLA pick and place (SmolVLA, on the robot) | "The VLA policy is driving the arm." and the newest event's words, with "Chunk N." when it names one |
+| The episode done | Mission 2 complete | the runner's headline and detail (`model/vla.ts`), in the recording "The VLA policy carried the block to the pad. grip confirmed; jaws opened by rule at the pad; 20 chunks in 319 s." |
+| The episode stopped or refused | Mission 2 stopped | the runner's headline and detail |
+
+Any other wait of the director is its reason as a sentence, for example "The mission is stopping." or "A command is
+still settling.". The episode's words are "Starting." before its first event, then "Moving to the start pose.", "At
+the start pose.", "Thinking.", "Moving.", "Jaws closed.", "Closed on nothing; trying again.", "Checking the grip.",
+"Released the block.", "Returning." and "Done.".
+
+The stage rows (`mission1Stages`, `mission2Stages`):
+
+- Mission 1: the controller's own rows up to the pick (3.5). At the hold with the block held, Pick reads "Picked" and
+  Carry "Picked; the carry takes over". The carry's events then give Carry "Rolling forward with the block" and
+  "Forward pulse <n>: <metres> m"; at the release Carry "Carried to the pad", Place "Released at the pad" and Return
+  "Rolling back"; then Return "Back: pulse <n>, <metres> m" and "Returned to the start".
+- Mission 2: Find "Looking at the scene", then "Thinking, chunk <n>" or "Moving, chunk <n>". At the latch Find "Found
+  the block" and Pick "Jaws closed; checking the grip"; after an empty close Pick "Closed on nothing; trying again",
+  then "Trying again, chunk <n>". After the grip check Pick "Grip confirmed (<score>)" and Carry "Carrying to the pad",
+  then "Carrying, chunk <n>", or Pick "Grip not confirmed". At the release Carry "Carried to the pad", Place "Released
+  at the pad" and Return "Returning", then "Returning to the start pose" and "Returned".
+- In both, a refusal is drawn on the stage it happened in, with the runner's message, and a stop as "Stopped here on
+  request".
+
+The top bar at the same moments, as the recording shows it:
+
+| Moment | Verdict | Sentence |
+|---|---|---|
+| Before Confirm | Not ready | "Robot motion is held: <why>" |
+| After Confirm | Ready | none; Start is the primary control |
+| The first Start, until the mission runs | Running | "A command sent from this tab may have started a run that the runtime's last snapshot does not show yet, and the runtime accepts only Stop while a run is active."; Start reads "Starting" |
+| Mission 1 running | Running | "Mission <id> is being carried. Stop ends it; a second mission is not started beside it." |
+| The director's Stop at the hold | Held for you | "Mission <id> is stopping: its stop was asked for and it has not ended yet."; Start reads "Stopping" |
+| The carry | Running | "The robot is carrying the block to the pad; wait for it." |
+| The module loading | Running | "The VLA policy is loading on the robot; wait for it." |
+| The swap's move to the VLA start pose | Running | "The arm is moving to a start pose; wait for it." |
+| The episode | Running | "The VLA policy is driving the arm; Stop ends it." |
+| After mission 1, and while the module waits ready before and after the episode | Steps first | "Open the gripper by hand and take the block out." (13.8) |
+
+### 13.7 The wrist camera in the centre (0c9bd91)
+
+The directive of 2026-10-11 asked for the scene map to leave the centre "and use this space to showcase the front
+camera" (operator), and 1cf0fd8 put the front camera there, with the wrist camera on the right. In the mission started
+at 17:18Z the same day, with the camera service running both cameras, SEARCH failed (`search_no_cube`) and the service
+had delivered no capture (`captures_ok` 0); its status, read at 17:22Z, reported both camera workers failed with "no
+frame in 60 consecutive reads" (`bin/pi/camera_service.py`, `MAX_CONSECUTIVE_EMPTY_READS` 60). No cause is claimed
+here. The camera service went back to the wrist camera only, the setup `camera-service.md` keeps until the front camera
+is qualified ("The front camera is OFF"), so the centre tile would have shown no picture. The operator asked for the
+two tiles to be swapped "so that the central bigger one is the wrist" (2026-10-11, 17:36Z), and 0c9bd91 did it; its
+message gives the reason as the wrist view being the view the policies act on. The front tile stays on the right. In
+the recording it reads "Connecting" and "No picture from this camera: no_frame_yet." throughout: `Connecting` is the
+runtime's word for a preview subscriber that has received no frame (`demo_runtime/sources.py`), and the front camera
+is off.
+
+The same commit made a driving VLA read as running. While the policy drove the arm, the bar had read Not ready, "the
+VLA module is not ready", beside the button "VLA enabled" (operator, 17:36Z). The verdict now counts the runner
+loading, moving or running as a run, and Start's reason names what the runner is doing (`vlaStartOff`).
+
+### 13.8 Residuals
+
+- **"Steps first" after mission 1.** The verdict reads the runtime's mission record (4.2, rule 3). That record ends at
+  the director's Stop with the block held, and the carry is the runner's record, not the runtime's. So after mission
+  1, and while the module waits ready, the bar reads "Steps first" with the runtime's first step, "Open the gripper by
+  hand and take the block out.", beside "Mission 1 complete" or mission 2's lines, although the carry opened the jaws
+  at the release pose, and Start is not drawn as the primary control. The recording shows it.
+- **The swap's pose move.** After the module loads, the runner moves the arm to the VLA start pose in its `moving`
+  state, which `showPhase` does not count as mission 2. For that move the card shows "Mission 1 complete" again and
+  the button reads "Enable VLA", off ("the arm is moving; wait for it"), until the runner is ready. The recording
+  shows it.
+- **"At the pad" is the sequence's word, not a measurement.** Mission 1's "The block is on the pad ..." and its rows
+  "Carried to the pad" and "Released at the pad" follow the carry's events and its result `done`, which records the
+  measured base pulses and the jaws opened at the release pose. Mission 2's "Released at the pad" follows the runner's
+  `released` event, sent when the jaws open. Neither mission takes a view of where the block came to rest, and the
+  screen has no counterpart of the demo screen's placement check (3.2.1).
+- **Runner events with no words.** The episode also sends `reopened`, `grip_lost` and `set_down` (`vla/episode.py`;
+  the last two were added after this screen, in 06de776 and cd72c96). The card says them by their raw names ("The VLA
+  policy is driving the arm. grip_lost."; the recording shows "The VLA policy is driving the arm. set_down." before
+  "Returning."), and `grip_lost` does not change the rows: after the runner said the block left the jaws, Pick keeps
+  "Grip confirmed (<score>)" until the next latch and Carry keeps its "Carrying" words.
+- **The runner's 40 events.** The runner's status carries its newest 40 events (`vla/runner.py`), and mission 2's rows
+  are folded from those alone. A chunk adds two (thinking, moving), so once an episode has run about 20 chunks past
+  its latch, the rows lose the latch and the grip check.
+- **A refused activation.** The director waits only while the newest activation is `SUBMITTED` or `OBSERVED`. After
+  Cake refuses the Plan (`REJECTED_BY_CAKE`) the mission still waits for Cake (4.1), so the director sends Activate
+  again on its next pass, and on every pass after it while Cake refuses; the same holds for a newest activation in
+  `REQUEST_FAILED` or `COMPLETED_NOT_OBSERVED` while the mission waits for Cake. Neither `model/director.test.ts` nor
+  `store/director.test.ts` has a case for it.
+- **A moment of "Failed here" at the hold.** The hand-over words need the mission record to show the block held at
+  HOLD_OBSERVE (`mission1Stages`); until a mission read shows it, Carry is the controller's own row. In the recording,
+  for less than two seconds at the hold, that row read "Failed here" beside "The mission is running.", before "Picked;
+  the carry takes over".
+- **A Stop during the first Start's pose move cancels the Start (5e972c9).** Found by the independent review of
+  2026-10-12: `startDemo` used to start the mission and arm the director whatever happened to the move, and Stop was off
+  until the runner was first read `moving`. Now disarming while the Start is in flight ends the pose wait and starts
+  no mission, a mission whose start was already on its way is stopped and never directed, and Stop is on while the
+  Start is pending (the show screen's Stop is the store's `stopDemo`). Checked by unit tests; not yet run on the robot.

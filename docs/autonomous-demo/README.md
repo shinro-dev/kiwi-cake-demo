@@ -8,6 +8,9 @@ This directory specifies the next local development segment of
 Development stays local until E2E success + independent review + publication
 audit.
 
+Commit ids cited in these documents name commits of the development history,
+which is not published: each published change is one commit.
+
 Documents:
 
 1. `delivery-plan.md`
