@@ -1,0 +1,27 @@
+demo:
+  target_class: yellow_cube
+  work_area: fixed_pad
+  first_demo_target_count: 2
+
+runtime:
+  heavy_compute: desktop
+  cake_target: ubuntu_amd64
+  hardware_host: raspberry_pi
+
+perception:
+  body_camera_resolution: [1280, 720]
+  wrist_camera_resolution: [1280, 720]
+  cube_detector: classical_baseline
+  pad_localizer: planar_feature_homography
+
+motion:
+  controller: step_and_observe
+  command_ttl_ms: 250
+  vx_max_mps: null
+  vy_max_mps: null
+  omega_max_rps: null
+
+manipulation:
+  primary_policy: smolvla
+  fallback_policy: act
+  device: cuda

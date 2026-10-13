@@ -1,0 +1,15 @@
+{
+  "contract_version": "1",
+  "command_id": "synthetic-command-0005",
+  "type": "manual_move",
+  "args": {
+    "forward_mm": 0,
+    "dz_mm": 0,
+    "holding": true,
+    "plan_only": false
+  },
+  "client": {
+    "session_id": "synthetic-client-0001",
+    "contract_version": "1"
+  }
+}

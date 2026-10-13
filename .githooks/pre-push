@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+if [ "${KIWI_CAKE_ALLOW_PUBLIC_PUSH:-}" != "YES" ]; then
+  echo "PUSH BLOCKED: autonomous demo branch is local-only until explicit publication approval." >&2
+  echo "After E2E + independent review, the human operator may explicitly authorize publication." >&2
+  exit 1
+fi
+
+if [ ! -f .local-dev/base-commit ]; then
+  echo "PUSH BLOCKED: missing .local-dev/base-commit" >&2
+  exit 1
+fi
+
+python3 tools/publication_audit.py --base-file .local-dev/base-commit

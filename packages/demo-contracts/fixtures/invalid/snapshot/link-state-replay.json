@@ -1,0 +1,164 @@
+{
+  "contract_version": "1",
+  "runtime_session": "synthetic-session-0001",
+  "seq_cursor": 19,
+  "retained_from_seq": 1,
+  "data_mode": "synthetic",
+  "link": {
+    "state": "replay",
+    "source_stamp": {
+      "session": "synthetic-host-session-0001",
+      "seq": 41,
+      "sample_mono_ns": 2000000000,
+      "clock_domain": "pi_monotonic"
+    },
+    "receive_age_ms": 35.0
+  },
+  "owner": {
+    "kind": "autonomous",
+    "run_id": "synthetic-run-0001",
+    "lease": {
+      "host_session": "synthetic-host-session-0001",
+      "generation": 2,
+      "expires_in_ms": 450.0
+    }
+  },
+  "active_run": {
+    "run_id": "synthetic-run-0001",
+    "command_id": "synthetic-command-0001",
+    "command_type": "start_cycle",
+    "status": "running",
+    "state": "SEARCH",
+    "started_seq": 1
+  },
+  "last_outcome": {
+    "run_id": "synthetic-run-0000",
+    "finished_seq": 0,
+    "result": {
+      "outcome": "placed_new",
+      "exit_status": 0,
+      "predicates": {
+        "object_secured": true,
+        "placed": true,
+        "clearance_target_met": true,
+        "base_returned": true
+      },
+      "automatic_retries": 0,
+      "task_control_interventions": 0,
+      "evidence_complete": false,
+      "evidence_gaps": 1
+    }
+  },
+  "capabilities": [
+    {
+      "id": "start_cycle",
+      "state": "enabled",
+      "reason_code": null,
+      "reason": null,
+      "dependency": null,
+      "planned": false
+    },
+    {
+      "id": "manual_base_pulse",
+      "state": "blocked",
+      "reason_code": "owner_not_free",
+      "reason": "an autonomous run holds the robot",
+      "dependency": "owner",
+      "planned": false
+    },
+    {
+      "id": "cake_update",
+      "state": "disabled",
+      "reason_code": "not_built",
+      "reason": "no resident is reachable from this console",
+      "dependency": "cake_resident",
+      "planned": true
+    },
+    {
+      "id": "observe",
+      "state": "unknown",
+      "reason_code": null,
+      "reason": null,
+      "dependency": "link",
+      "planned": false
+    }
+  ],
+  "components": [
+    {
+      "id": "cycle-controller",
+      "layer": "logical_python",
+      "role": "plans and sequences the single-cube cycle",
+      "health": "ok",
+      "active": true,
+      "version": "0.0.0",
+      "evidence": "synthetic: the last run.finished record"
+    },
+    {
+      "id": "robot-host",
+      "layer": "process",
+      "role": "the hardware host process on the robot",
+      "health": "unknown",
+      "active": null,
+      "version": null,
+      "evidence": "synthetic: no observation received yet",
+      "cake_slot": null
+    },
+    {
+      "id": "wrist-camera",
+      "layer": "device",
+      "role": "the wrist camera",
+      "health": "degraded",
+      "active": true,
+      "version": null,
+      "evidence": "synthetic: two of the last ten captures were missing"
+    },
+    {
+      "id": "mobile-approach",
+      "layer": "cake_module",
+      "role": "bounded desired base motion from fresh target observations",
+      "health": "unknown",
+      "active": false,
+      "version": null,
+      "evidence": "synthetic: no resident is reachable, nothing was read",
+      "cake_slot": {
+        "slot_id": "mobile_approach",
+        "generation": 0
+      }
+    }
+  ],
+  "cake": {
+    "synthetic": true,
+    "ladder": {
+      "synthetic": true,
+      "artifacts_available": {
+        "value": false,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "resident_reachable": {
+        "value": false,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "admin_interface_compatible": {
+        "value": false,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "modules_active": {
+        "value": false,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      },
+      "mission_participation": {
+        "value": null,
+        "evidence": "synthetic: not checked, nothing connects this console to a resident today"
+      }
+    },
+    "slots": [],
+    "transactions": [],
+    "update_preview": null,
+    "continuity": null
+  },
+  "evidence": {
+    "complete": false,
+    "gaps": 1,
+    "dropped_telemetry": 3
+  }
+}

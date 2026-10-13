@@ -1,0 +1,169 @@
+#!/bin/bash
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# run-host.sh: the child command the Cake SUPERVISOR slot of the LeKiwi deployment launches and supervises. It
+# starts the console's proven CAMERA-LESS motor host, bin/pi/lekiwi_host_safe_attach.py, with exactly the flags
+# bin/pi/start-host.sh has always started it with. Rendered ON THE ROBOT by bin/pi/lekiwi-deploy.sh install.
+#
+# How Cake runs it, measured: execve'd directly, argv [this file, 3, 0, 900, run_tag], environment exactly
+# PATH=/usr/bin:/bin, working directory <bundle>/child-cwd, stdout and stderr into a 64 KiB log truncated at every
+# activation. Therefore:
+#   - the interpreter is named by an ABSOLUTE path and nothing relies on $HOME or an activated environment;
+#   - the four positionals Cake appends mean nothing to the host and are IGNORED on purpose (forwarding them was
+#     the first mistake of the original demo run: the host rejected them and crash-looped);
+#   - the last line uses exec, so the host's pid IS the child pid Cake reports (get-health arg1) and the stop
+#     signal the Plan configures (SIGINT) reaches the host itself, not a lingering shell.
+#
+# ONE VARIABLE IS ADDED to that environment for the host: KC_HOST_COMMAND_LOOPBACK=1 (step 3 below), which puts the host's
+# command socket on 127.0.0.1 only.
+#
+# THE TWO SAFETY FLAGS ARE NOT OPTIONAL, and the host refuses to start without either of them:
+#   --robot.cameras={}                          this host owns NO camera; the camera service owns the wrist camera
+#   --robot.disable_torque_on_disconnect=false  stopping the host leaves the arm HOLDING, it never drops it
+# The v0.1.3 run-child.sh opened both cameras and dropped torque on disconnect; it is NOT this deployment's wrapper.
+#
+# THE ONE-SHOT ARM TOKEN. The host starts ONLY when the operator armed THIS start: bin/pi/lekiwi-deploy.sh arm writes
+# the token file (mode 600, in the deployment's run directory) and then restarts the unit. This wrapper claims the
+# token with an atomic rename and deletes it FIRST, before anything else and whatever happens next, so one arm starts at
+# most one host. Every other start is HELD: Cake restarting this child, systemd restarting the resident
+# (Restart=on-abnormal; its SIGKILL path runs no safe stop), or anyone starting the unit by hand. Held, the wrapper
+# prints one line to stderr and exits 77; after its five spawns the supervisor slot goes DEGRADED, which is intended
+# ("host held: needs operator arm"). A token written more than 120 s ago is deleted and refused too, so a token that an
+# interrupted arm left behind never arms a later start.
+#
+# THE WHEEL STOP'S LOCK, on every armed start, right after the token and BEFORE the ownership check: the safe-stop's
+# wheel stop (bin/pi/wheels_safe_stop.py) writes the servo bus only while it holds an exclusive flock on the lock file
+# WHEELS_LOCK, and this wrapper takes that same lock, on descriptor 8, which the exec hands to the host. So the host holds
+# it for its whole life, from before the ownership check until the process exits, and no wheel stop can write the bus
+# during the seconds between this wrapper's check and the host opening the port (the owner check of a wheel stop that
+# starts then would see no owner). A wheel stop still running holds it: the wrapper waits for it, up to LOCK_WAIT_S
+# (a wheel stop lasts at most 0.42 s), and refuses the start once that wait is over, as it refuses an owner. IT FAILS
+# CLOSED: a missing or failing flock, a lock file that cannot be opened, or a lock that another open of the file does not
+# find held (a positive control, run once the lock is taken) refuses the start. What the lock does not cover: a program
+# that opens the bus without it (a bench tool, a host started any other way), which only the ownership checks see, and
+# only when it holds the bus at the moment they look; and a process the host starts, which would inherit the descriptor
+# and keep the lock after the host's exit (the pinned host starts none).
+#
+# THE OWNERSHIP CHECK, on every armed start and before the exec, because a restart or a boot reopens the servo bus with
+# no install-time check in between: the host is not started while the servo device has ANY owner (fuser) or anything
+# listens on 5555 or 5556 (ss). IT FAILS CLOSED: a missing or failing fuser or ss, or a fuser that does not see this
+# wrapper holding its own file open (a positive control, run first), refuses the start and never reads as "unowned".
+# fuser runs here without root, so it sees only this account's processes: a device held by a process of ANOTHER account
+# is not detected. The token is already consumed when this check refuses, so the operator arms again once it is clear.
+# Exit status: 78 an unrendered or unsafe copy (the token is untouched), 77 held for want of a fresh arm token, 75 an
+# owner or a listener was found, or the wheel stop's lock was still held after the wait, 69 the lock or the ownership
+# check could not run.
+#
+# Placeholders, filled by the installer from the operator's environment, each checked below:
+#   @@PYTHON@@       absolute path of the python of the lerobot install on the robot computer
+#   @@HOST_ENTRY@@   absolute path of the deployed copy of bin/pi/lekiwi_host_safe_attach.py
+#   @@ROBOT_ID@@     the id the LeKiwi was calibrated with (KC_ROBOT_ID)
+#   @@ROBOT_PORT@@   the servo bus device, by its /dev/serial/by-id/ entry (KC_SERVO_PORT)
+#   @@ARM_TOKEN@@    absolute path of the arm token, in the deployment's run directory
+#   @@FUSER@@        absolute path of fuser on the robot computer
+#   @@SS@@           absolute path of ss on the robot computer
+#   @@FLOCK@@        absolute path of flock on the robot computer
+#   @@WHEELS_LOCK@@  absolute path of the wheel stop's lock file, the safe-stop's WHEELS_LOCK, in the run directory
+# A copy with any placeholder left refuses to run: each value is assigned once below and checked before the exec, so
+# rendering fills the check and the command line alike, and only an unrendered copy still carries the marker.
+PYTHON='@@PYTHON@@'
+HOST_ENTRY='@@HOST_ENTRY@@'
+ROBOT_ID='@@ROBOT_ID@@'
+ROBOT_PORT='@@ROBOT_PORT@@'
+ARM_TOKEN='@@ARM_TOKEN@@'
+FUSER='@@FUSER@@'
+SS='@@SS@@'
+FLOCK='@@FLOCK@@'
+WHEELS_LOCK='@@WHEELS_LOCK@@'
+for value in "$PYTHON" "$HOST_ENTRY" "$ROBOT_ID" "$ROBOT_PORT" "$ARM_TOKEN" "$FUSER" "$SS" "$FLOCK" "$WHEELS_LOCK"; do
+  case "$value" in
+    '' | *@@*) echo "run-host.sh: refusing to run: a placeholder was never filled in; render this file with bin/pi/lekiwi-deploy.sh install" >&2; exit 78 ;;
+  esac
+done
+case "$PYTHON:$HOST_ENTRY:$ARM_TOKEN:$FUSER:$SS:$FLOCK:$WHEELS_LOCK" in
+  /*:/*:/*:/*:/*:/*:/*) ;;
+  *) echo "run-host.sh: refusing to run: the interpreter, the host entry, the arm token, fuser, ss, flock and the wheel stop's lock must be absolute paths" >&2; exit 78 ;;
+esac
+# Every refusal below is one line on stderr, and none of them refers to a positional parameter: Cake's four are ignored.
+H="run-host.sh: HOST HELD, the host was NOT started:"
+
+# 1. The arm token: claimed (renamed) and deleted before anything else.
+[ -f "$ARM_TOKEN" ] && [ ! -L "$ARM_TOKEN" ] && [ -O "$ARM_TOKEN" ] ||
+  { echo "$H no operator arm token, and a restart never re-arms the host; with the operator present at the robot, run bin/pi/lekiwi-deploy.sh arm" >&2; exit 77; }
+CLAIMED="$ARM_TOKEN.claimed.$$"
+mv -T -- "$ARM_TOKEN" "$CLAIMED" 2>/dev/null || { echo "$H the arm token could not be claimed; run bin/pi/lekiwi-deploy.sh arm again" >&2; exit 77; }
+WRITTEN="$(stat -c %Y -- "$CLAIMED" 2>/dev/null)"
+NOW="$(date +%s)"
+rm -f -- "$CLAIMED"
+[ ! -e "$CLAIMED" ] || { echo "$H the claimed arm token could not be deleted" >&2; exit 77; }
+case "$WRITTEN:$NOW" in *[!0-9:]* | :* | *:) echo "$H the arm token's age could not be read; it was deleted" >&2; exit 77 ;; esac
+AGE=$((NOW - WRITTEN))
+[ "$AGE" -ge -60 ] && [ "$AGE" -le 120 ] ||
+  { echo "$H the arm token was stale (written $AGE s ago, the limit is 120 s); it was deleted; run bin/pi/lekiwi-deploy.sh arm again" >&2; exit 77; }
+
+# 2. The wheel stop's lock, on descriptor 8, which stays open through the exec below: the host holds it until it exits.
+# flock -w exits 1 only when the wait ran out; any other failure is an error.
+LOCK_WAIT_S=2
+[ -x "$FLOCK" ] || { echo "$H flock is missing, so the wheel stop's lock cannot be taken; it fails closed" >&2; exit 69; }
+if ! { exec 8>>"$WHEELS_LOCK"; } 2>/dev/null; then
+  echo "$H the wheel stop's lock file could not be opened; it fails closed" >&2; exit 69
+fi
+RC=0
+"$FLOCK" -x -w "$LOCK_WAIT_S" 8 2>/dev/null || RC=$?
+case "$RC" in
+  0) ;;
+  1) echo "$H the wheel stop's lock is still held after $LOCK_WAIT_S s (a wheel stop still running, a --status run, or another host)" >&2; exit 75 ;;
+  *) echo "$H flock failed on the wheel stop's lock, so it cannot be held; it fails closed" >&2; exit 69 ;;
+esac
+# The positive control: another open of the lock file, as a wheel stop makes one, must now find it held.
+RC=0
+"$FLOCK" -n "$WHEELS_LOCK" true 2>/dev/null || RC=$?
+[ "$RC" -eq 1 ] || { echo "$H another open of the wheel stop's lock did not find it held, so the lock cannot be trusted; it fails closed" >&2; exit 69; }
+
+# 3. The ownership check, failing closed. fuser_on_target sets OWNED for the path in TARGET: 0 an owner, 1 no owner,
+# 2 the check could not run (fuser exits 1 both for "no owner" and for an error, and only an error prints to stderr).
+fuser_on_target() {
+  local err rc=0
+  err="$("$FUSER" "$TARGET" 2>&1 >/dev/null)" || rc=$?
+  OWNED=2
+  case "$rc" in 0) OWNED=0 ;; 1) [ -n "$err" ] || OWNED=1 ;; esac
+}
+[ -x "$FUSER" ] || { echo "$H fuser is missing, so the servo owner check cannot run; it fails closed" >&2; exit 69; }
+[ -x "$SS" ] || { echo "$H ss is missing, so the 5555/5556 check cannot run; it fails closed" >&2; exit 69; }
+# The positive control: this wrapper holds its own file open, so a working fuser must name an owner for it.
+TARGET="$(readlink -f -- "$0")"
+OWNED=2
+if { exec 9<"$TARGET"; } 2>/dev/null; then
+  fuser_on_target
+  exec 9<&-
+fi
+[ "$OWNED" -eq 0 ] || { echo "$H fuser did not see this wrapper holding its own file open, so the servo owner check cannot run; it fails closed" >&2; exit 69; }
+[ -e "$ROBOT_PORT" ] || { echo "$H the servo device is missing" >&2; exit 75; }
+TARGET="$(readlink -f -- "$ROBOT_PORT")"
+fuser_on_target
+case "$OWNED" in
+  0) echo "$H the servo device already has an owner (two hosts on one bus corrupt each other's packets)" >&2; exit 75 ;;
+  2) echo "$H fuser failed on the servo device, so the servo owner check cannot run; it fails closed" >&2; exit 69 ;;
+esac
+LISTENERS="$("$SS" -H -ltn 2>&1)" || { echo "$H ss could not list the listeners, so the 5555/5556 check cannot run; it fails closed" >&2; exit 69; }
+while read -r _ _ _ LOCAL _; do
+  case "$LOCAL" in
+    *:5555 | *:5556 | *.5555 | *.5556) echo "$H something already listens on 5555 or 5556 (another host?)" >&2; exit 75 ;;
+  esac
+done <<<"$LISTENERS"
+
+# 4. The command socket on loopback ONLY. The stock host binds it on every interface and has no setting for the address;
+# with this variable the wrapper binds it to 127.0.0.1, reads the bound endpoint back and stops before its loop on
+# anything else (bin/pi/lekiwi_host_safe_attach.py, the HOST COMMAND LOOPBACK block). Processes on the robot, the
+# robot-side service among them, still reach it; the LAN does not. This is the network restriction only: the host
+# itself checks nothing, and any process on the robot that reaches the socket can push to it. The session, ownership
+# and admission checks apply only to commands routed through the robot-side service.
+# `lekiwi-deploy.sh arm` and `status` read the actual listener back from the kernel.
+export KC_HOST_COMMAND_LOOPBACK=1
+exec "$PYTHON" -u "$HOST_ENTRY" \
+  --robot.id="$ROBOT_ID" \
+  --robot.port="$ROBOT_PORT" \
+  --robot.max_relative_target=15.0 \
+  --robot.disable_torque_on_disconnect=false \
+  '--robot.cameras={}' \
+  --host.connection_time_s=86400

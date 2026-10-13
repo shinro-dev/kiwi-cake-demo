@@ -1,0 +1,771 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Snapshot",
+  "description": "Everything a console needs to draw itself before it follows the event stream from seq_cursor. data_mode and link are SEPARATE: a disconnected live view is not replay. retained_from_seq is the oldest seq the runtime can still serve.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "runtime_session",
+    "seq_cursor",
+    "retained_from_seq",
+    "data_mode",
+    "link",
+    "owner",
+    "active_run",
+    "last_outcome",
+    "capabilities",
+    "components",
+    "cake",
+    "evidence"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/contract_version"
+    },
+    "runtime_session": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "seq_cursor": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "retained_from_seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "data_mode": {
+      "$ref": "common.schema.json#/$defs/data_mode"
+    },
+    "link": {
+      "title": "SnapshotLink",
+      "description": "The link to the robot host. source_stamp is the last host observation received; receive_age_ms is how long ago it arrived, by the runtime's clock.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "source_stamp",
+        "receive_age_ms"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "connected",
+            "disconnected",
+            "unknown"
+          ]
+        },
+        "source_stamp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/source_stamp"
+            }
+          ]
+        },
+        "receive_age_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "owner": {
+      "title": "SnapshotOwner",
+      "description": "Who holds the robot. external_detected: something outside the runtime is commanding it. unresolved: the runtime cannot tell, which blocks motion commands.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "run_id",
+        "lease"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "free",
+            "autonomous",
+            "manual",
+            "external_detected",
+            "unresolved"
+          ]
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "lease": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "title": "SnapshotLease",
+              "description": "The host-side command lease, when the host reports one.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "host_session",
+                "generation",
+                "expires_in_ms"
+              ],
+              "properties": {
+                "host_session": {
+                  "$ref": "common.schema.json#/$defs/nullable_id"
+                },
+                "generation": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "expires_in_ms": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "active_run": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "title": "SnapshotActiveRun",
+          "description": "The run in progress.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "run_id",
+            "command_id",
+            "command_type",
+            "status",
+            "state",
+            "started_seq"
+          ],
+          "properties": {
+            "run_id": {
+              "$ref": "common.schema.json#/$defs/id"
+            },
+            "command_id": {
+              "$ref": "common.schema.json#/$defs/nullable_id"
+            },
+            "command_type": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "common.schema.json#/$defs/command_type"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "spawning",
+                "running",
+                "stopping"
+              ]
+            },
+            "state": {
+              "$ref": "common.schema.json#/$defs/nullable_id"
+            },
+            "started_seq": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "last_outcome": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "title": "SnapshotLastOutcome",
+          "description": "The most recent finished run OF THIS RUNTIME'S OWN MODE, as its run.finished payload. It is the PREVIOUS run whenever a different run is active: a console reads the active run's own result from that run's records, never from here. finished_wall_utc is optional and says when it finished, so a previous result can be shown as one instead of standing in for the current run.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "run_id",
+            "finished_seq",
+            "result"
+          ],
+          "properties": {
+            "run_id": {
+              "$ref": "common.schema.json#/$defs/id"
+            },
+            "finished_seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "result": {
+              "$ref": "event.schema.json#/$defs/payload_run_finished"
+            },
+            "finished_wall_utc": {
+              "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+            }
+          }
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "$ref": "capability.schema.json"
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "component.schema.json"
+      }
+    },
+    "cake": {
+      "$ref": "cake.schema.json"
+    },
+    "unresolved_command": {
+      "description": "Optional extension: the one command that holds the block, with the machine evidence behind it, or null when nothing is unresolved. Until this property existed the runtime carried it BESIDE the contract object, because the snapshot refuses unknown keys; it is the same object, now inside. A console that cannot read it says there is a block it cannot describe, never that there is none.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/unresolved_command"
+        }
+      ]
+    },
+    "lease": {
+      "description": "Optional extension: the host command lease as the runtime sees it, or null when the runtime has nothing to say about one. owner.lease carries the same three numbers, but only while a lease is HELD; this is what says why one is not. It carries no token: the request id a lease is adopted by never leaves the runtime.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/lease_status"
+        }
+      ]
+    },
+    "timings": {
+      "description": "Optional extension: the durations this runtime aggregated for ONE run, so that a console that reconnects, or one that was opened after a run began, sees what the run measured instead of whatever the bounded event ring still holds. Absent from a runtime that aggregates none.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/timings"
+        }
+      ]
+    },
+    "execution": {
+      "description": "Optional extension: which path to the robot this runtime runs commands through, and what actually owns the robot while it runs one. Absent from a runtime that does not state it, and null where there is no command path at all. A console reads ownership from here and never infers it from the absence of a lease.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/execution"
+        }
+      ]
+    },
+    "run_evidence": {
+      "description": "Optional extension: what this runtime recorded for ONE run, kept apart from `evidence`, which counts the whole session and is never reset when a run starts. Both reach the same screen and they answer different questions.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/run_evidence"
+        }
+      ]
+    },
+    "latest_retained_observation": {
+      "description": "Optional extension: the newest retained observation carrying an image that this runtime session recorded, or null when it recorded none. It exists because a console builds its observation list by folding observation.captured records off the stream, and a tab that connects or reloads AFTER a capture folds none of them: without this property such a tab has no reference to any frame at all and can only say that nothing was captured, which is false while the frame sits on disk and the API serves it. A client decides between this and what it folded BY THE SEQUENCE NUMBER both of them carry, and never by which of the two arrived last: the poll races the stream in both directions, so a record folded earlier can be older than an arriving snapshot and a delayed snapshot can be older than what has been folded since. A snapshot whose runtime_session differs is not newer or older, it is another log whose sequence numbers are not comparable with the folded ones at all, and a client resets rather than merging. It is a reference and never bytes: the picture is fetched by observation id through the same frame endpoint the folded records use, so reading it adds no consumer of the camera.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/latest_retained_observation"
+        }
+      ]
+    },
+    "latest_measured_state": {
+      "description": "Optional extension: the newest measured.state record this runtime session appended, or null when it appended none. It exists for the same reason latest_retained_observation does and is read the same way. A controller emits one measured.state record for the pose it read, so a non-motion observe that moves nothing still records the whole pose; a console folds that record off the event stream, and a tab that connects or reloads AFTER the command folded none of it and has nothing to show although the runtime holds it. THIS IS NOT A TELEMETRY TAP AND NAMES NOTHING CONTINUOUS. It is one record written when a controller read the robot, so a consumer states the time that record was written and the source that supplied it, and never presents it as a live feed: the absence of a tap and the presence of this record are two different facts and a consumer that prints one in place of the other throws away a measurement that was taken. The sequence number is the record's own in this runtime session's ordered log, which is what a client decides between this and its own fold with, in both directions; a snapshot whose runtime_session differs is another log altogether and a client resets rather than merging.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/latest_measured_state"
+        }
+      ]
+    },
+    "evidence": {
+      "title": "SnapshotEvidence",
+      "description": "Evidence completeness of the session so far.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "complete",
+        "gaps",
+        "dropped_telemetry"
+      ],
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "gaps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dropped_telemetry": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "unresolved_command": {
+      "title": "SnapshotUnresolvedCommand",
+      "description": "The one command whose outcome the runtime cannot establish, and what it read while trying. classification and the findings are the runtime's own vocabulary, passed through as tokens rather than pinned to an enum here, because the runtime that reconciles the command is authoritative for them. evidence is held WHOLE so an operator sees what was actually checked; it is the one object of this contract whose inside is not declared, and what keeps it safe is the runtime's sanitizer, not this schema.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "run_id",
+        "command_type",
+        "reason_code",
+        "classification",
+        "block_reason_code",
+        "evidence",
+        "question",
+        "findings",
+        "attestations",
+        "blocked_commands"
+      ],
+      "properties": {
+        "command_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "command_type": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/command_type"
+            }
+          ]
+        },
+        "reason_code": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "classification": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "block_reason_code": {
+          "$ref": "common.schema.json#/$defs/reason_code"
+        },
+        "evidence": {
+          "description": "The machine evidence as the runtime read it, or null when it could not be read. Its inside belongs to the runtime and is not declared here; a console shows it and routes on nothing in it.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "question": {
+          "$ref": "common.schema.json#/$defs/nullable_safe_text"
+        },
+        "findings": {
+          "description": "The only statements the runtime will accept about this command. A console offers these and invents none.",
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        },
+        "attestations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attestation"
+          }
+        },
+        "blocked_commands": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/command_type"
+          }
+        }
+      }
+    },
+    "attestation": {
+      "title": "SnapshotAttestation",
+      "description": "One statement an operator made about an uncertain command, recorded BESIDE the machine evidence and never instead of it. clears_block is the decision the statement led to, not the statement itself; refused carries the runtime's reason when it would not take the statement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding",
+        "note",
+        "classification",
+        "clears_block",
+        "refused",
+        "t_wall_utc"
+      ],
+      "properties": {
+        "finding": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "note": {
+          "$ref": "common.schema.json#/$defs/nullable_safe_text"
+        },
+        "classification": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "clears_block": {
+          "type": "boolean"
+        },
+        "refused": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "t_wall_utc": {
+          "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+        }
+      }
+    },
+    "execution": {
+      "title": "SnapshotExecution",
+      "description": "The path a command takes to the robot, and what owns the robot while one runs. TWO QUESTIONS, kept apart because the second is the one that is easy to overstate. baseline_normal_host runs the proven controller against the motor host in its normal mode and takes no lease of any kind: the only ownership is the runtime's own single run slot on the computer it runs on, so robot_side_enforcement is FALSE, as a statement of fact and not as an unknown. boundary_lease_host needs the robot-side host boundary and its command lease, and robot_side_enforcement is true only while that lease is actually held, null when nothing on the robot has answered anything. detail says the same thing in words an operator reads.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend",
+        "ownership_basis",
+        "robot_side_enforcement",
+        "detail"
+      ],
+      "properties": {
+        "backend": {
+          "description": "Which execution path. The two names share no word, so neither can be read for the other in a log line or on a screen.",
+          "enum": [
+            "baseline_normal_host",
+            "boundary_lease_host"
+          ]
+        },
+        "ownership_basis": {
+          "description": "What stands between this runtime's run and anybody else commanding the robot. runtime_single_run_slot is this process alone, on the computer it runs on; host_command_lease is a lease the robot-side boundary granted and enforces.",
+          "enum": [
+            "runtime_single_run_slot",
+            "host_command_lease"
+          ]
+        },
+        "robot_side_enforcement": {
+          "description": "Is something ON THE ROBOT refusing commands that do not carry this runtime's ownership? false is a finding: nothing was asked for and nothing is refusing. null means nothing has answered, so nothing is established. Never true unless a lease is held.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "detail": {
+          "$ref": "common.schema.json#/$defs/safe_text"
+        }
+      }
+    },
+    "lease_status": {
+      "title": "SnapshotLeaseStatus",
+      "description": "The host command lease as the RUNTIME holds it, never as a lease client believes it. Nothing measured about a lease that is not held travels beside it: when held is false the generation, the host session, the time left, the run and adopted are all null, and reason says why none was taken. required says whether this mode needs one at all, so 'not held' and 'not needed' are different answers.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "held",
+        "generation",
+        "host_session",
+        "expires_in_ms",
+        "reason",
+        "required",
+        "attached",
+        "renew_failures",
+        "run_id",
+        "adopted",
+        "last_reply_age_ms"
+      ],
+      "properties": {
+        "held": {
+          "type": "boolean"
+        },
+        "generation": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "host_session": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "expires_in_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "attached": {
+          "type": "boolean"
+        },
+        "renew_failures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "adopted": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "last_reply_age_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "timings": {
+      "title": "SnapshotTimings",
+      "description": "The measured durations of one run. run_id is the run they were measured in, and is null when no run has started in this runtime session. spans is empty until a span has actually been measured: no figure is reported before a sample exists, and an empty list is not a zero.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "spans"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/nullable_id"
+        },
+        "spans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/timing_span"
+          }
+        }
+      }
+    },
+    "timing_span": {
+      "title": "SnapshotTimingSpan",
+      "description": "Every figure of one span in ONE clock domain. Two domains are never pooled into one figure, because a duration measured on the robot and a duration measured on this machine are not the same measurement. count is how many samples the figures rest on and first_seq and last_seq bound the window they were taken over, in the runtime's own stream, so a figure cannot be read without knowing what it rests on. max_ns is the largest sample OBSERVED in that window: an observation, never a bound on the span.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "span",
+        "clock_domain",
+        "count",
+        "total_ns",
+        "max_ns",
+        "last_ns",
+        "first_seq",
+        "last_seq"
+      ],
+      "properties": {
+        "span": {
+          "$ref": "event.schema.json#/$defs/payload_timing_span/properties/span"
+        },
+        "clock_domain": {
+          "$ref": "common.schema.json#/$defs/clock_domain"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "run_evidence": {
+      "title": "SnapshotRunEvidence",
+      "description": "What the runtime recorded for ONE run. complete is null while the run is in progress and stays null until the run's own run.finished record states it: an absence of gaps is not a record, and a run that has not reported cannot be called complete. records is how many records of that run this runtime appended, so that a run with nothing recorded can never read as a run that went well.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "records",
+        "gaps",
+        "dropped_telemetry",
+        "complete"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gaps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dropped_telemetry": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "latest_retained_observation": {
+      "title": "SnapshotLatestRetainedObservation",
+      "description": "The newest retained observation carrying an image, named with exactly the fields the observation.captured record carries for it, so a consumer folds the two into one shape and never has to decide which of two descriptions of the same capture to believe. seq is the record's own sequence number in this runtime session's ordered log, which is how a consumer states the age of the picture in records rather than by subtracting two clocks nobody related. t_wall_utc is the wall time the runtime wrote on that record, carried unaltered. Nothing here is bytes and nothing here is a path: the picture is fetched by observation_id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "source_role",
+        "media",
+        "width_px",
+        "height_px",
+        "content_digest",
+        "source_stamp",
+        "retained",
+        "seq",
+        "t_wall_utc"
+      ],
+      "properties": {
+        "observation_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "source_role": {
+          "enum": [
+            "wrist",
+            "front",
+            "base",
+            "other"
+          ]
+        },
+        "media": {
+          "enum": [
+            "frame",
+            "frame_pair"
+          ]
+        },
+        "width_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "height_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "content_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "source_stamp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/source_stamp"
+            }
+          ]
+        },
+        "retained": {
+          "type": "boolean"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t_wall_utc": {
+          "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+        }
+      }
+    },
+    "latest_measured_state": {
+      "title": "SnapshotLatestMeasuredState",
+      "description": "The newest measured.state record of this runtime session, named with exactly the fields that record carries: its whole payload, plus the two the envelope carries and the payload cannot, which are the record's own sequence number in the ordered log and the wall time the runtime wrote on it. A consumer folds this and a folded measured.state record into one shape and decides between them by seq, so it never has to decide which of two descriptions of the same reading to believe. t_wall_utc is when the RECORD WAS WRITTEN by the runtime. It is not the instant the servo bus was sampled: relating the two needs a clock relation nothing here supplies, so a consumer that prints an age says which of the two it is counting from.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "joints",
+        "base_velocity",
+        "consumed_source_stamp",
+        "seq",
+        "t_wall_utc"
+      ],
+      "properties": {
+        "joints": {
+          "$ref": "event.schema.json#/$defs/measured_joints"
+        },
+        "base_velocity": {
+          "$ref": "event.schema.json#/$defs/measured_base_velocity"
+        },
+        "consumed_source_stamp": {
+          "$ref": "common.schema.json#/$defs/source_stamp"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t_wall_utc": {
+          "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+        }
+      }
+    }
+  }
+}

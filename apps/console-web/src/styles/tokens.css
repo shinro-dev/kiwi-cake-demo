@@ -1,0 +1,53 @@
+/* Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE. */
+
+/* The Shinro Studio instrument-panel tokens. One dark theme: this screen is read in a room next to a robot, and a
+   light theme would be a second set of contrast decisions nobody has checked. */
+
+:root {
+  --background: #0a0a0f;
+  --card: #12121a;
+  --muted: #1a1a2e;
+  --foreground: #e4e4e7;
+  --muted-foreground: #9ca3af;
+  --border: #27272a;
+  --primary: #00d4ff;
+  --accent: #7c3aed;
+  --success: #10b981;
+  --warning: #fbbf24;
+  --destructive: #ef4444;
+  --agent-accent: #2dd4bf;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  --font-sans: 'Geist Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+
+  /* The type scale. `--text-sm` is the body size of this screen and it is 14 px: the scale under it put the body at
+     13 px and the labels at 11 px, which is below what is readable at arm's length from the robot. Every size is in
+     rem so that a browser text zoom moves all of them together. `--text-xs` is for labels and captions and never for
+     a sentence. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+
+  /* Semantic surfaces derived from the tokens, so a panel never hard-codes a colour. */
+  --surface-sunken: #0d0d14;
+  --overlay-scrim: rgba(10, 10, 15, 0.82);
+
+  /* Provenance: how a shown number came to be. These read as distinct at a glance across the whole screen. */
+  --provenance-measured: var(--success);
+  --provenance-inferred: var(--warning);
+  --provenance-planned: var(--primary);
+  --provenance-historical: var(--accent);
+  --provenance-unavailable: var(--muted-foreground);
+}

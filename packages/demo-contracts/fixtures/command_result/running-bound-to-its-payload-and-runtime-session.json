@@ -1,0 +1,9 @@
+{
+  "command_id": "synthetic-command-0001",
+  "status": "running",
+  "reason_code": null,
+  "run_id": "synthetic-run-0001",
+  "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+  "runtime_session": "synthetic-session-0001",
+  "first_seen_wall_utc": "2026-01-01T00:00:00Z"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "wrist-camera",
+  "layer": "device",
+  "role": "the wrist camera",
+  "health": "degraded",
+  "active": true,
+  "version": null,
+  "evidence": "synthetic: two of the last ten captures were missing"
+}

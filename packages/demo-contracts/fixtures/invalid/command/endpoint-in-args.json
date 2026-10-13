@@ -1,0 +1,13 @@
+{
+  "contract_version": "1",
+  "command_id": "synthetic-command-0001",
+  "type": "start_cycle",
+  "args": {
+    "plan_only": false,
+    "remote_ip": "192.0.2.10"
+  },
+  "client": {
+    "session_id": "synthetic-client-0001",
+    "contract_version": "1"
+  }
+}

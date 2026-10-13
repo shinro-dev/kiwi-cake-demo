@@ -1,0 +1,29 @@
+{
+  "available": false,
+  "state": "stalled",
+  "reason": "no_sample_inside_the_window",
+  "source_stamp": {
+    "session": "synthetic-host-session-0001",
+    "seq": 41,
+    "sample_mono_ns": 2000000000,
+    "clock_domain": "pi_monotonic"
+  },
+  "joints": null,
+  "base_velocity": null,
+  "receive_mono_ns": 1200000000,
+  "receive_age_ms": 4100.0,
+  "clock_domains": {
+    "sample": "pi_monotonic",
+    "receive": "laptop_monotonic"
+  },
+  "measured_rate_hz": null,
+  "subscriber_gap_count": null,
+  "publisher_drop_count": null,
+  "session_changes": null,
+  "malformed_count": null,
+  "transport_errors": null,
+  "lease": null,
+  "rejections": null,
+  "commands": null,
+  "ingestion": null
+}

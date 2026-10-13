@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunManifest",
+  "description": "What one run states about itself: the identities a later reader needs to tell whether two runs are the same thing. Digests, versions and a model REFERENCE, never an address, a device id, a path or a command line. The runtime writes it beside the run's records when the run starts; this file is the shape it is written in, so a manifest gains a TypeScript binding and is checked at the boundary like every other record. The code identity is a pinned, content-addressed bundle: bundle_digest names it and bundle_file_count says how many files it holds. That bundle is built from a STATIC import closure, so a module reached by a computed name is not in it, and this manifest does not claim otherwise. Optional extension: deployed carries the identities of the artifacts running on the robot side, as versions and digests and never as paths; generation_changes records a Cake generation change APPENDED beside the run, which is how a change is admitted without rewriting a manifest that is already pinned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "command_id",
+    "command_type",
+    "data_mode",
+    "bundle_digest",
+    "bundle_file_count",
+    "source",
+    "contract_version",
+    "config_digest",
+    "input_digests",
+    "interpreter",
+    "packages",
+    "model"
+  ],
+  "properties": {
+    "schema": {
+      "description": "What this document is, so a file found on its own says so.",
+      "type": "string",
+      "const": "demo-runtime-run-manifest/1"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "command_id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "command_type": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "common.schema.json#/$defs/command_type"
+        }
+      ]
+    },
+    "data_mode": {
+      "$ref": "common.schema.json#/$defs/data_mode"
+    },
+    "bundle_digest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "bundle_file_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source": {
+      "$ref": "#/$defs/source_identity"
+    },
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/contract_version"
+    },
+    "config_digest": {
+      "$ref": "common.schema.json#/$defs/nullable_digest"
+    },
+    "input_digests": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/input_digests"
+        }
+      ]
+    },
+    "interpreter": {
+      "$ref": "#/$defs/interpreter"
+    },
+    "packages": {
+      "$ref": "#/$defs/packages"
+    },
+    "model": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/model_reference"
+        }
+      ]
+    },
+    "deployed": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/deployed_artifact"
+          }
+        }
+      ]
+    },
+    "generation_changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/generation_change"
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "title": "ArtifactVersion",
+      "description": "A version string as the thing itself reports it, or null when it does not report one.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+!-]{0,63}$"
+    },
+    "source_identity": {
+      "title": "SourceIdentity",
+      "description": "The source checkout the run was launched from. Both fields are null when the revision could not be read: a manifest states what it could establish and never raises to say it could not.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "dirty"
+      ],
+      "properties": {
+        "revision": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "dirty": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "input_digests": {
+      "title": "InputDigests",
+      "description": "The two inputs that shape a run: the saved pose, and the pad template as ONE digest over its required files in sorted name order. The whole object is null when the inputs were not there to read, because a digest of nothing is worse than none.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "saved_pose_sha256",
+        "pad_template_sha256"
+      ],
+      "properties": {
+        "saved_pose_sha256": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "pad_template_sha256": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      }
+    },
+    "interpreter": {
+      "title": "InterpreterIdentity",
+      "description": "The Python that ran the controller.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation",
+        "version"
+      ],
+      "properties": {
+        "implementation": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    "packages": {
+      "title": "KeyPackageVersions",
+      "description": "The installed versions of the packages a result depends on. The names are the runtime's KEY_PACKAGES and a test keeps the two equal; null is a package that is not installed in that interpreter, which is itself a fact about the run.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lerobot",
+        "torch",
+        "transformers",
+        "opencv-python-headless",
+        "numpy",
+        "pyzmq"
+      ],
+      "properties": {
+        "lerobot": {
+          "$ref": "#/$defs/version"
+        },
+        "torch": {
+          "$ref": "#/$defs/version"
+        },
+        "transformers": {
+          "$ref": "#/$defs/version"
+        },
+        "opencv-python-headless": {
+          "$ref": "#/$defs/version"
+        },
+        "numpy": {
+          "$ref": "#/$defs/version"
+        },
+        "pyzmq": {
+          "$ref": "#/$defs/version"
+        }
+      }
+    },
+    "model_reference": {
+      "title": "ModelReference",
+      "description": "A REFERENCE to the model a run used, never its weights and never where they were loaded from. identity_withheld is true when the configuration named the model in a way that could not be published, such as a local checkpoint path: the manifest then says a model was named and withheld rather than saying there was none.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "revision",
+        "identity_withheld"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "common.schema.json#/$defs/model_identity"
+        },
+        "revision": {
+          "$ref": "common.schema.json#/$defs/model_identity"
+        },
+        "identity_withheld": {
+          "type": "boolean"
+        }
+      }
+    },
+    "deployed_artifact": {
+      "title": "DeployedArtifact",
+      "description": "One artifact that was running on the robot side for this run, by role. A role and an identity: never a host name, an address, a user or a path.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "version",
+        "artifact_digest"
+      ],
+      "properties": {
+        "role": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "artifact_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        }
+      }
+    },
+    "generation_change": {
+      "title": "GenerationChange",
+      "description": "A Cake generation change recorded BESIDE a pinned run: which slot moved, from which generation to which, under which transaction, and at which point of the run's own ordered stream. The manifest of a finished run is not rewritten by one; it grows this list.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transaction_id",
+        "slot_id",
+        "from_generation",
+        "to_generation",
+        "at_seq"
+      ],
+      "properties": {
+        "transaction_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "slot_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "from_generation": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "to_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "at_seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
