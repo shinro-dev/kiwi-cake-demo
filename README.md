@@ -9,6 +9,8 @@ host-supervision demo after it, in which Cake supervises the LeRobot host.
 
 ## The four-click demo (2026-10-12)
 
+https://github.com/user-attachments/assets/43d92e2a-b014-4e7f-af05-cba4191ac90e
+
 A screen recording of this repository's operator console driving a LeKiwi
 through two pick-and-place missions with four buttons: Confirm this robot
 (it opens a dialog that also asks for a tick and a confirm), Start, Enable
