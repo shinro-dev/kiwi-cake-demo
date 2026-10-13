@@ -74,7 +74,10 @@ External environment versions need to be recorded separately.
 
 ## Process events and robot state
 
-The safe-stop template writes a log line; it sends no motor command.
+The safe-stop template writes a log line. As segment 2 copies it, it sends
+no motor command; the LeKiwi deployment fills in its wheel settings, and
+then it also writes goal velocity 0 to the three wheel servos after each
+observed exit, best effort ([Safety](../SAFETY.md) says when it cannot).
 LeRobot enables torque on successful connect, including after restart.
 A hard process death may skip LeRobot's disconnect code. Neither a child
 exit event nor a healthy supervisor slot proves that wheels stopped or

@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "transaction_id": "synthetic-transaction-0002",
+  "kind": "rollback",
+  "phase": "durable",
+  "committed": true,
+  "durable": true,
+  "native_events": [
+    {
+      "code": "plan_persisted",
+      "text": "synthetic: a forward transaction onto the prior durable Plan"
+    }
+  ],
+  "candidate_digest": null
+}

@@ -3,12 +3,66 @@
 #
 # safe-stop.sh: the post-exit safe-stop command the Cake supervisor runs once
 # for every child exit it observes. The supervisor passes the arguments you
-# configured; the demo runner passes one, the path of a log file, as $1.
+# configured; the demo runner and bin/pi/lekiwi-deploy.sh pass one, the path
+# of a log file, as $1.
 #
-# This template only appends a line to that log. It touches no device. If
-# you make it stop the robot, keep it short (the supervisor ends it after a
-# bounded deadline), test it on a stand first, and read SAFETY.md again.
-# There is nothing to fill in here unless you want it to do more.
+# It always appends one line to that log first. Then, ONLY when the four
+# WHEELS_ settings below are filled in, it runs the wheel stop,
+# bin/pi/wheels_safe_stop.py: Goal_Velocity 0 to the three wheel servos (ids
+# 7, 8 and 9), then a readback of what they hold, all appended to the same
+# log. It never reads or writes an arm servo. A wheel that does not read
+# back goal velocity 0 in velocity mode gets its torque switched off, so
+# that it stops being driven.
+# That file's own header says exactly what it writes and when it writes
+# nothing (a missing device, a device another process holds open).
+#
+# bin/pi/lekiwi-deploy.sh install fills the four settings in when it renders
+# this file on the robot computer. Left empty, as they are here, this script
+# only logs: there is nothing to fill in for segment 2.
+#   WHEELS_PYTHON  absolute path of the python the motor host runs with
+#   WHEELS_HELPER  absolute path of the deployed bin/pi/wheels_safe_stop.py
+#   WHEELS_PORT    the servo bus device, by its /dev/serial/by-id/ entry
+#   WHEELS_LOCK    absolute path of the lock file two wheel stops share
+#
+# TIME. The supervisor ends a safe-stop command that is still running about
+# half a second after its start, by force (measured on the development build
+# of the supervisor). So the wheel stop runs under a HARD LIMIT of 0.42 s
+# (timeout -s KILL), writes the zero before it reads anything back, and ends
+# its readback at its own budget before that limit. Nothing here waits on
+# anything else, and this script exits 0 whatever happened: what happened is
+# in the log. A stop inside half a second is best effort, never a guarantee;
+# read SAFETY.md before relying on it, and test it on a stand first.
 log="${1:-/tmp/kiwi-cake-safe-stop.log}"
-printf 'safe-stop ran at %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$log" 2>/dev/null
+printf 'safe-stop ran at %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" 2>/dev/null >>"$log"
+WHEELS_PYTHON=''
+WHEELS_HELPER=''
+WHEELS_PORT=''
+WHEELS_LOCK=''
+[ -n "$WHEELS_PYTHON$WHEELS_HELPER$WHEELS_PORT$WHEELS_LOCK" ] || exit 0
+# A log that cannot be written must not stop the wheel stop. One that cannot even be OPENED would: the shell runs no
+# command whose redirection fails. So the probe below sends the lines to /dev/null then. One that opens but refuses
+# every write (a full disk) passes the probe, which writes nothing; the helper then drops each line it cannot write
+# and goes on writing the wheels. The probe is printf, never ':' (a special builtin, on whose failed redirection a
+# POSIX shell exits), and stderr is redirected first.
+out="$log"
+printf '' 2>/dev/null >>"$out" || out=/dev/null
+case "$WHEELS_PYTHON:$WHEELS_HELPER:$WHEELS_PORT:$WHEELS_LOCK" in
+  /*:/*:/dev/*:/*) ;;
+  *)
+    printf 'safe-stop: wheel stop NOT RUN: its four settings must all be absolute paths, the port under /dev/; nothing was written\n' 2>/dev/null >>"$out"
+    exit 0
+    ;;
+esac
+timeout -s KILL 0.42 "$WHEELS_PYTHON" -u "$WHEELS_HELPER" --port "$WHEELS_PORT" --lock "$WHEELS_LOCK" >>"$out" 2>&1 </dev/null
+rc=$?
+case "$rc" in
+  0) what="every wheel read back goal velocity 0 in velocity mode" ;;
+  1) what="NOT VERIFIED: see the wheel lines above" ;;
+  2) what="usage: the settings did not parse; nothing was written" ;;
+  3) what="not run: see the NOT RUN line above; nothing was written" ;;
+  4) what="the bus could not be reached: see the NOT RUN line above; nothing was written" ;;
+  137) what="ended at the hard limit of 0.42 s: the lines above say what it wrote before that" ;;
+  *) what="an unexpected status: the lines above say what it wrote" ;;
+esac
+printf 'safe-stop: wheel stop exited %s (%s)\n' "$rc" "$what" 2>/dev/null >>"$out"
 exit 0

@@ -1,0 +1,13 @@
+{
+  "id": "robot-host",
+  "layer": "process",
+  "role": "the hardware host process on the robot",
+  "health": "unknown",
+  "active": null,
+  "version": null,
+  "evidence": "synthetic: no observation received yet",
+  "cake_slot": {
+    "slot_id": "mobile_approach",
+    "generation": 0
+  }
+}

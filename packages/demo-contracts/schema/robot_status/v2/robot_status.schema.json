@@ -1,0 +1,893 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "robot_status.schema.json",
+  "title": "RobotStatus",
+  "description": "A READ-ONLY report of the ROBOT's Cake resident as this desktop runtime reaches it through an ssh unix-socket forward, versioned separately from the operator console contract v1 and from cake_status, and referenced by neither. A resident on the laptop is never reported here as the robot's. Self-contained on purpose: the validator resolves a $ref only inside this file. Nothing here is a Cake ABI: it mirrors what the supported admin-probe client printed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "robot_status_version",
+    "configured",
+    "deployment",
+    "reachable",
+    "reason_code",
+    "stale",
+    "clock_domain",
+    "connection",
+    "identity",
+    "resident",
+    "slots",
+    "health",
+    "host",
+    "capability",
+    "updates",
+    "motion_permission"
+  ],
+  "properties": {
+    "robot_status_version": {
+      "description": "The major version of THIS surface. It is not the console contract version and the two move independently. Version 2 changed meaning against version 1 (never released): identity.is_robot rests on the pinned build_identity (which identifies software), not on the target profile; slot rows carry instance as a decimal string; motion permission binds the supervisor host INSTANCE (slot instance handle, spawn sequence and pid), not a pid alone.",
+      "type": "string",
+      "const": "2"
+    },
+    "configured": {
+      "description": "Whether this runtime was configured with the robot's resident (cake.robot). False means nothing about a robot was asked, and nothing below describes one.",
+      "type": "boolean"
+    },
+    "deployment": {
+      "$ref": "#/$defs/deployment"
+    },
+    "reachable": {
+      "description": "Whether the robot's resident answered the MOST RECENT read through the forward.",
+      "type": "boolean"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/nullable_code"
+    },
+    "stale": {
+      "description": "True when the resident sections below are RETAINED from an earlier read and are not current. A consumer draws them as stale and never as current, and never replaces them with an empty inventory.",
+      "type": "boolean"
+    },
+    "clock_domain": {
+      "description": "The clock every age here was read from.",
+      "type": "string",
+      "const": "laptop_monotonic"
+    },
+    "connection": {
+      "description": "The connection to the robot, and nothing that names it: no robot id in any form, no target, no address, no path.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment",
+        "forward",
+        "observed"
+      ],
+      "properties": {
+        "deployment": {
+          "$ref": "#/$defs/deployment"
+        },
+        "forward": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/forward"
+            }
+          ]
+        },
+        "observed": {
+          "$ref": "#/$defs/observation"
+        }
+      }
+    },
+    "identity": {
+      "description": "WHICH robot, and whether the resident answering through this runtime's connection to it reports the build pinned for the robot. The build identity identifies the SOFTWARE the resident runs; the pin refuses a different build and nothing more (a resident built from the same source elsewhere reports the same value). Which deployment is observed is established by the authenticated connection to the intended robot (the ssh forward to that robot's admin socket, or the local socket on the robot) and the session that endpoint's resident reports now. is_robot (a kept name: it means the pinned build answered) is true only when the CURRENT answer's build_identity equals expected_build_identity (cake.robot.expected_build_identity, REQUIRED, pinned by the operator from the deployed robot's own get-status); false when a resident answered with another build identity or none that can be read (reason_code robot_resident_not_the_robot or robot_build_identity_unreadable, kept names meaning not the pinned build), and then NOTHING in this answer describes that resident as the robot: reachable is false, no section is taken from its answer and motion is refused; null when nothing answered now. answering_build_identity and answering_target_profile_digest are what the answering resident reported. The target profile is INFORMATION ONLY and refuses nothing: a laptop x86 cake-resident was measured reporting the robot's own LeKiwi aarch64 profile. display_label is the operator's own public name for the robot (cake.robot.display_label), null with labelled false when none was given; the robot id is never sent in any form. build_identity and session_uuid are the robot resident's own, from the current reading or, marked stale, the last one that reported the pinned build.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_robot",
+        "reason_code",
+        "expected_build_identity",
+        "answering_build_identity",
+        "answering_target_profile_digest",
+        "display_label",
+        "labelled",
+        "build_identity",
+        "session_uuid",
+        "stale",
+        "observed"
+      ],
+      "properties": {
+        "is_robot": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "expected_build_identity": {
+          "$ref": "#/$defs/hex"
+        },
+        "answering_build_identity": {
+          "$ref": "#/$defs/hex"
+        },
+        "answering_target_profile_digest": {
+          "$ref": "#/$defs/hex"
+        },
+        "display_label": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/label"
+            }
+          ]
+        },
+        "labelled": {
+          "type": "boolean"
+        },
+        "build_identity": {
+          "$ref": "#/$defs/hex"
+        },
+        "session_uuid": {
+          "$ref": "#/$defs/hex"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "observed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        }
+      }
+    },
+    "resident": {
+      "description": "What the robot's resident said about itself in get-status. plan_digest does NOT establish that any particular Plan was admitted. session_changed is sticky within this runtime and null before two answers could be compared.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reachable",
+        "stale",
+        "reason_code",
+        "session_uuid",
+        "build_identity",
+        "plan_digest",
+        "target_profile_digest",
+        "epoch",
+        "session_changed",
+        "observed"
+      ],
+      "properties": {
+        "reachable": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "session_uuid": {
+          "$ref": "#/$defs/hex"
+        },
+        "build_identity": {
+          "$ref": "#/$defs/hex"
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/hex"
+        },
+        "target_profile_digest": {
+          "$ref": "#/$defs/hex"
+        },
+        "epoch": {
+          "$ref": "#/$defs/count"
+        },
+        "session_changed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "observed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        }
+      }
+    },
+    "slots": {
+      "description": "list-slots of the robot's resident.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stale",
+        "reason_code",
+        "items",
+        "observed"
+      ],
+      "properties": {
+        "stale": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/slot_row"
+          }
+        },
+        "observed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        }
+      }
+    },
+    "health": {
+      "description": "get-health of the robot's resident.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stale",
+        "reason_code",
+        "items",
+        "observed"
+      ],
+      "properties": {
+        "stale": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/health_row"
+          }
+        },
+        "observed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        }
+      }
+    },
+    "host": {
+      "description": "Whether the robot host is the one the robot's Cake supervisor slot runs. supervised is true ONLY when the supervisor.lekiwi slot is ACTIVE, its get-health child_pid is nonzero in state HEALTHY, AND the ssh readiness probe of the robot computer found a running safe-attach host whose pid equals that child_pid; otherwise false with the reason. Never true from a retained reading. slot_instance, spawn_sequence and health_state are shown as read.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supervised",
+        "reason_code",
+        "slot_uuid",
+        "slot_state",
+        "slot_instance",
+        "child_pid",
+        "spawn_sequence",
+        "health_state",
+        "readiness_state",
+        "readiness_age_ms",
+        "observed"
+      ],
+      "properties": {
+        "supervised": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "slot_uuid": {
+          "$ref": "#/$defs/hex"
+        },
+        "slot_state": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/token"
+            }
+          ]
+        },
+        "slot_instance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/slot_instance"
+            }
+          ]
+        },
+        "child_pid": {
+          "$ref": "#/$defs/count"
+        },
+        "spawn_sequence": {
+          "$ref": "#/$defs/count"
+        },
+        "health_state": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/token"
+            }
+          ]
+        },
+        "readiness_state": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/code"
+            }
+          ]
+        },
+        "readiness_age_ms": {
+          "$ref": "#/$defs/age_ms"
+        },
+        "observed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        }
+      }
+    },
+    "capability": {
+      "description": "The configured capability: active only when its ONE slot is ACTIVE on the configured active capsule, read from a CURRENT listing. A retained reading never makes it active.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "configured",
+        "name",
+        "active",
+        "reason_code",
+        "capsule",
+        "generation",
+        "child_pid",
+        "stale",
+        "observed"
+      ],
+      "properties": {
+        "configured": {
+          "type": "boolean"
+        },
+        "name": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/token"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "capsule": {
+          "$ref": "#/$defs/hex"
+        },
+        "generation": {
+          "$ref": "#/$defs/count"
+        },
+        "child_pid": {
+          "$ref": "#/$defs/count"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "observed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        }
+      }
+    },
+    "updates": {
+      "description": "Transaction and supervisor lifecycle records from read-flight, newest last, bounded. POLL TRAFFIC IS EXCLUDED: every admin connection writes records of the resident's security domain (0x0B) whose subject is the connecting peer, which through the forward is this runtime's own probe; those are counted in excluded_admin_records and never listed, so polling is never reported as module activity. Only the allowlisted transaction codes (0x03 domain) and supervisor lifecycle codes (0x05FFFFFC down to 0x05FFFFF5) are listed. Every other record outside the allowlist is counted in other_records and not listed, so nothing disappears without a count.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stale",
+        "reason_code",
+        "items",
+        "dropped",
+        "excluded_admin_records",
+        "other_records",
+        "observed"
+      ],
+      "properties": {
+        "stale": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/update_row"
+          }
+        },
+        "dropped": {
+          "$ref": "#/$defs/count"
+        },
+        "excluded_admin_records": {
+          "$ref": "#/$defs/count"
+        },
+        "other_records": {
+          "$ref": "#/$defs/count"
+        },
+        "observed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        }
+      }
+    },
+    "motion_permission": {
+      "description": "Whether a command that moves the robot may be accepted, as far as the robot's identity, resident session and supervisor host instance are concerned. It applies only when a robot resident is configured. Permitted only while the resident answering through this runtime's connection to the robot reports the pinned build (build_identity, which identifies the software) AND its CURRENT session_uuid (which, with that connection, says which deployment is observed) and supervisor host instance (slot_instance, spawn_sequence, pid) all equal the ones the operator explicitly confirmed in THIS runtime. A change of ANY component, or a resident answering that does not report the pinned build, revokes the confirmation until the operator confirms again; changed_component names what changed. The confirmation is held by the running runtime only: a runtime restart starts with none, and a confirmation recorded on disk is an audit record, never permission. The supervisor re-reads the identity FRESH immediately before it admits a motion command and journals the identity the command was admitted under. current_session_uuid and current_host_instance are what a confirmation has to name (POST /api/robot/confirm-session takes exactly {session_uuid, host_instance}); they are given only from a CURRENT reading of the robot while a host instance runs and was identified, and confirmable says so; otherwise both are null and current_host_reason_code says why. Observe is not a motion command and is not gated by this.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applies",
+        "permitted",
+        "reason_code",
+        "detail",
+        "confirmable",
+        "changed_component",
+        "confirmed_session_uuid",
+        "confirmed_host_instance",
+        "confirmed_wall_utc",
+        "current_session_uuid",
+        "current_host_instance",
+        "current_host_reason_code",
+        "observed"
+      ],
+      "properties": {
+        "applies": {
+          "type": "boolean"
+        },
+        "permitted": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "detail": {
+          "$ref": "#/$defs/safe_text"
+        },
+        "confirmable": {
+          "type": "boolean"
+        },
+        "changed_component": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "session",
+                "slot_instance",
+                "spawn_sequence",
+                "pid",
+                "host_stopped",
+                "identity"
+              ]
+            }
+          ]
+        },
+        "confirmed_session_uuid": {
+          "$ref": "#/$defs/hex"
+        },
+        "confirmed_host_instance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/host_instance"
+            }
+          ]
+        },
+        "confirmed_wall_utc": {
+          "$ref": "#/$defs/wall"
+        },
+        "current_session_uuid": {
+          "$ref": "#/$defs/hex"
+        },
+        "current_host_instance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/host_instance"
+            }
+          ]
+        },
+        "current_host_reason_code": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "observed": {
+          "$ref": "#/$defs/observation"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "safe_text": {
+      "title": "RobotStatusSafeText",
+      "description": "Free text for an operator's screen. The emitter sanitizes it; the schema is the tripwire: a home-directory path or a dotted-quad address fails validation.",
+      "type": "string",
+      "maxLength": 1024,
+      "not": {
+        "description": "a home-directory path or a dotted-quad address",
+        "type": "string",
+        "pattern": "/(home|Users|root)/|(^|[^0-9.])[0-9]{1,3}(\\.[0-9]{1,3}){3}([^0-9.]|$)"
+      }
+    },
+    "label": {
+      "title": "RobotStatusLabel",
+      "description": "An operator's public display label: letters, digits, space, dot, underscore and hyphen, never an address.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]{0,47}$",
+      "not": {
+        "description": "a dotted-quad address",
+        "type": "string",
+        "pattern": "(^|[^0-9])[0-9]{1,3}(\\.[0-9]{1,3}){3}([^0-9]|$)"
+      }
+    },
+    "code": {
+      "title": "RobotStatusCode",
+      "description": "A stable machine-readable code.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+    },
+    "nullable_code": {
+      "title": "RobotStatusNullableCode",
+      "description": "A stable machine-readable code, or null when there is nothing to explain.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+    },
+    "hex": {
+      "title": "RobotStatusHex",
+      "description": "An identity the resident printed: lowercase hex. A path or a file name is not one.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{8,64}$"
+    },
+    "wall": {
+      "title": "RobotStatusWall",
+      "description": "A UTC wall-clock stamp, for an operator to read. Ages are never computed from it.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "count": {
+      "title": "RobotStatusCount",
+      "description": "A non-negative integer, or null when it was not reported.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "age_ms": {
+      "title": "RobotStatusAge",
+      "description": "Milliseconds on the laptop_monotonic clock, or null when there is nothing to measure from.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "token": {
+      "title": "RobotStatusToken",
+      "description": "A name or state word the resident printed.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "deployment": {
+      "title": "RobotStatusDeployment",
+      "description": "WHOSE resident this runtime reads. robot_resident: the robot's own, through the ssh unix-socket forward this runtime owns. this_laptop: a resident on the machine running this runtime, which is never reported as the robot's (this surface then reports configured false and nothing about it). not_configured: no resident at all.",
+      "enum": [
+        "robot_resident",
+        "this_laptop",
+        "not_configured"
+      ]
+    },
+    "observation": {
+      "title": "RobotStatusObservation",
+      "description": "WHEN a section was observed: the wall time for an operator and the age on the laptop_monotonic clock, measured from the moment the read was taken, not from when this answer was assembled.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wall_utc",
+        "age_ms"
+      ],
+      "properties": {
+        "wall_utc": {
+          "$ref": "#/$defs/wall"
+        },
+        "age_ms": {
+          "$ref": "#/$defs/age_ms"
+        }
+      }
+    },
+    "forward": {
+      "title": "RobotStatusForward",
+      "description": "The ssh unix-socket forward that IS the connection to the robot's admin socket. It is restarted with a bounded backoff when it dies and reports every state it passes through. It carries no target, no address and no path.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "reason",
+        "since_wall_utc",
+        "since_age_ms",
+        "starts",
+        "deaths",
+        "restarts",
+        "next_attempt_in_ms"
+      ],
+      "properties": {
+        "state": {
+          "description": "connected only while the ssh child is alive AND its local socket exists.",
+          "enum": [
+            "not_configured",
+            "stopped",
+            "connecting",
+            "connected",
+            "failed"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/nullable_code"
+        },
+        "since_wall_utc": {
+          "$ref": "#/$defs/wall"
+        },
+        "since_age_ms": {
+          "$ref": "#/$defs/age_ms"
+        },
+        "starts": {
+          "$ref": "#/$defs/count"
+        },
+        "deaths": {
+          "$ref": "#/$defs/count"
+        },
+        "restarts": {
+          "$ref": "#/$defs/count"
+        },
+        "next_attempt_in_ms": {
+          "description": "How long until the next restart attempt of a failed forward; null while a child exists or none is scheduled.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "slot_row": {
+      "title": "RobotStatusSlot",
+      "description": "One row of the robot resident's list-slots, as it printed it. instance is the slot's instance handle as a decimal string.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "uuid",
+        "capsule",
+        "generation",
+        "instance",
+        "state"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/token"
+        },
+        "uuid": {
+          "$ref": "#/$defs/hex"
+        },
+        "capsule": {
+          "$ref": "#/$defs/hex"
+        },
+        "generation": {
+          "$ref": "#/$defs/count"
+        },
+        "instance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/slot_instance"
+            }
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/token"
+        }
+      }
+    },
+    "health_row": {
+      "title": "RobotStatusHealth",
+      "description": "One row of the robot resident's get-health: child_pid is its arg1, restarts its flags, spawns its sequence and last_status its raw waitpid status (code). child_pid is a pid ON THE ROBOT.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "state_name",
+        "child_pid",
+        "restarts",
+        "spawns",
+        "last_status"
+      ],
+      "properties": {
+        "slot": {
+          "$ref": "#/$defs/hex"
+        },
+        "state_name": {
+          "$ref": "#/$defs/token"
+        },
+        "child_pid": {
+          "$ref": "#/$defs/count"
+        },
+        "restarts": {
+          "$ref": "#/$defs/count"
+        },
+        "spawns": {
+          "$ref": "#/$defs/count"
+        },
+        "last_status": {
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "update_row": {
+      "title": "RobotStatusUpdate",
+      "description": "One transaction or supervisor lifecycle record from read-flight, by its registry name and code.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "event",
+        "name",
+        "kind",
+        "arg0",
+        "arg1",
+        "epoch"
+      ],
+      "properties": {
+        "sequence": {
+          "$ref": "#/$defs/count"
+        },
+        "event": {
+          "type": "string",
+          "pattern": "^0x[0-9A-F]{8}$"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^EVT_[A-Z0-9_]{1,60}$"
+        },
+        "kind": {
+          "enum": [
+            "transaction",
+            "supervisor"
+          ]
+        },
+        "arg0": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "arg1": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "epoch": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "slot_instance": {
+      "title": "RobotStatusSlotInstance",
+      "description": "A Cake slot instance handle as list-slots printed it: a u64, session local, carried as a canonical DECIMAL STRING because a browser cannot hold a u64 as a number exactly. 0 is no handle and is never sent.",
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,19}$"
+    },
+    "host_instance": {
+      "title": "RobotStatusHostInstance",
+      "description": "WHICH host process the robot's supervisor.lekiwi slot runs: its instance handle (list-slots instance, changed by a slot re-create), the supervisor's spawn sequence (get-health sequence, changed by every host restart even when a pid is reused) and the child pid (get-health arg1). Together with the resident's session_uuid (changed by a resident restart) it is what an operator confirms. Present only while a host RUNS under that slot (slot ACTIVE, health HEALTHY, pid nonzero) and all three were read.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot_instance",
+        "spawn_sequence",
+        "pid"
+      ],
+      "properties": {
+        "slot_instance": {
+          "$ref": "#/$defs/slot_instance"
+        },
+        "spawn_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194304
+        }
+      }
+    }
+  }
+}

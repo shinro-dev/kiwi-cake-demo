@@ -1,0 +1,42 @@
+# Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+#
+# kiwi-cake-runtime.service: a USER unit (systemctl --user) for the demo_runtime daemon ON THE ROBOT, run from ONE pinned
+# release that bin/runtime-release.sh stage built from a `git archive` of one commit. Rendered by
+# bin/runtime-release.sh render with every path absolute; no sudo, nothing system-wide. It is SEPARATE from
+# bin/pi/lekiwi-deploy.sh and its APP_FILES: that script deploys the Cake resident, the host and the capability; this
+# unit runs the robot-side service that carries a mission beneath them (section 3.5 of the route-(ii) design).
+#
+# NEVER ENABLED. This file has NO [Install] section: with no WantedBy= there is no target to enable it into, so linger can
+# never start it at boot. Starting it is an operator's step, with the robot attended.
+#
+# SHIPPED OFF, TWICE:
+#   - the runtime starts WITHOUT --enable-hardware-commands unless the operator rendered it with that flag named
+#     (KC_RUNTIME_HARDWARE_COMMANDS=1), so every motion command and every mission run is refused by default;
+#   - the configuration it reads ships with mission.execution UNSET, and unset answers mission_unavailable for every
+#     mission op, exactly as a runtime before the robot-side execution did (demo_runtime.mission_service). Setting it is
+#     the operator's decision after the attended checks, and nothing here writes the configuration.
+#
+# THE STOP. ExecStop first asks the runtime for its guarded stop over its own socket (the CLI's `stop`: the mission's
+# cancel event, then SIGINT to the controller's pid, never more), and only then does systemd send the daemon SIGTERM.
+# KillMode=process is deliberate and is the one difference from the Cake units: the controller is the runtime's child in
+# its own session and its ONLY stop is that SIGINT. systemd must not SIGTERM or SIGKILL it with the daemon; a controller
+# still finishing its guarded stop when the daemon ends is found again by the next daemon by its scan id and adopted, or
+# finished (demo_runtime.supervisor, RECOVERY). Restart=no: a daemon that died is started again by a person, and motion
+# permission, which lives only in the daemon's memory, is then confirmed again anyway.
+#
+# THE ENVIRONMENT. The daemon imports demo_runtime and demo_contracts from the release it was rendered for, never from a
+# checkout, and each controller run is pinned again by the runtime's own bundle. PYTHONPATH names exactly those two.
+[Unit]
+Description=kiwi-cake-runtime: the robot-side demo runtime daemon, from one pinned release (user unit)
+
+[Service]
+Type=simple
+WorkingDirectory=@@RELEASE_DIR@@
+Environment=PYTHONPATH=@@RELEASE_DIR@@/packages/demo-runtime:@@RELEASE_DIR@@/packages/demo-contracts/python
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@@PYTHON@@ -m demo_runtime.daemon --config @@CONFIG@@ --data-dir @@DATA_DIR@@@@HARDWARE_FLAG@@
+ExecStop=-@@PYTHON@@ -m demo_runtime.cli --data-dir @@DATA_DIR@@ stop
+Restart=no
+KillMode=process
+KillSignal=SIGTERM
+TimeoutStopSec=30

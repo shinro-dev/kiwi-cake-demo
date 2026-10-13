@@ -1,0 +1,12 @@
+{
+  "contract_version": "1",
+  "command_id": "synthetic-command-0008",
+  "type": "stop",
+  "args": {
+    "force": true
+  },
+  "client": {
+    "session_id": "synthetic-client-0001",
+    "contract_version": "1"
+  }
+}

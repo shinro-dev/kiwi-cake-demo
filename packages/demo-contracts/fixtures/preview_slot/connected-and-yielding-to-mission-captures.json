@@ -1,0 +1,38 @@
+{
+  "available": true,
+  "state": "connected",
+  "reason": null,
+  "role": "wrist",
+  "seq": 812,
+  "source_seq": 4310,
+  "capture_clock": {
+    "session": "synthetic-camera-session-0001",
+    "seq": 812,
+    "sample_mono_ns": 3000000000,
+    "clock_domain": "pi_monotonic"
+  },
+  "capture_semantics": "capture_start",
+  "capture_age_ms": null,
+  "capture_age_reason": "no_clock_relation_between_source_and_laptop",
+  "service_latency_ms": 18.5,
+  "receive_mono_ns": 1200000000,
+  "receive_age_ms": 40.0,
+  "measured_fps": 9.5,
+  "frame": {
+    "width_px": 640,
+    "height_px": 480
+  },
+  "stream": {
+    "pixel_format": "MJPG",
+    "source_fps_reported": 30.0,
+    "source_fps_measured": 29.4,
+    "source_width": 1280.0,
+    "source_height": 720.0
+  },
+  "gaps": 0,
+  "session_changes": 0,
+  "capture_time_stalls": 0,
+  "malformed": 0,
+  "skipped_for_mission": 3,
+  "clock_relation": null
+}

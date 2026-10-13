@@ -1,0 +1,13 @@
+{
+  "id": "mobile-approach",
+  "layer": "cake_module",
+  "role": "bounded desired base motion from fresh target observations",
+  "health": "unknown",
+  "active": false,
+  "version": null,
+  "evidence": "synthetic: no resident is reachable, nothing was read",
+  "cake_slot": {
+    "slot_id": "mobile_approach",
+    "generation": 0
+  }
+}

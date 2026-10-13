@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DesiredBaseMotion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command_id",
+    "target_id",
+    "timestamp_ns",
+    "vx_mps",
+    "vy_mps",
+    "omega_rps",
+    "expiry_ns"
+  ],
+  "properties": {
+    "command_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "target_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "timestamp_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "vx_mps": {
+      "type": "number"
+    },
+    "vy_mps": {
+      "type": "number"
+    },
+    "omega_rps": {
+      "type": "number"
+    },
+    "expiry_ns": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

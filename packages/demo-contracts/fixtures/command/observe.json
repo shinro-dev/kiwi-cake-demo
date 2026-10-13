@@ -1,0 +1,12 @@
+{
+  "contract_version": "1",
+  "command_id": "synthetic-command-0002",
+  "type": "observe",
+  "args": {
+    "holding": false
+  },
+  "client": {
+    "session_id": "synthetic-client-0001",
+    "contract_version": "1"
+  }
+}

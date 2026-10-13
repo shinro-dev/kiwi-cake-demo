@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "transaction_id": "synthetic-transaction-0001",
+  "kind": "update",
+  "phase": "previewed",
+  "committed": false,
+  "durable": false,
+  "native_events": [
+    {
+      "code": "preview_computed",
+      "text": "synthetic: affected closure is one slot"
+    }
+  ],
+  "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020"
+}

@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DemoContractsCommon",
+  "description": "Shared definitions of the operator console contract v1. This file is a definitions container: validate against one named definition (for example common#/$defs/source_stamp), never against this root.",
+  "$defs": {
+    "id": {
+      "title": "Id",
+      "description": "An opaque identifier minted by the runtime. Never a hostname, a robot id, a camera id or a device serial.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "nullable_id": {
+      "title": "NullableId",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "contract_version": {
+      "title": "ContractVersion",
+      "description": "The major version of this contract. A consumer of v1 refuses any other value instead of guessing.",
+      "type": "string",
+      "const": "1"
+    },
+    "reason_code": {
+      "title": "ReasonCode",
+      "description": "A stable machine-readable code. The human-readable sentence travels separately.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+    },
+    "nullable_reason_code": {
+      "title": "NullableReasonCode",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+    },
+    "digest": {
+      "title": "Digest",
+      "description": "A content identity: lowercase hex, 12 to 64 digits, optionally prefixed sha256:. A short identity is allowed; a path or a file name is not.",
+      "type": "string",
+      "pattern": "^(sha256:)?[0-9a-f]{12,64}$"
+    },
+    "nullable_digest": {
+      "title": "NullableDigest",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(sha256:)?[0-9a-f]{12,64}$"
+    },
+    "clock_domain": {
+      "title": "ClockDomain",
+      "description": "Which clock a timestamp or a duration was read from. Values from different domains are never subtracted from each other.",
+      "enum": [
+        "laptop_monotonic",
+        "pi_monotonic",
+        "wall_utc",
+        "unknown"
+      ]
+    },
+    "data_mode": {
+      "title": "DataMode",
+      "description": "Where the data comes from. Separate from the link state on purpose: a live view whose link dropped is still live, not replay.",
+      "enum": [
+        "live",
+        "replay",
+        "synthetic"
+      ]
+    },
+    "nullable_data_mode": {
+      "title": "NullableDataMode",
+      "description": "A data_mode that may not have been recorded. null means the record predates the field and says nothing; it is never read as live.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "common.schema.json#/$defs/data_mode"
+        }
+      ]
+    },
+    "clock_relation": {
+      "title": "ClockRelation",
+      "description": "A MEASURED relation between two clock domains, and the only thing that licenses expressing a time read in one of them in the other. Nothing produces one today: until one exists an age that would need it stays null beside the reason it could not be taken. uncertainty_ns is required and never null, because a relation that cannot state how wrong it may be does not license a subtraction either.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domains",
+        "offset_ns",
+        "uncertainty_ns",
+        "method",
+        "measured_at"
+      ],
+      "properties": {
+        "domains": {
+          "description": "The ordered pair this relation is about: offset_ns is added to a time read in the first domain to express it in the second. A consumer checks this pair against the two domains it wants to subtract before it uses the relation at all.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "common.schema.json#/$defs/clock_domain"
+          }
+        },
+        "offset_ns": {
+          "type": "integer"
+        },
+        "uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "method": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "measured_at": {
+          "$ref": "common.schema.json#/$defs/nullable_wall_utc"
+        }
+      }
+    },
+    "command_type": {
+      "title": "CommandType",
+      "enum": [
+        "start_cycle",
+        "observe",
+        "return_arm",
+        "scan_scene",
+        "manual_pan",
+        "manual_move",
+        "manual_grip",
+        "manual_base_pulse",
+        "stop"
+      ]
+    },
+    "nullable_wall_utc": {
+      "title": "NullableWallUtc",
+      "description": "UTC wall time, RFC 3339 with a Z suffix, for display only. Ordering uses seq; durations use t_mono_ns within one clock domain.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+    },
+    "safe_text": {
+      "title": "SafeText",
+      "description": "Free text for an operator's screen. The emitter sanitizes it; the schema is the tripwire: a home-directory path or a dotted-quad address fails validation.",
+      "type": "string",
+      "maxLength": 1024,
+      "not": {
+        "description": "a home-directory path or a dotted-quad address",
+        "type": "string",
+        "pattern": "/(home|Users|root)/|(^|[^0-9.])[0-9]{1,3}(\\.[0-9]{1,3}){3}([^0-9.]|$)"
+      }
+    },
+    "nullable_safe_text": {
+      "title": "NullableSafeText",
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 1024,
+      "not": {
+        "description": "a home-directory path or a dotted-quad address",
+        "type": "string",
+        "pattern": "/(home|Users|root)/|(^|[^0-9.])[0-9]{1,3}(\\.[0-9]{1,3}){3}([^0-9.]|$)"
+      }
+    },
+    "named_value": {
+      "title": "NamedValue",
+      "description": "One named scalar of a sanitized summary. A string value is restricted to a character set that cannot spell a path, a URL or an endpoint, and may not be a dotted quad.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "value",
+        "unit"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_.+ -]{0,96}$",
+          "not": {
+            "description": "a dotted-quad address",
+            "type": "string",
+            "pattern": "[0-9]{1,3}(\\.[0-9]{1,3}){3}"
+          }
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_/%.-]{1,16}$"
+        }
+      }
+    },
+    "model_identity": {
+      "title": "ModelIdentity",
+      "description": "A name for the model, such as a registry id with a revision. Never where it was loaded from: a URL, a home-directory path or an address fails validation. A relative path cannot be told from a registry id and is the emitter's to keep out.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+/-]{0,127}$",
+      "not": {
+        "description": "a URL, a home-directory path or a dotted-quad address",
+        "type": "string",
+        "pattern": "//|/(home|Users|root)/|[0-9]{1,3}(\\.[0-9]{1,3}){3}"
+      }
+    },
+    "source_stamp": {
+      "title": "SourceStamp",
+      "description": "Identifies one sample at its source: the producing session, the source's own sequence number and, when the source recorded it, the source's monotonic sample time.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session",
+        "seq",
+        "sample_mono_ns",
+        "clock_domain"
+      ],
+      "properties": {
+        "session": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sample_mono_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "clock_domain": {
+          "$ref": "common.schema.json#/$defs/clock_domain"
+        }
+      }
+    },
+    "producer": {
+      "title": "Producer",
+      "description": "Who emitted a record.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "artifact_digest",
+        "contract_version"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.+-]{1,64}$"
+        },
+        "artifact_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "contract_version": {
+          "$ref": "common.schema.json#/$defs/contract_version"
+        }
+      }
+    },
+    "provenance": {
+      "title": "Provenance",
+      "description": "What a derived value rests on. reconstructed is true when the value was derived with constants that were not recorded with the run; such a value is shown as reconstructed, never as recorded.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_ids",
+        "model_identity",
+        "calibration_digest",
+        "config_digest",
+        "module_generation",
+        "reconstructed"
+      ],
+      "properties": {
+        "observation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        },
+        "model_identity": {
+          "$ref": "common.schema.json#/$defs/model_identity"
+        },
+        "calibration_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "config_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "module_generation": {
+          "description": "Reserved for Cake: the generation of the module that produced the value. null everywhere today.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reconstructed": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

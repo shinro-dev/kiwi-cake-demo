@@ -1,0 +1,18 @@
+// Copyright 2026 Shinro SAS. Licensed under the Business Source License 1.1; see LICENSE.
+
+import { describe, expect, it } from 'vitest';
+import { screenChoiceFrom } from './screenChoice';
+
+describe('which screen the page opens on', () => {
+  it('is the simplified demo screen by default', () => {
+    expect(screenChoiceFrom('')).toBe('demo');
+    expect(screenChoiceFrom('?source=simulation&scenario=one-block')).toBe('demo');
+  });
+
+  it('is the classic screen only when the address asks for it by name', () => {
+    expect(screenChoiceFrom('?screen=classic')).toBe('classic');
+    expect(screenChoiceFrom('?source=simulation&screen=classic')).toBe('classic');
+    expect(screenChoiceFrom('?screen=CLASSIC')).toBe('demo');
+    expect(screenChoiceFrom('?screen=anything')).toBe('demo');
+  });
+});

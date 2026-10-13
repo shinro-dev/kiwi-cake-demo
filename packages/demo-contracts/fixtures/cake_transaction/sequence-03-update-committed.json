@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "transaction_id": "synthetic-transaction-0001",
+  "kind": "update",
+  "phase": "committed",
+  "committed": true,
+  "durable": false,
+  "native_events": [
+    {
+      "code": "bindings_published",
+      "text": "synthetic: binding snapshot published at epoch 8"
+    }
+  ],
+  "candidate_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020"
+}

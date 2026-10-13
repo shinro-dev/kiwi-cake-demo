@@ -1,0 +1,36 @@
+{
+  "schema": "demo-runtime-run-manifest/1",
+  "run_id": "synthetic-run-0001",
+  "command_id": "synthetic-command-0001",
+  "command_type": "start_cycle",
+  "data_mode": "synthetic",
+  "bundle_digest": "bundle-of-the-run.tar.gz",
+  "bundle_file_count": 41,
+  "source": {
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "dirty": false
+  },
+  "contract_version": "1",
+  "config_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+  "input_digests": {
+    "saved_pose_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+    "pad_template_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+  },
+  "interpreter": {
+    "implementation": "cpython",
+    "version": "3.13.1"
+  },
+  "packages": {
+    "lerobot": "0.4.0",
+    "torch": "2.6.0",
+    "transformers": "4.49.0",
+    "opencv-python-headless": "4.11.0",
+    "numpy": "2.2.3",
+    "pyzmq": "26.2.1"
+  },
+  "model": {
+    "identity": "synthetic-org/synthetic-detector",
+    "revision": "refs/pr/7",
+    "identity_withheld": false
+  }
+}

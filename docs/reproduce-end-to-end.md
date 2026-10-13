@@ -20,7 +20,7 @@ earlier operator-confirmed teleoperation from the idle-host v0.1.3 run.
 | Robot side | Raspberry Pi 5 Model B inside a LeKiwi (SO-101 arm, three wheels, two cameras, one servo controller) |
 | Pi operating system | Raspberry Pi OS based on Debian 13 (trixie), 64-bit, default kernel (16 KiB pages), glibc 2.41 |
 | Operator side | an SO-101 leader arm on an Ubuntu 24.04 laptop |
-| LeRobot | commit `b4e2d0b61017a0db646a12c98a2df3837e37a1b9` (version 0.6.1) on both machines, with the one-line clamp fix of section 4b on the Pi |
+| LeRobot | commit `b4e2d0b61017a0db646a12c98a2df3837e37a1b9` (version 0.6.1) on both machines, with the one-line clamp fix of section 4b on the Pi. That run predates the second patch section 4b now applies as well, the empty-arm guard, which this runbook's client never exercises because every action it sends carries arm positions |
 | Network | one trusted LAN; the laptop can reach TCP 5555 and 5556 on the Pi |
 | Cake | the release named in the `VERSION` file of this checkout |
 
@@ -82,20 +82,67 @@ run from that environment. One note from that run: a corrupt cached
 download made `pip` fail twice with `IncompleteRead`, and
 `pip install --no-cache-dir` got past it.
 
-Then apply the clamp fix. At this LeRobot commit, the host's
+Then apply the local changes this demo needs. The script writes four of
+them, into `src/lerobot/robots/lekiwi/lekiwi.py` and
+`src/lerobot/robots/lekiwi/config_lekiwi.py`, and touches nothing else. The
+first two are one-line changes to `LeKiwi.send_action`; the other two make
+the arm servo gains configurable and are described after them.
+
+The first is the clamp fix. At this LeRobot commit the host's
 `--robot.max_relative_target` clamp, which the child wrapper keeps for
 safety, raises on every command and the follower never moves
 (`LIMITATIONS.md`, "The stock host prompts for calibration on connect",
-second paragraph). LeRobot fixed it in commit f66e512; the script applies
-that one line to a checkout at b4e2d0b and touches nothing else:
+second paragraph). LeRobot fixed it in commit f66e512.
+
+The second is the empty-arm guard, and it is not an upstream fix at all:
+LeRobot has no commit for it, and this repository is the only place it is
+written down. Without it, a command that carries base velocities and no arm
+position reaches the motor bus with an empty dictionary; the bus raises
+before the base velocities are written, the host swallows the exception and
+keeps listening, and the watchdog stops the base with no error on either
+machine (`LIMITATIONS.md`, same section, third paragraph).
+
+The last two go together and change no behaviour at all. `configure()`
+writes three servo tracking gains to every arm motor on each connect, and
+at this commit their values are written into the code. The patch moves them
+onto three configuration fields whose defaults are those same values, so a
+patched install writes exactly what an unpatched one wrote. It is here
+because the autonomous-demo host of `docs/autonomous-demo/` reads those
+fields to check the live registers before it attaches, and on a stock
+configuration that read raises `AttributeError`. The supervised host of
+this runbook does not read them.
 
 ```
-~/kiwi-cake-demo/bin/pi/apply-lerobot-clamp-fix.sh --apply ~/lerobot
+~/kiwi-cake-demo/bin/pi/apply-lerobot-patches.sh --apply ~/lerobot
 ```
 
-Expected: `clamp-fix: applied to ...lekiwi.py`. A LeRobot checkout at or
-after f66e512 already carries the fix and the script reports `already
-applied`; such a checkout was not exercised by this demo.
+Expected on a checkout at b4e2d0b, one line per patch, each naming the file
+it wrote:
+
+```
+clamp-fix: applied to .../src/lerobot/robots/lekiwi/lekiwi.py
+empty-arm-guard: applied to .../src/lerobot/robots/lekiwi/lekiwi.py
+configurable-arm-gains-fields: applied to .../src/lerobot/robots/lekiwi/config_lekiwi.py
+configurable-arm-gains-writes: applied to .../src/lerobot/robots/lekiwi/lekiwi.py
+```
+
+The script is idempotent: run it again and every line reads `already
+applied`, and neither file is rewritten. A LeRobot checkout at or after
+f66e512 carries the clamp fix and none of the rest, so `--check` on it
+prints `clamp-fix: already applied` beside `not applied (run with --apply)`
+for the other three and exits 1, not 0, and `--apply` writes those three
+alone; such a checkout was not exercised by this demo.
+
+Both lines live only in this checkout. A later `git checkout`, `git pull`
+or reinstall of LeRobot takes them away again without saying so. The
+supervised path of this runbook does not re-check them, so after any of
+those, run the script again. The separate autonomous-demo launcher
+(`docs/autonomous-demo/robot-host-setup.md`) does re-check them: it runs
+`bin/pi/host_boundary.py --verify-robot` over the installed file before
+every host it starts, and when either line is gone it prints a `MISMATCH`
+naming it, refuses with exit status 3 and starts nothing. What the operator
+does then is run `--apply` again on the checkout that host imports and start
+again; because nothing was started, the robot is untouched.
 
 The interpreter the child wrapper needs is `~/lerobot/.venv/bin/python3`,
 as an absolute path (the supervisor gives the child no `HOME`).
@@ -331,7 +378,7 @@ robot. Read the earliest host error using [Diagnosing a run](diagnosing-a-run.md
 | `EVT_SUPERVISOR_RESTART_BOUND_REACHED` right after Beat 1 and the host never listens (`bin/telemetry.sh` shows five child exits) | the stock host's calibration prompt; or a wrapper that forwards `"$@"`; or a camera entry without `"type"`; or a wrong `by-id` path | use `bin/pi/lekiwi_host_noninteractive.py` as the host entry; keep the example's shape; run the host by hand (4d) to see its own error |
 | the host listens, then exits after about 30 seconds, and the restart bound is reached | `--host.connection_time_s` left at its default | set it to 86400 as the example does |
 | the follower never moves; by hand the host prints `ERROR:root:Message fetching failed: 'x.vel'` | the client sent arm keys only | the shipped client sends the base keys; use it |
-| the follower never moves; by hand the host prints `ERROR:root:Message fetching failed: 'arm_shoulder_pan.pos'` | the clamp defect of the pinned LeRobot commit | `bin/pi/apply-lerobot-clamp-fix.sh --apply ~/lerobot` (4b) |
+| the follower never moves; by hand the host prints `ERROR:root:Message fetching failed: 'arm_shoulder_pan.pos'` | the clamp defect of the pinned LeRobot commit | `bin/pi/apply-lerobot-patches.sh --apply ~/lerobot` (4b) |
 | the client exits with `Timeout waiting for LeKiwi Host to connect expired.` | the host is not ready, the address is wrong, a port is blocked, or observations failed | check host stderr, camera errors, listeners on TCP 5555/5556 and `<pi-ip>` |
 | the client asks to calibrate the leader, or the follower jumps at connect | the leader's id and the robot's id were swapped, or one is uncalibrated | 5c and 4d: two ids, two files |
 | a configured port is already listening, or its owner is unexpected | an existing host or another service holds a port | identify the process first; stop the appropriate service before retrying |

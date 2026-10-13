@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "seq": 4,
+  "run_id": "synthetic-run-0001",
+  "action_id": "synthetic-action-0001",
+  "observation_id": null,
+  "kind": "action.planned",
+  "producer": {
+    "name": "synthetic-fixture",
+    "version": "0.0.0",
+    "artifact_digest": null,
+    "contract_version": "1"
+  },
+  "source_session": "synthetic-session-0001",
+  "t_mono_ns": 1004000000,
+  "clock_domain": "laptop_monotonic",
+  "t_wall_utc": "2026-01-01T00:00:00Z",
+  "reason_code": null,
+  "payload": {
+    "action_type": "pan_step",
+    "plan_only": false,
+    "parameters": [
+      {
+        "name": "deg",
+        "value": -3.5,
+        "unit": "deg"
+      }
+    ]
+  },
+  "provenance": null
+}

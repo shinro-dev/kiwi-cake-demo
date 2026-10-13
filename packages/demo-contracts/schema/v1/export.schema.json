@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DemoContractsExport",
+  "description": "The index of a run bundle a console can hand to somebody else. This file is a definitions container: validate against export#/$defs/run_export_index, never against this root. An export is built from what the runtime already keeps and packages nothing new: the run's manifest, the ordered records of that one run, the decision frames those records reference, and bounded summaries. It is READ-ONLY and it is BOUNDED: no raw preview video, no unbounded telemetry, and a size bound stated on the index itself. An image or a summary that could not be included is a STATED GAP on this index, never a failed export and never a silent omission.",
+  "$defs": {
+    "run_export_index": {
+      "title": "RunExportIndex",
+      "description": "What one exported run contains. records.count is how many records the export carries and first_seq and last_seq bound them in the producing runtime's own stream; source_sessions names every producer session those records came from, because a run's records can cross a restart and a reader must not assume one session. gaps says what is missing and why, in the same vocabulary the run's own evidence gaps use.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "contract_version",
+        "run_id",
+        "manifest",
+        "records",
+        "images",
+        "summaries",
+        "gaps",
+        "size_bytes",
+        "size_limit_bytes"
+      ],
+      "properties": {
+        "schema": {
+          "description": "What this document is, so a file found on its own says so.",
+          "type": "string",
+          "const": "demo-runtime-run-export/1"
+        },
+        "contract_version": {
+          "$ref": "common.schema.json#/$defs/contract_version"
+        },
+        "run_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "manifest": {
+          "$ref": "manifest.schema.json"
+        },
+        "records": {
+          "$ref": "#/$defs/exported_records"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/exported_image"
+          }
+        },
+        "summaries": {
+          "$ref": "#/$defs/exported_summaries"
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "$ref": "event.schema.json#/$defs/payload_evidence_gap"
+          }
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "size_limit_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "exported_records": {
+      "title": "ExportedRecords",
+      "description": "The ordered records of one run. first_seq and last_seq are the producing runtime's own sequence numbers and are null for an export that carries no record at all.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "first_seq",
+        "last_seq",
+        "source_sessions"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "last_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_sessions": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/id"
+          }
+        }
+      }
+    },
+    "exported_image": {
+      "title": "ExportedImage",
+      "description": "One decision frame an exported record refers to. content_digest is the identity of the pixels as they were RECORDED, so a reader can tell that the picture in the export is the one the decision was taken on. included false with a reason is how a frame the store could no longer resolve is reported: the export still names it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "content_digest",
+        "width_px",
+        "height_px",
+        "included",
+        "reason_code"
+      ],
+      "properties": {
+        "observation_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "content_digest": {
+          "$ref": "common.schema.json#/$defs/nullable_digest"
+        },
+        "width_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "height_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "included": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "$ref": "common.schema.json#/$defs/nullable_reason_code"
+        }
+      }
+    },
+    "exported_summaries": {
+      "title": "ExportedSummaries",
+      "description": "The bounded summaries an export carries instead of the streams they were computed from. Every count is the run's own, and null means it was not established rather than zero. cake_continuity is the Cake continuity object as it stood for this run, or null when nothing measured one.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_complete",
+        "evidence_gaps",
+        "dropped_telemetry",
+        "cake_continuity"
+      ],
+      "properties": {
+        "evidence_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence_gaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "dropped_telemetry": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cake_continuity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "cake.schema.json#/$defs/continuity"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

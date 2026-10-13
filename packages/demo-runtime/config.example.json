@@ -1,0 +1,25 @@
+{
+  "data_root": "~/kiwi-cake-demo-data",
+  "saved_pose_file": "calibration/scan-home-current.json",
+  "pad_template_dir": "calibration/pad-template",
+  "observation_root": "observations",
+  "host": {
+    "address": "192.0.2.10",
+    "robot_id": "example-robot",
+    "cmd_port": 5555,
+    "obs_port": 5556
+  },
+  "pi_ssh_target": "example-user@192.0.2.10",
+  "cameras": {
+    "wrist_id": "example-camera-id",
+    "front_id": null
+  },
+  "model": {
+    "identity": "google/owlv2-base-patch16-ensemble",
+    "revision": null
+  },
+  "capture_provider": "legacy_per_capture",
+  "freshness_refusal_enabled": false,
+  "tap": null,
+  "execution_backend": "baseline_normal_host"
+}

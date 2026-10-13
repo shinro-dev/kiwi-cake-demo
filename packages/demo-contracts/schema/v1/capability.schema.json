@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Capability",
+  "description": "One thing the console may offer, and why not when it may not. disabled and blocked always carry a reason_code. planned is true for a capability that does not exist yet; such a capability is never enabled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "state",
+    "reason_code",
+    "reason",
+    "dependency",
+    "planned"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "state": {
+      "enum": [
+        "enabled",
+        "disabled",
+        "blocked",
+        "unknown"
+      ]
+    },
+    "reason_code": {
+      "$ref": "common.schema.json#/$defs/nullable_reason_code"
+    },
+    "reason": {
+      "$ref": "common.schema.json#/$defs/nullable_safe_text"
+    },
+    "dependency": {
+      "$ref": "common.schema.json#/$defs/nullable_id"
+    },
+    "planned": {
+      "type": "boolean"
+    }
+  },
+  "if": {
+    "properties": {
+      "state": {
+        "enum": [
+          "disabled",
+          "blocked"
+        ]
+      }
+    },
+    "required": [
+      "state"
+    ]
+  },
+  "then": {
+    "properties": {
+      "reason_code": {
+        "description": "a reason_code, required when state is disabled or blocked",
+        "type": "string"
+      }
+    }
+  },
+  "not": {
+    "description": "a planned capability that is enabled",
+    "properties": {
+      "planned": {
+        "const": true
+      },
+      "state": {
+        "const": "enabled"
+      }
+    },
+    "required": [
+      "planned",
+      "state"
+    ]
+  }
+}
